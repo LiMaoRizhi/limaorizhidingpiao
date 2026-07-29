@@ -241,7 +241,9 @@ Copyright © 2024 狸猫日志. All rights reserved.
 
 ## 有问题?
 
-提Issue或者邮件联系都行。
+提Issue或者联系我都行:
+- 微信: lihao68681818
+- 邮箱: weizhiahao@163.com
 
 ## 感谢
 
