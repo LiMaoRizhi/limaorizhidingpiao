@@ -13,31 +13,27 @@
 
 ## 界面预览
 
-### 微信小程序
+### 微信小程序 - 乘客端
 
 <table>
   <tr>
-    <td><img src="screenshots/screenshot-2.png" width="200"/></td>
-    <td><img src="screenshots/screenshot-6.png" width="200"/></td>
-    <td><img src="screenshots/screenshot-3.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-2.png" width="200"/><br/>首页</td>
+    <td><img src="screenshots/screenshot-6.png" width="200"/><br/>选座购票(上)</td>
+    <td><img src="screenshots/screenshot-4.png" width="200"/><br/>选座购票(下)</td>
   </tr>
   <tr>
-    <td align="center">首页</td>
-    <td align="center">选座购票</td>
-    <td align="center">订单列表</td>
+    <td><img src="screenshots/screenshot-3.png" width="200"/><br/>订单列表</td>
+    <td><img src="screenshots/screenshot-16.png" width="200"/><br/>车辆追踪</td>
+    <td><img src="screenshots/screenshot-5.png" width="200"/><br/>个人中心</td>
   </tr>
 </table>
 
+### 微信小程序 - 司机端
+
 <table>
   <tr>
-    <td><img src="screenshots/screenshot-16.png" width="200"/></td>
-    <td><img src="screenshots/screenshot-5.png" width="200"/></td>
-    <td><img src="screenshots/screenshot-7.png" width="200"/></td>
-  </tr>
-  <tr>
-    <td align="center">车辆追踪</td>
-    <td align="center">个人中心</td>
-    <td align="center">司机端</td>
+    <td><img src="screenshots/screenshot-7.png" width="200"/><br/>司机端上半部分</td>
+    <td><img src="screenshots/screenshot-1.png" width="200"/><br/>司机端下半部分</td>
   </tr>
 </table>
 
@@ -45,31 +41,31 @@
 
 <table>
   <tr>
-    <td><img src="screenshots/screenshot-13.png" width="400"/></td>
-    <td><img src="screenshots/screenshot-11.png" width="400"/></td>
+    <td><img src="screenshots/screenshot-13.png" width="400"/><br/>登录页面</td>
+    <td><img src="screenshots/screenshot-9.png" width="400"/><br/>安全验证</td>
   </tr>
   <tr>
-    <td align="center">登录页面</td>
-    <td align="center">数据看板</td>
+    <td><img src="screenshots/screenshot-11.png" width="400"/><br/>数据看板</td>
+    <td><img src="screenshots/screenshot-8.png" width="400"/><br/>售票线路管理</td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/screenshot-14.png" width="400"/><br/>订单管理</td>
+    <td><img src="screenshots/screenshot-17.png" width="400"/><br/>轨迹页</td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/screenshot-15.png" width="400"/><br/>设置页面</td>
+    <td></td>
   </tr>
 </table>
+
+### 特色功能 - 3D效果
 
 <table>
   <tr>
-    <td><img src="screenshots/screenshot-14.png" width="400"/></td>
-    <td><img src="screenshots/screenshot-15.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center">订单管理</td>
-    <td align="center">系统设置</td>
+    <td><img src="screenshots/screenshot-10.png" width="400"/><br/>小票订单3D旋转</td>
+    <td><img src="screenshots/screenshot-12.png" width="400"/><br/>3D旋转(安卓)</td>
   </tr>
 </table>
-
-### 3D效果展示
-
-<img src="screenshots/screenshot-10.png" width="600"/>
-
-*电子票3D旋转展示效果*
 
 ---
 
@@ -297,7 +293,7 @@ chmod +x start.sh
 
 ## License
 
-Copyright © 2024 狸猫日志. All rights reserved.
+Copyright © 2026 狸猫日志. All rights reserved.
 
 这是商业软件,别随便拿去商用哈。
 
