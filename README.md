@@ -11,6 +11,68 @@
 - 管理端:Web后台管理所有业务
 - 服务端:Go写的API,处理所有业务逻辑
 
+## 界面预览
+
+### 微信小程序
+
+<table>
+  <tr>
+    <td><img src="screenshots/小程序用户首页.png" width="200"/></td>
+    <td><img src="screenshots/小程序用户选座页上半部分.png" width="200"/></td>
+    <td><img src="screenshots/小程序用户订单页.png" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center">首页</td>
+    <td align="center">选座购票</td>
+    <td align="center">订单列表</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><img src="screenshots/小程序用户轨迹页.png" width="200"/></td>
+    <td><img src="screenshots/小程序用户我的页.png" width="200"/></td>
+    <td><img src="screenshots/小程序司机端首页.png" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center">车辆追踪</td>
+    <td align="center">个人中心</td>
+    <td align="center">司机端</td>
+  </tr>
+</table>
+
+### 管理后台
+
+<table>
+  <tr>
+    <td><img src="screenshots/管理员登录页.png" width="400"/></td>
+    <td><img src="screenshots/管理员首页.png" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center">登录页面</td>
+    <td align="center">数据看板</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><img src="screenshots/管理员订单页.png" width="400"/></td>
+    <td><img src="screenshots/管理员设置页面.png" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center">订单管理</td>
+    <td align="center">系统设置</td>
+  </tr>
+</table>
+
+### 3D效果展示
+
+<img src="screenshots/管理员小票订单3D旋转.gif" width="600"/>
+
+*电子票3D旋转展示效果*
+
+---
+
 ## 主要功能
 
 ### 微信小程序(乘客用)
