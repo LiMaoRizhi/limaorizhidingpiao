@@ -1,0 +1,16 @@
+<!--协议政策页-->
+<navigation-bar title="{{title}}" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="agreement-page">
+  <scroll-view scroll-y class="agreement-scroll">
+    <view wx:if="{{loading}}" class="loading-box">
+      <text>加载中...</text>
+    </view>
+    <view wx:elif="{{content}}" class="agreement-content">
+      <text>{{content}}</text>
+    </view>
+    <view wx:else class="empty-box">
+      <text>暂无内容</text>
+    </view>
+  </scroll-view>
+</view>

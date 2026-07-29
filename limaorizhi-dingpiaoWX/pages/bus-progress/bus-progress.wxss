@@ -1,0 +1,343 @@
+/* limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声 */
+/* 到站进度页面样式：圆圈颜色 黑色=已过 蓝色=当前位置 白色=未到达 */
+
+page {
+  background: #f5f6f8;
+}
+
+.page-content {
+  padding: 12px 16px 40px;
+}
+
+/* ==================== 地图区域 ==================== */
+.map-card {
+  margin-bottom: 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.no-gps-card {
+  background: #f8f8f8;
+  border: 1px solid #e8e8e8;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bus-icon-large {
+  width: 32px;
+  height: 32px;
+  opacity: 0.4;
+}
+
+.no-gps-text {
+  font-size: 13px;
+  color: #999;
+}
+
+/* ==================== 路线头部卡片内嵌状态 ==================== */
+.summary-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  flex-shrink: 0;
+}
+
+.status-dot.active {
+  background: #34c759;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-dot.inactive {
+  background: #ccc;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.speed-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.update-text {
+  font-size: 12px;
+  color: #999;
+}
+
+.nav-btn {
+  font-size: 13px;
+  color: #fff;
+  background: #1296db;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ==================== 路线头部卡片 ==================== */
+.route-header {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 10px;
+}
+
+.route-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.route-bus-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.route-from,
+.route-to {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.route-arrow {
+  font-size: 20px;
+  color: #1296db;
+}
+
+.route-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.meta-date {
+  font-size: 13px;
+  color: #8a8a8a;
+}
+
+.meta-plate {
+  font-size: 13px;
+  color: #1296db;
+  font-weight: 500;
+}
+
+/* 进度摘要 */
+.progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-num-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.summary-num {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.num-active {
+  color: #1296db;
+}
+
+.num-idle {
+  color: #1a1a1a;
+}
+
+.summary-sep {
+  font-size: 16px;
+  color: #ccc;
+}
+
+.summary-total {
+  font-size: 16px;
+  color: #8a8a8a;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #8a8a8a;
+}
+
+/* ==================== 站点垂直时间线 ==================== */
+.timeline-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-item {
+  display: flex;
+  flex-direction: row;
+  min-height: 56px;
+}
+
+/* 左侧圆圈+连线区域 */
+.tl-left {
+  width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 圆圈基础样式 */
+.tl-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+/* 已过站 — 黑色实心圆 */
+.tl-circle-passed {
+  background: #1a1a1a;
+  border: 3px solid #1a1a1a;
+}
+
+/* 当前位置 — 蓝色实心圆（带光晕） */
+.tl-circle-current {
+  background: #1296db;
+  border: 3px solid #1296db;
+  box-shadow: 0 0 0 4px rgba(18, 150, 219, 0.2);
+}
+
+/* 未到达 — 白色空心圆（黑边） */
+.tl-circle-future {
+  background: #fff;
+  border: 3px solid #1a1a1a;
+}
+
+/* 连接线 */
+.tl-line {
+  flex: 1;
+  width: 2px;
+  margin-top: 2px;
+  min-height: 24px;
+}
+
+/* 已过线段 — 黑色 */
+.tl-line-on {
+  background: #1a1a1a;
+}
+
+/* 未过线段 — 透明黑 */
+.tl-line-off {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 右侧站点信息 */
+.tl-right {
+  flex: 1;
+  padding: 0 0 12px 12px;
+}
+
+.tl-station-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tl-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #c0c0c0;
+}
+
+.tl-name-active {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.tl-tag {
+  font-size: 11px;
+  color: #fff;
+  background: #1296db;
+  border-radius: 4px;
+  padding: 2px 8px;
+  line-height: 1.4;
+}
+
+.tl-time-row {
+  margin-top: 2px;
+}
+
+.tl-time {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+/* 加载中 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+  color: #8a8a8a;
+  font-size: 14px;
+}
+
+/* 加载失败 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+}
+
+.error-icon {
+  width: 56px;
+  height: 56px;
+  opacity: 0.3;
+}
+
+.error-text {
+  font-size: 14px;
+  color: #8a8a8a;
+}
+
+.retry-btn {
+  font-size: 14px;
+  color: #fff;
+  background: #1296db;
+  padding: 8px 28px;
+  border-radius: 20px;
+  font-weight: 500;
+}

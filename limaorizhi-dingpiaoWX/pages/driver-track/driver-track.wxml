@@ -1,0 +1,116 @@
+<!--司机端行程追踪（全局定位，页面切换不影响定位持续运行）-->
+<navigation-bar title="行程追踪" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="page-content">
+
+  <!-- 班次信息卡片 -->
+  <view class="trip-card" wx:if="{{trip}}">
+    <view class="trip-route">
+      <text class="trip-from">{{trip.fromName}}</text>
+      <view class="trip-arrow">
+        <view class="arrow-line"></view>
+        <image class="arrow-icon-img" src="/images/icons/route-arrow.svg" />
+        <view class="arrow-line"></view>
+      </view>
+      <text class="trip-to">{{trip.toName}}</text>
+    </view>
+    <view class="trip-info">
+      <view class="info-item">
+        <text class="info-label">发车日期</text>
+        <text class="info-value">{{trip.trip_date}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">发车时间</text>
+        <text class="info-value">{{trip.departure_time}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">车牌号</text>
+        <text class="info-value">{{trip.vehicle.plate_no || '-'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 定位状态卡片 -->
+  <view class="status-card">
+    <view class="status-header">
+      <view class="status-dot {{trackError ? 'error' : (isTracking ? 'active' : '')}}"></view>
+      <text class="status-text" style="{{trackError ? 'color:#ff3b30;' : ''}}">{{statusText}}</text>
+    </view>
+
+    <view class="status-info" wx:if="{{isTracking}}">
+      <view class="info-row">
+        <text class="row-label">上报次数</text>
+        <text class="row-value">{{reportCount}} 次</text>
+      </view>
+      <view class="info-row">
+        <text class="row-label">运行状态</text>
+        <text class="row-value" style="color: #34c759;">后台持续定位中</text>
+      </view>
+      <view class="info-row" wx:if="{{lastLocation}}">
+        <text class="row-label">当前经度</text>
+        <text class="row-value">{{lastLocation.longitude}}</text>
+      </view>
+      <view class="info-row" wx:if="{{lastLocation}}">
+        <text class="row-label">当前纬度</text>
+        <text class="row-value">{{lastLocation.latitude}}</text>
+      </view>
+      <view class="info-row" wx:if="{{lastLocation && lastLocation.speed}}">
+        <text class="row-label">当前速度</text>
+        <text class="row-value">{{lastLocation.speed}} m/s</text>
+      </view>
+    </view>
+
+    <view class="status-tip" wx:if="{{!isTracking}}">
+      <text>点击下方"开始行程"按钮，系统将自动获取GPS位置并持续上报。开始后可返回核销页面操作扫码核销，定位不会中断。</text>
+    </view>
+  </view>
+
+  <!-- 站点序列卡片（发车后显示） -->
+  <view class="station-card" wx:if="{{routeStations.length > 0 && isTracking}}">
+    <view class="station-card-header">
+      <text class="station-card-title">站点序列</text>
+      <text class="station-card-hint">到站后点击按钮标记过站</text>
+    </view>
+    <view class="station-list">
+      <view class="station-item {{item.stop_order <= currentPassedOrder ? 'is-marked' : ''}} {{item.stop_order == currentPassedOrder + 1 ? 'is-next' : ''}}"
+            wx:for="{{routeStations}}" wx:key="station_id">
+        <!-- 药丸形序号徽章：未标记=灰色，已标记=黑色 -->
+        <view class="station-pill {{item.stop_order <= currentPassedOrder ? 'pill-marked' : ''}}">{{item.stop_order}}</view>
+        <view class="station-info">
+          <text class="station-name">{{item.station.name}}</text>
+          <text class="station-time" wx:if="{{item.arrival_text}}">到达 {{item.arrival_text}}</text>
+        </view>
+        <!-- 操作区 -->
+        <view class="station-btn-area">
+          <view wx:if="{{item.stop_order <= currentPassedOrder}}" class="station-done">
+            <text class="done-check">✓</text>
+            <text class="done-text">已过站</text>
+          </view>
+          <view wx:elif="{{item.stop_order == currentPassedOrder + 1}}"
+                class="station-btn btn-active"
+                data-order="{{item.stop_order}}"
+                catchtap="handleMarkStation">
+            标记过站
+          </view>
+          <view wx:else class="station-btn btn-locked">
+            待标记
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="station-reset" wx:if="{{currentPassedOrder > 0}}" bindtap="handleResetStation">
+      重置过站标记
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="btn-area">
+    <button class="btn-primary" wx:if="{{!isTracking}}" bindtap="handleStart" loading="{{startBtnLoading}}" disabled="{{startBtnLoading}}">
+      开始行程
+    </button>
+    <button class="btn-danger" wx:if="{{isTracking}}" bindtap="handleStop">
+      结束行程
+    </button>
+  </view>
+
+</view>

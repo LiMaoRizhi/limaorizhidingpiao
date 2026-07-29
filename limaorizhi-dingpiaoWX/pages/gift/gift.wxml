@@ -1,0 +1,104 @@
+<!-- 惊喜礼包页面 -->
+<navigation-bar title="惊喜礼包" back="{{true}}" />
+
+<view class="gift-page">
+
+  <!-- 主标签栏 -->
+  <view class="main-tabs">
+    <view 
+      wx:for="{{tabs}}" 
+      wx:key="index" 
+      class="main-tab {{activeTab === index ? 'active' : ''}}" 
+      data-index="{{index}}" 
+      bindtap="onMainTabTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- ========== 优惠券 ========== -->
+  <block wx:if="{{activeTab === 0}}">
+    <!-- 优惠券子标签 -->
+    <view class="sub-tabs">
+      <view 
+        wx:for="{{couponTabs}}" 
+        wx:key="index" 
+        class="sub-tab {{couponTab === index ? 'active' : ''}}" 
+        data-index="{{index}}" 
+        bindtap="onCouponTabTap"
+      >
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+
+    <!-- 优惠券列表 -->
+    <view class="coupon-list" wx:if="{{couponList.length > 0}}">
+      <view class="coupon-item" wx:for="{{couponList}}" wx:key="id" wx:for-item="coupon">
+        <view class="coupon-left">
+          <text class="coupon-value">{{coupon.discount_text}}</text>
+          <text class="coupon-desc">{{coupon.desc}}</text>
+        </view>
+        <view class="coupon-right">
+          <text class="coupon-label">{{coupon.type === 1 ? '满减券' : coupon.type === 2 ? '折扣券' : '抵用券'}}</text>
+          <text class="coupon-name">{{coupon.name}}</text>
+          <text class="coupon-expire">有效期至 {{coupon.expired_at}}</text>
+        </view>
+        <view class="coupon-status {{couponTab === 0 ? 'usable' : couponTab === 1 ? 'used' : 'expired'}}">
+          <text wx:if="{{couponTab === 0}}" bindtap="goUse">去使用</text>
+          <text wx:elif="{{couponTab === 1}}">已使用</text>
+          <text wx:else>已过期</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{couponList.length === 0}}">
+      <image class="empty-icon" src="/images/icons/coupon-ticket.svg" />
+      <text class="empty-text">暂无{{couponTabs[couponTab].name}}优惠券</text>
+      <view class="empty-btn" wx:if="{{couponTab === 0}}" bindtap="goUse">去领券</view>
+    </view>
+  </block>
+
+  <!-- ========== 积分 ========== -->
+  <block wx:if="{{activeTab === 1}}">
+    <!-- 积分卡片 -->
+    <view class="points-card">
+      <image class="gift-icon" src="/images/icons/points.svg" />
+      <view class="points-info">
+        <text class="points-label">我的积分</text>
+        <text class="points-value">{{pointsBalance}}</text>
+        <text class="points-desc">消费产生积分，积分可兑换权益</text>
+      </view>
+    </view>
+
+    <!-- 积分明细 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">积分明细</text>
+      </view>
+      <view class="record-list" wx:if="{{pointRecords.length > 0}}">
+        <view class="record-item" wx:for="{{pointRecords}}" wx:key="id" wx:for-item="record">
+          <view class="record-left">
+            <text class="record-remark">{{record.remark}}</text>
+            <text class="record-date">{{record.dateText}}</text>
+          </view>
+          <text class="record-points {{record.change_type === 1 ? 'plus' : 'minus'}}">
+            {{record.change_type === 1 ? '+' : '-'}}{{record.points}}
+          </text>
+        </view>
+      </view>
+      <view class="empty-state" wx:else>
+        <text>暂无积分记录</text>
+      </view>
+    </view>
+
+    <!-- 积分说明 -->
+    <view class="points-tips">
+      <text class="tips-title">积分说明</text>
+      <text class="tips-text">1. 购票消费后自动产生积分，每消费1元获得相应积分</text>
+      <text class="tips-text">2. 积分可用于兑换优惠券等权益</text>
+      <text class="tips-text">3. 退款订单将扣除对应积分</text>
+    </view>
+  </block>
+
+</view>

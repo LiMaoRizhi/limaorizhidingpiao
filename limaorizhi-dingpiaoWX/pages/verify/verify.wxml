@@ -1,0 +1,115 @@
+<!-- limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声 -->
+<navigation-bar title="司机核销" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="verify-page">
+  <!-- 未登录：显示登录表单 -->
+  <view class="login-box" wx:if="{{!isLogin}}">
+    <view class="login-logo">狸猫日志售票</view>
+    <view class="login-subtitle">司机核销系统</view>
+    <view class="form-item">
+      <input class="input {{focusedField === 'phone' ? 'input--focus' : ''}}" type="number" placeholder="手机号" value="{{phone}}" bindinput="onPhoneInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" data-field="phone" always-embed="{{true}}" />
+    </view>
+    <view class="form-item">
+      <input class="input {{focusedField === 'password' ? 'input--focus' : ''}}" password placeholder="密码" value="{{password}}" bindinput="onPasswordInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" data-field="password" always-embed="{{true}}" />
+    </view>
+    <button class="login-btn" loading="{{loginLoading}}" bindtap="handleLogin">登录</button>
+  </view>
+
+  <!-- 已登录：显示班次列表 -->
+  <view class="trip-list" wx:else>
+    <view class="header">
+      <text class="header-title">今日班次</text>
+      <text class="header-name">{{driverName}}</text>
+      <view class="header-logout" bindtap="handleLogout">
+        <image class="logout-icon" src="/images/icons/logout.svg" mode="aspectFit" />
+        <text>退出</text>
+      </view>
+    </view>
+
+    <!-- 无班次 -->
+    <view class="empty" wx:if="{{trips.length === 0}}">
+      <text>今天没有分配给您的班次</text>
+    </view>
+
+    <!-- 班次列表 -->
+    <view class="trip-card" wx:for="{{trips}}" wx:key="id" data-id="{{item.id}}" bindtap="showTripDetail">
+      <view class="trip-header">
+        <text class="trip-no">{{item.trip_no}}</text>
+        <text class="trip-date">{{item.trip_date}}</text>
+      </view>
+      <view class="trip-route">
+        <text class="trip-route-text">{{item.route.from_station.name}} → {{item.route.to_station.name}}</text>
+        <button class="scan-btn" data-id="{{item.id}}" catchtap="handleScan">
+          <image class="btn-icon" src="/images/icons/scan-verify.svg" mode="aspectFit" />
+          <text>扫码核销</text>
+        </button>
+      </view>
+      <view class="trip-info">
+        <text>{{item.departure_time}} 发车</text>
+        <text wx:if="{{item.arrival_text}}">{{item.arrival_text}} 到达</text>
+        <text>{{item.vehicle.plate_no}}</text>
+      </view>
+      <view class="trip-actions-sub">
+        <button class="manual-btn" data-id="{{item.id}}" catchtap="showManualInput">
+          <image class="btn-icon" src="/images/icons/manual-verify.svg" mode="aspectFit" />
+          <text>手动输入</text>
+        </button>
+        <button class="track-start-btn" data-id="{{item.id}}" catchtap="handleStartTrack">
+          <image class="btn-icon" src="/images/icons/start-trip.svg" mode="aspectFit" />
+          <text>开始行程</text>
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 手动输入弹窗 -->
+  <view class="modal-mask" wx:if="{{showManual}}" bindtap="closeManual" catchtouchmove="noop">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-title">输入订单号核销</view>
+      <input class="modal-input" placeholder="请输入订单号" value="{{manualOrderNo}}" bindinput="onManualInput" always-embed="{{true}}" adjust-position="{{true}}" cursor-spacing="80" />
+      <view class="modal-actions">
+        <button class="modal-cancel" bindtap="closeManual">取消</button>
+        <button class="modal-confirm" loading="{{verifyLoading}}" bindtap="handleManualVerify">核销</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 核销结果弹窗 -->
+  <view class="modal-mask" wx:if="{{showResult}}" bindtap="closeResult">
+    <view class="modal-content result-content" catchtap="">
+      <view class="result-icon {{resultType}}">{{resultIcon}}</view>
+      <view class="result-title">{{resultTitle}}</view>
+      <view class="result-detail" wx:if="{{verifyResult}}">
+        <view class="result-row"><text>订单号</text><text>{{verifyResult.order_no}}</text></view>
+        <view class="result-row"><text>人数</text><text>{{verifyResult.passenger_count}}人</text></view>
+        <view class="result-row" wx:for="{{verifyResult.passengers}}" wx:key="id">
+          <text>{{item.name}}</text>
+          <text>{{item.seat_no ? item.seat_no + '座' : '无座'}}</text>
+        </view>
+      </view>
+      <button class="modal-confirm" bindtap="closeResult">确定</button>
+    </view>
+  </view>
+
+  <!-- 乘客名单弹窗 -->
+  <view class="modal-mask" wx:if="{{showPassengers}}" bindtap="closePassengerDialog">
+    <view class="modal-content passenger-content" catchtap="">
+      <view class="modal-title">乘客名单 ({{passengerStats.checked}}/{{passengerStats.total}})</view>
+      <scroll-view scroll-y class="passenger-scroll">
+        <view class="passenger-row" wx:for="{{passengerList}}" wx:key="id">
+          <view class="passenger-left">
+            <text class="passenger-name">{{item.name}}</text>
+            <text class="passenger-seat">{{item.seat_no ? item.seat_no + '座' : '无座'}}</text>
+            <text class="passenger-check {{item.check_status === 1 ? 'is-checked' : 'not-checked'}}">{{item.check_status === 1 ? '✓' : '○'}}</text>
+          </view>
+          <view class="passenger-phone-area" bindtap="callPassenger" data-phone="{{item.phone}}">
+            <text class="passenger-phone">{{item.phone || '无电话'}}</text>
+            <text class="call-icon" wx:if="{{item.phone}}">拨号</text>
+          </view>
+        </view>
+        <view class="passenger-empty" wx:if="{{passengerList.length === 0}}">暂无乘客</view>
+      </scroll-view>
+      <button class="modal-confirm" bindtap="closePassengerDialog">关闭</button>
+    </view>
+  </view>
+</view>

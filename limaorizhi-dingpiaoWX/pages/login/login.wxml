@@ -1,0 +1,24 @@
+<!--登录页-->
+<navigation-bar title="登录" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="login-page">
+  <view class="login-logo">狸猫日志售票</view>
+  <view class="login-subtitle">便捷出行 · 安全购票</view>
+
+  <!-- 协议勾选区：放在按钮上方，引导用户先阅读同意再登录 -->
+  <view class="login-tips">
+    <view class="agreement-row" catchtap="toggleAgreement">
+      <view class="checkbox {{agreed ? 'checked' : ''}}"></view>
+      <text class="agreement-text">我已阅读并同意</text>
+      <text class="agreement-link" catchtap="goAgreement" data-type="user_agreement">《用户协议》</text>
+      <text class="agreement-text">和</text>
+      <text class="agreement-link" catchtap="goAgreement" data-type="privacy_policy">《隐私政策》</text>
+    </view>
+    <view class="login-hint" wx:if="{{!agreed}}">请先勾选同意后可登录</view>
+  </view>
+
+  <!-- 未勾选协议时：按钮可点击但只提示，不会弹出手机号授权框 -->
+  <view wx:if="{{!agreed}}" class="login-btn login-btn-disabled" bindtap="onLoginTap">微信手机号登录</view>
+  <!-- 已勾选协议后：真正的微信手机号登录按钮 -->
+  <button wx:else class="login-btn" loading="{{loginLoading}}" open-type="getPhoneNumber" bindgetphonenumber="handleLogin">微信手机号登录</button>
+</view>

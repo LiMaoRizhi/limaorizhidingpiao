@@ -1,0 +1,295 @@
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f5f6f8;
+}
+
+.scrollarea {
+  flex: 1;
+  height: 0;
+}
+
+.page-content {
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+/* 用户信息卡片 */
+.user-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 14px 16px;
+  padding: 24px 20px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.user-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+.avatar-img {
+  width: 40px;
+  height: 40px;
+}
+
+/* 真实头像：绝对定位填满圆形容器，避免 flex 下 100% 高度塌陷 */
+.avatar-img-real {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.user-info {
+  flex: 1;
+  margin-left: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.user-phone {
+  font-size: 15px;
+  color: #999;
+  margin-top: 6px;
+}
+
+.user-phone-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.phone-eye-icon {
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+}
+
+.user-arrow {
+  font-size: 24px;
+  color: #ccc;
+}
+
+/* 退出登录 */
+.logout-section {
+  margin: 20px 16px 30px;
+  padding: 0 20px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.logout-btn {
+  height: 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #1a1a1a;
+}
+
+.logout-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+}
+
+/* F2: 注销账号链接 */
+.delete-account-link {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  padding: 12px 0 16px;
+  border-top: 0.5px solid #f0f0f0;
+}
+
+/* 我的订单 */
+.order-section {
+  margin: 0 16px 14px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.order-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.order-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.order-more {
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.order-grid {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.order-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.order-icon-wrap {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-icon {
+  width: 38px;
+  height: 38px;
+}
+
+/* 订单图标尺寸微调：各SVG内容占比不同，按内容视觉大小统一 */
+.icon-pay { width: 40px; height: 40px; }
+.icon-travel { width: 38px; height: 38px; }
+.icon-done { width: 38px; height: 38px; }
+.icon-refund { width: 38px; height: 38px; }
+
+.order-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  color: #fff;
+  background: #ff3b30;
+  border-radius: 9px;
+  padding: 0 4px;
+}
+
+.order-text {
+  font-size: 14px;
+  color: #1a1a1a;
+  margin-top: 8px;
+}
+
+/* 功能菜单 */
+.menu-section {
+  margin: 0 16px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* 列表布局（上下排列） */
+.menu-list .menu-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 0.5px solid #f0f0f0;
+  position: relative;
+}
+.menu-list .menu-item:last-child {
+  border-bottom: none;
+}
+
+/* 网格布局（一排三个） */
+.menu-grid {
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.menu-grid .menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 12px;
+  position: relative;
+}
+
+button.menu-item {
+  margin: 0;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: normal;
+}
+
+button.menu-item::after {
+  border: none;
+}
+
+/* 列表布局图标/名称/箭头 */
+.menu-list .menu-icon-img {
+  width: 38px;
+  height: 38px;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+.menu-list .menu-name {
+  flex: 1;
+  font-size: 17px;
+  color: #1a1a1a;
+}
+.menu-list .menu-arrow {
+  font-size: 22px;
+  color: #1a1a1a;
+}
+
+/* 网格布局图标/名称 */
+.menu-grid .menu-icon-img {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.menu-grid .menu-name {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+/* 微信客服图标（button元素）与普通图标保持一致 */
+.menu-list button.menu-item .menu-icon-img {
+  width: 38px;
+  height: 38px;
+}
+.menu-grid button.menu-item .menu-icon-img {
+  width: 46px;
+  height: 46px;
+}

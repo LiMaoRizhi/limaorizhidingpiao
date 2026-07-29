@@ -1,0 +1,83 @@
+﻿# limaorizhi-server 配置文件  狸猫日志  联系微信：lihao68681818
+# 密钥密码别明文写配置里 用环境变量注入 出了事别找我
+
+server:
+  port: 8181
+  mode: debug  # debug调试 release生产
+  trusted_proxies: ""  # 反代nginx的IP 不填=不信任何代理 防X-Forwarded-For伪造
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: limaorizhi_dingpiao
+  username: root
+  password: ""  # 环境变量MYSQL_PASSWORD 别明文写
+  max_open_conns: 20
+  max_idle_conns: 10
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  admin_secret: ""   # 环境变量JWT_ADMIN_SECRET 32字节随机
+  admin_expire: 7200       # 管理端2小时
+  wx_secret: ""       # 环境变量JWT_WX_SECRET
+  driver_secret: "" # 环境变量JWT_DRIVER_SECRET
+  wx_expire: 604800        # 小程序7天
+  driver_expire: 604800     # 司机7天
+
+wechat:
+  appid: ""
+  secret: ""
+  mch_id: ""
+
+  # APIv3字段 微信支付必须配这几个 不配退款下不了单
+  apiv3_key: ""  # 环境变量WECHAT_API_V3_KEY 回调解密用
+  mch_serial_no: ""  # 环境变量WECHAT_MCH_SERIAL_NO 商户证书序列号
+  mch_private_key_path: ""  # 环境变量WECHAT_MCH_PRIVATE_KEY_PATH apiclient_key.pem
+  mch_cert_pem_path: ""  # 环境变量WECHAT_MCH_CERT_PEM_PATH apiclient_cert.pem 退款双向认证要
+
+  # 微信支付公钥模式 2024年新出的 配了就不用调/v3/certificates下载平台证书了
+  # 跟上面平台证书模式二选一 两个都配了优先用公钥
+  wxpay_public_key_path: ""  # 环境变量WECHAT_WXPAY_PUBLIC_KEY_PATH
+  wxpay_public_key_id: ""  # 环境变量WECHAT_WXPAY_PUBLIC_KEY_ID
+
+  notify_url: ""         # 环境变量WECHAT_NOTIFY_URL 支付回调
+  refund_notify_url: ""  # 环境变量WECHAT_REFUND_NOTIFY_URL 退款回调
+
+  # 订阅消息模板ID 小程序后台申请的 留空就不发对应通知
+  # 也可用环境变量：WECHAT_SUBSCRIBE_PAYMENT_SUCCESS / WECHAT_SUBSCRIBE_TRIP_DEPARTURE / WECHAT_SUBSCRIBE_TRIP_ARRIVAL / WECHAT_SUBSCRIBE_REFUND_SUCCESS
+  subscribe_templates:
+    payment_success: ""    # 支付成功
+    trip_departure: ""     # 发车通知
+    trip_arrival: ""       # 到达通知
+    refund_success: ""    # 退款到账
+
+cors_origins: ""  # 跨域白名单 逗号分隔 环境变量CORS_ORIGINS
+
+upload:
+  path: "./uploads"
+  max_size: 5242880  # 5MB
+  url_prefix: "/uploads"
+
+# 安全配置 敏感字段加解密用
+security:
+  # 身份证AES加密密钥 base64的32字节 不配的话身份证明文存 生产环境直接不让启动
+  # 环境变量IDCARD_AES_KEY openssl rand -base64 32生成一个
+  id_card_aes_key: ""
+  # 核销凭证签名密钥 防二维码伪造 环境变量VERIFY_SECRET
+  # openssl rand -hex 32生成
+  verify_secret: ""
+
+# 实名认证 阿里云云市场二要素核验 0.3元一次
+# 环境变量IDCARD_VERIFY_APPCODE注入AppCode
+idcard_verify:
+  enabled: true  # false=跳过API只做本地格式校验
+  strict_mode: true  # true=API挂了就拒绝下单 false=降级放行（不安全别用）
+  app_code: ""  # 环境变量IDCARD_VERIFY_APPCODE
+  endpoint: "https://kzidcardv1.market.alicloudapi.com"
+  path: "/api-mall/api/id_card/check"
+  cache_ttl: 2592000  # 认证结果缓存30天 同一个人不重复调API省钱

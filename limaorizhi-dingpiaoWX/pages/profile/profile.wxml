@@ -1,0 +1,38 @@
+<!--个人中心-->
+<navigation-bar back="{{true}}" title="个人中心" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<scroll-view class="scrollarea" scroll-y>
+  <view class="page-content">
+
+    <!-- 用户信息卡片 -->
+    <view class="user-card">
+      <!-- 头像（view 做视觉，button 透明覆盖做 chooseAvatar 交互） -->
+      <view class="avatar-wrapper">
+        <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img-real" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+        <image wx:else class="avatar-img-real" src="/images/limaorizhitouxiang.jpg" mode="aspectFill" />
+        <button class="avatar-overlay" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"></button>
+      </view>
+      <view class="user-info">
+        <!-- 昵称（微信昵称输入框） -->
+        <input class="user-name-input" type="nickname" placeholder="点击设置昵称" value="{{userInfo.nickName}}" bindblur="onNicknameBlur" always-embed="{{true}}" />
+        <!-- 手机号（脱敏切换） -->
+        <view class="user-phone-row" wx:if="{{userInfo.isLogin}}" catchtap="togglePhoneMask">
+          <text class="user-phone" wx:if="{{phoneMasked}}">{{maskedPhone}}</text>
+          <text class="user-phone" wx:else>{{userInfo.phone}}</text>
+          <image class="phone-eye-icon" src="{{phoneMasked ? '/images/icons/eye-close.svg' : '/images/icons/eye-open.svg'}}"></image>
+        </view>
+        <text class="user-phone" wx:else>{{userInfo.phone}}</text>
+      </view>
+    </view>
+
+    <!-- 退出登录 + 注销账号（仅 profile_detail 模式显示） -->
+    <view class="logout-section" wx:if="{{userInfo.isLogin && logoutPosition === 'profile_detail'}}">
+      <view class="logout-btn" bindtap="handleLogout">
+        <image class="logout-icon" src="/images/icons/logout.svg"></image>
+        <text>退出登录</text>
+      </view>
+      <view class="delete-account-link" bindtap="handleDeleteAccount">注销账号</view>
+    </view>
+
+  </view>
+</scroll-view>

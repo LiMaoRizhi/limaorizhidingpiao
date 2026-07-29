@@ -1,0 +1,183 @@
+﻿/* limaorizhi-admin  狸猫日志售票系统  联系微信：lihao68681818 */
+/* 鐙哥尗鏃ュ織鍞エ绯荤粺 - 鍏ㄥ眬鏍峰紡 榛戠櫧涓婚 */
+
+:root {
+  --color-primary: #1a1a1a;
+  --color-primary-light: #2c2c2c;
+  --color-secondary: #595959;
+  --color-bg: #f5f6f8;
+  --color-card-bg: #ffffff;
+  --color-border: #e8e8e8;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #595959;
+  --color-text-placeholder: #999999;
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 56px;
+  /* Element Plus 主题色 - primary蓝色，其余统一黑色 */
+  --el-color-primary: #409eff;
+  --el-color-primary-light-3: #6ba4ff;
+  --el-color-primary-light-5: #9cc4ff;
+  --el-color-primary-light-7: #cde4ff;
+  --el-color-primary-light-8: #e0edff;
+  --el-color-primary-light-9: #ecf5ff;
+  --el-color-primary-dark-2: #2c7de9;
+  --el-color-success: #1a1a1a;
+  --el-color-warning: #1a1a1a;
+  --el-color-danger: #1a1a1a;
+  --el-color-error: #1a1a1a;
+  --el-color-info: #595959;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* 禁止页面级滚动，所有滚动只能在内容区内 */
+  overscroll-behavior: none; /* 禁止橡皮筋滚动/滚动链 */
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* Element Plus 按钮覆盖 - primary蓝色，其余黑色 */
+.el-button--success,
+.el-button--warning,
+.el-button--danger,
+.el-button--info {
+  --el-button-bg-color: #1a1a1a;
+  --el-button-border-color: #1a1a1a;
+  --el-button-hover-bg-color: #2c2c2c;
+  --el-button-hover-border-color: #2c2c2c;
+  --el-button-active-bg-color: #000000;
+  --el-button-active-border-color: #000000;
+  --el-button-text-color: #fff;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-text-color: #fff;
+  --el-button-disabled-text-color: rgba(255,255,255,0.5);
+  --el-button-disabled-bg-color: rgba(26,26,26,0.5);
+  --el-button-disabled-border-color: rgba(26,26,26,0.5);
+}
+
+/* plain 按钮 - success/warning/danger统一黑白 */
+.el-button--success.is-plain,
+.el-button--warning.is-plain,
+.el-button--danger.is-plain,
+.el-button--info.is-plain {
+  --el-button-bg-color: #fff;
+  --el-button-border-color: #d0d0d0;
+  --el-button-text-color: #1a1a1a;
+  --el-button-hover-bg-color: #1a1a1a;
+  --el-button-hover-border-color: #1a1a1a;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-text-color: #fff;
+}
+
+.el-menu {
+  --el-menu-bg-color: transparent;
+  --el-menu-text-color: #1a1a1a;
+  --el-menu-hover-bg-color: rgba(0, 0, 0, 0.06);
+  --el-menu-hover-text-color: #1a1a1a;
+  --el-menu-active-color: #1a1a1a;
+}
+
+.el-menu-item {
+  color: #1a1a1a !important;
+}
+
+.el-menu-item.is-active {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: #1a1a1a !important;
+  font-weight: 600;
+}
+
+.el-sub-menu__title {
+  color: #1a1a1a !important;
+}
+
+.el-sub-menu__title:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  color: #1a1a1a !important;
+}
+
+.el-table {
+  --el-table-header-bg-color: #fafafa;
+  --el-table-header-text-color: #1a1a1a;
+  --el-table-border-color: #f0f0f0;
+}
+
+.el-pagination {
+  --el-pagination-button-bg-color: #fff;
+  --el-pagination-hover-color: #1a1a1a;
+}
+
+.el-tag,
+.el-tag--success,
+.el-tag--warning,
+.el-tag--danger,
+.el-tag--info,
+.el-tag--primary {
+  --el-tag-bg-color: #f0f0f0;
+  --el-tag-text-color: #1a1a1a;
+  --el-tag-border-color: #d0d0d0;
+  --el-tag-hover-color: #1a1a1a;
+}
+
+/* 婊氬姩鏉?*/
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 閫氱敤绫?*/
+.page-container {
+  padding: 16px;
+}
+
+.card-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* ElMessage 提示统一蓝色，不要绿色 */
+.el-message--success {
+  background-color: #ecf5ff !important;
+  border-color: #b3d8ff !important;
+}
+.el-message--success .el-message__icon {
+  color: #409eff !important;
+}
+.el-message--success .el-message__content {
+  color: #1a1a1a !important;
+}
+.el-message--warning {
+  background-color: #ecf5ff !important;
+  border-color: #b3d8ff !important;
+}
+.el-message--warning .el-message__icon {
+  color: #409eff !important;
+}
+.el-message--warning .el-message__content {
+  color: #1a1a1a !important;
+}
+.el-message--info .el-message__icon {
+  color: #409eff !important;
+}
+

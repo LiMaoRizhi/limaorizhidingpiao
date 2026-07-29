@@ -1,0 +1,515 @@
+/* 货物托运下单 */
+.create-page {
+  min-height: 100vh;
+  background: #f5f6f8;
+  padding-bottom: 40rpx;
+}
+
+.section {
+  background: #fff;
+  margin: 20rpx 0;
+  padding: 28rpx;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20rpx;
+}
+
+/* 站点筛选 */
+.station-filter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20rpx 0 0;
+  padding: 24rpx 32rpx;
+  background: #fff;
+}
+
+.station-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.station-box-hover {
+  opacity: 0.6;
+}
+
+.station-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.station-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1296db;
+}
+
+.station-name-active {
+  color: #1296db;
+}
+
+.swap-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swap-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+/* 日期栏 */
+.date-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20rpx 28rpx;
+  background: #fff;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.date-bar-label {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+  margin-right: 20rpx;
+}
+
+.date-bar-value {
+  font-size: 26rpx;
+  color: #1296db;
+  font-weight: 500;
+}
+
+.clear-filter-btn {
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.btn-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.water-flow-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.25) 32%,
+    rgba(255, 255, 255, 0.4) 38%,
+    rgba(255, 255, 255, 0.25) 44%,
+    transparent 56%,
+    rgba(255, 255, 255, 0.15) 68%,
+    rgba(255, 255, 255, 0.3) 74%,
+    rgba(255, 255, 255, 0.15) 80%,
+    transparent 92%
+  );
+  background-size: 200% 100%;
+  animation: water-shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes water-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.clear-filter-icon {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.clear-filter-text {
+  font-size: 11px;
+  color: #1a1a1a;
+  position: relative;
+  z-index: 1;
+}
+
+/* 班次信息卡片 */
+.trip-card,
+.trip-list-item {
+  background: #fff;
+  margin: 20rpx 0 0;
+  padding: 28rpx 32rpx;
+}
+
+.trip-list-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  padding: 28rpx 32rpx 0;
+  background: #fff;
+}
+
+.trip-list-item-hover {
+  background: #f5f6f8;
+}
+
+.trip-card-route,
+.trip-item-route {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.trip-card-from,
+.trip-card-to,
+.trip-item-from,
+.trip-item-to {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trip-item-from,
+.trip-item-to {
+  font-size: 30rpx;
+}
+
+.trip-card-arrow,
+.trip-item-arrow {
+  font-size: 32rpx;
+  color: #1296db;
+  font-weight: 600;
+}
+
+.trip-card-change {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #1296db;
+  font-weight: 500;
+}
+
+.trip-card-info,
+.trip-item-info {
+  display: flex;
+  gap: 40rpx;
+}
+
+.trip-item-info {
+  gap: 24rpx;
+  align-items: center;
+}
+
+.trip-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.trip-info-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.trip-info-value {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.trip-info-warn,
+.trip-item-warn {
+  color: #ff3b30;
+}
+
+.trip-item-time {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.trip-item-plate {
+  font-size: 24rpx;
+  color: #1296db;
+}
+
+.trip-item-seats {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: auto;
+}
+
+/* 无班次提示 */
+.no-trip-tip {
+  padding: 120rpx 40rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 表单 */
+.form-group {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+/* 备注行：顶部对齐，textarea比输入框高 */
+.form-group--textarea {
+  align-items: flex-start;
+  padding-top: 22rpx;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.form-group--textarea .form-label {
+  line-height: 64rpx;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  border: 2rpx solid #1a1a1a;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input--focus {
+  border-color: #1e6fff;
+}
+.form-picker {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  border: 2rpx solid #1a1a1a;
+  box-sizing: border-box;
+}
+
+.picker-text {
+  flex: 1;
+  color: #1a1a1a;
+}
+
+.picker-arrow {
+  font-size: 32rpx;
+  color: #999;
+  margin-left: 12rpx;
+  transform: rotate(90deg);
+}
+.form-textarea {
+  flex: 1;
+  min-height: 64rpx;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 16rpx 20rpx;
+  border: 2rpx solid #1a1a1a;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-textarea--focus {
+  border-color: #1e6fff;
+}
+
+/* 运费预估 */
+.fee-section {
+  background: #fff;
+  margin: 0 0 20rpx 0;
+  padding: 28rpx;
+}
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+}
+.fee-label {
+  font-size: 26rpx;
+  color: #8a8a8a;
+}
+.fee-value {
+  font-size: 26rpx;
+  color: #1a1a1a;
+}
+.fee-row.total {
+  border-top: 1rpx solid #f0f0f0;
+  margin-top: 12rpx;
+  padding-top: 16rpx;
+}
+.total-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #ff3b30;
+}
+
+/* 提交按钮 */
+.submit-area {
+  padding: 20rpx 28rpx;
+}
+.submit-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 500;
+  border-radius: 16rpx;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+}
+.submit-btn[disabled] {
+  opacity: 0.5;
+}
+
+/* 站点筛选弹窗（可搜索） */
+.station-modal {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 0 32rpx 32rpx;
+  height: 80vh;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 0;
+  flex-shrink: 0;
+}
+
+.modal-title-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.modal-close {
+  font-size: 44rpx;
+  color: #999;
+  padding: 0 10rpx;
+}
+
+.station-search-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: #f5f6f8;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  height: 72rpx;
+  margin-bottom: 16rpx;
+  border: 2rpx solid transparent;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.station-search-box-focus {
+  border-color: #1296db;
+  background: #fff;
+}
+
+.station-search-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.station-search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1a1a;
+  height: 72rpx;
+}
+
+.station-search-clear {
+  font-size: 36rpx;
+  color: #999;
+  padding: 0 10rpx;
+}
+
+.station-scroll {
+  flex: 1;
+  overflow: hidden;
+}
+
+.station-item {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  font-size: 28rpx;
+  color: #1a1a1a;
+}
+
+.station-empty {
+  padding: 80rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 遮罩层 */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}

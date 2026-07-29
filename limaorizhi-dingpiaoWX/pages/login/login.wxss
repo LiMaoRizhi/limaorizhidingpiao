@@ -1,0 +1,97 @@
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 32px 0;
+  background: #f5f6f8;
+  min-height: 100vh;
+}
+
+.login-logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  font-size: 15px;
+  color: #999;
+  margin-bottom: 40px;
+}
+
+.login-btn {
+  width: 100% !important;
+  height: 50px;
+  margin: 0;
+  padding: 0;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 500;
+  border-radius: 25px;
+  border: none;
+  line-height: 50px;
+  text-align: center;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-btn::after {
+  border: none;
+}
+
+.login-btn-disabled {
+  background: #999;
+  color: #ddd;
+  border: 2px solid #666;
+}
+
+.login-tips {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* 药丸形勾选框：未勾选透明底灰边，勾选后纯黑 */
+.checkbox {
+  width: 36px;
+  height: 20px;
+  border: 1.5px solid #999;
+  border-radius: 10px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.checkbox.checked {
+  background: #000;
+  border-color: #000;
+}
+
+.agreement-text {
+  color: #999;
+  font-size: 12px;
+}
+
+.agreement-link {
+  color: #000;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.login-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #bbb;
+}

@@ -1,0 +1,60 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/search/search",
+    "pages/mine/mine",
+    "pages/verify/verify",
+    "pages/login/login",
+    "pages/trip-detail/trip-detail",
+    "pages/order-detail/order-detail",
+    "pages/passenger/passenger",
+    "pages/passenger-form/passenger-form",
+    "pages/cargo-create/cargo-create",
+    "pages/order-list/order-list",
+    "pages/driver-track/driver-track",
+    "pages/vehicle-track/vehicle-track",
+    "pages/bus-progress/bus-progress",
+    "pages/gift/gift",
+    "pages/profile/profile",
+    "pages/agreement/agreement"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8a8a8a",
+    "selectedColor": "#2c2c2c",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/search/search",
+        "text": "订单"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于车辆实时定位追踪，司机端自动上报车辆位置"
+    }
+  },
+  "requiredBackgroundModes": ["location"],
+  "requiredPrivateInfos": [
+    "getLocation",
+    "startLocationUpdate",
+    "onLocationChange",
+    "startLocationUpdateBackground"
+  ],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,67 @@
+<!--乘客端车辆位置追踪（地图实时展示车辆位置）-->
+<navigation-bar title="车辆位置" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="page-content">
+
+  <!-- 班次信息条 -->
+  <view class="trip-bar" wx:if="{{trip}}">
+    <view class="trip-route">
+      <text class="route-text">{{fromName}}</text>
+      <text class="route-arrow">→</text>
+      <text class="route-text">{{toName}}</text>
+    </view>
+    <view class="trip-meta">
+      <text>{{trip.trip_date}} {{trip.departure_time}}发车</text>
+      <text wx:if="{{trip.arrivalText}}">{{trip.arrivalText}}到达</text>
+      <text wx:if="{{trip.vehicle}}" class="plate-no">{{trip.vehicle.plate_no}}</text>
+    </view>
+  </view>
+
+  <!-- 合并卡片：地图+状态+进度时间线 -->
+  <view class="track-card">
+
+    <!-- 地图区域（有GPS时显示，缩小至35vh） -->
+    <view class="map-section" wx:if="{{hasLocation}}">
+      <map id="trackMap"
+           longitude="{{centerLng}}"
+           latitude="{{centerLat}}"
+           scale="14"
+           markers="{{markers}}"
+           polyline="{{polyline}}"
+           include-points="{{includePoints}}"
+           show-location
+           enable-3D
+           style="width: 100%; height: 35vh;">
+      </map>
+    </view>
+
+    <!-- 无GPS时显示大巴图标+提示 -->
+    <view class="no-gps-section" wx:if="{{!hasLocation}}">
+      <image src="/images/icons/bus-front.svg" class="bus-icon-large" mode="aspectFit"></image>
+      <text class="no-gps-text">{{lastUpdateText}}</text>
+    </view>
+
+    <!-- 状态信息条（行内紧凑布局） -->
+    <view class="status-inline" wx:if="{{hasLocation}}">
+      <view class="status-info">
+        <view class="status-dot active"></view>
+        <text class="speed-text">{{speedText}}</text>
+        <text class="update-text">{{lastUpdateText}}</text>
+      </view>
+      <view class="nav-btn-small" bindtap="navigateToVehicle">导航</view>
+    </view>
+
+    <!-- 到站进度（紧凑可点击条，点击跳转到站进度页面） -->
+    <view class="progress-section" wx:if="{{routeStations.length > 0}}" bindtap="goToProgressDetail">
+      <view class="progress-header">
+        <image src="/images/icons/bus-front.svg" class="bus-icon-small" mode="aspectFit"></image>
+        <text class="progress-title">到站进度</text>
+        <text class="progress-count" wx:if="{{effectivePassedOrder > 0}}">已过{{effectivePassedOrder}}/{{routeStations.length}}站</text>
+        <text class="progress-count" wx:else>共{{routeStations.length}}站</text>
+        <text class="progress-more">查看详情 ›</text>
+      </view>
+    </view>
+
+  </view>
+
+</view>

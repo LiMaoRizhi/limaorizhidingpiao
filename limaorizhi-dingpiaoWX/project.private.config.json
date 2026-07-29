@@ -1,0 +1,8 @@
+{
+  "description": "狸猫日志售票系统 - 项目私有配置",
+  "projectname": "limaorizhi-dingpiaoWX",
+  "setting": {
+    "compileHotReLoad": true,
+    "urlCheck": true
+  }
+}

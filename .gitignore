@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.zip
+*.7z
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.old
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Auto-generated files (will be regenerated)
+auto-imports.d.ts
+components.d.ts
+
+# Go build artifacts
+*.test
+coverage.out
+
+# Certificates and sensitive data
+cert/
+密钥/
+uploads/
+
+# Database
+*.db
+*.sqlite
+
+# Package manager locks (optional - keep if you want exact dependency versions)
+# package-lock.json
+# yarn.lock
+# go.sum

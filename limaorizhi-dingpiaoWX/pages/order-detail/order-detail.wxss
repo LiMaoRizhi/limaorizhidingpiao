@@ -1,0 +1,200 @@
+page { background: #f5f6f8; }
+
+.scrollarea { height: 100vh; }
+.page-content { padding: 0 16px 40px; }
+
+/* 类型标签 */
+.type-badge {
+  display: inline-block;
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 12px;
+}
+.type-badge.ticket {
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  color: #1a1a1a;
+}
+.type-badge.cargo {
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  color: #1a1a1a;
+}
+
+/* 状态条 */
+.status-bar {
+  margin: 16px 0;
+  padding: 16px 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+.status-text { color: #fff; font-size: 20px; font-weight: bold; }
+
+/* 路线卡片 */
+.route-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 20px;
+  margin-bottom: 12px;
+}
+.route-row {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+}
+.route-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.route-city { font-size: 22px; font-weight: bold; color: #1a1a1a; }
+.route-time { font-size: 14px; color: #999; margin-top: 6px; }
+.route-date { font-size: 14px; color: #999; margin-top: 6px; }
+.route-arrow {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 12px;
+}
+
+.arrow-line {
+  flex: 1;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.arrow-icon-img {
+  width: 20px;
+  height: 20px;
+  margin: 0 6px;
+}
+
+/* 二维码 */
+.qrcode-section {
+  background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 12px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.qrcode-img { width: 200px; height: 200px; }
+.qrcode-tip { font-size: 13px; color: #999; margin-top: 12px; }
+.qrcode-placeholder {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f5f6f8; border-radius: 8px;
+}
+.qrcode-placeholder text { font-size: 14px; color: #999; }
+.qrcode-error {
+  width: 200px; min-height: 200px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px;
+}
+.qrcode-error-icon {
+  width: 48px; height: 48px; line-height: 48px;
+  text-align: center; border-radius: 50%;
+  background: #fff3f3; color: #ff3b30;
+  font-size: 28px; font-weight: bold;
+}
+.qrcode-error-text { font-size: 14px; color: #ff3b30; text-align: center; }
+
+/* 信息卡片 */
+.info-card {
+  background: #fff; border-radius: 12px; padding: 4px 20px; margin-bottom: 12px;
+}
+.card-title { font-size: 17px; font-weight: 600; color: #1a1a1a; padding: 16px 0 8px; }
+.info-row {
+  display: flex; flex-direction: row; align-items: center;
+  padding: 14px 0; border-bottom: 0.5px solid #f5f5f5;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { font-size: 14px; color: #999; width: 80px; }
+.info-value { font-size: 15px; color: #333; flex: 1; }
+.info-value.price { font-weight: bold; color: #1a1a1a; font-size: 17px; }
+.copy-icon {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a1a;
+  padding: 3px 12px;
+  border-radius: 14px;
+  border: 1px solid #d0d0d0;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* 乘客 */
+.passenger-row {
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 0.5px solid #f5f5f5;
+}
+.passenger-row:last-child { border-bottom: none; }
+.p-info { display: flex; flex-direction: column; }
+.p-name { font-size: 16px; font-weight: 500; color: #333; }
+.p-card { font-size: 13px; color: #999; margin-top: 4px; }
+.checked { font-size: 13px; color: #34c759; }
+
+/* 操作按钮 */
+.action-bar { display: flex; flex-direction: row; gap: 12px; margin-top: 20px; }
+.action-btn {
+  flex: 1; height: 48px; border-radius: 24px; font-size: 16px; font-weight: 500; border: none;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+}
+.action-btn::after { border: none; }
+.pay-btn { background: #1a1a1a; color: #fff; }
+.cancel-btn { background: transparent; color: #666; border: 1px solid #d0d0d0; }
+.refund-btn { background: #fff; color: #ff3b30; border: 1px solid #ff3b30; }
+.track-btn { background: #007aff; color: #fff; }
+
+/* 长按删除确认弹窗 */
+.delete-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.delete-popup {
+  width: 280px;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.delete-warning {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff3b30;
+  margin-top: 28px;
+}
+.delete-desc {
+  text-align: center;
+  font-size: 14px;
+  color: #999;
+  line-height: 1.6;
+  margin: 12px 24px 24px;
+}
+.delete-actions {
+  display: flex;
+  flex-direction: row;
+  border-top: 0.5px solid #f0f0f0;
+}
+.delete-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 17px;
+  padding: 14px 0;
+}
+.delete-btn.cancel-btn {
+  color: #999;
+  border-right: 0.5px solid #f0f0f0;
+}
+.delete-btn.cancel-btn:active {
+  background: #f5f5f5;
+}
+.delete-btn.confirm-btn {
+  color: #fff;
+  background: #1a1a1a;
+}
+.delete-btn.confirm-btn:active {
+  background: #333;
+}

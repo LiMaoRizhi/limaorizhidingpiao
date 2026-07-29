@@ -1,0 +1,98 @@
+<!--到站进度独立页面（垂直时间线，圆圈标记站点状态）-->
+<navigation-bar title="到站进度" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="page-content">
+
+  <!-- 地图区域（有站点坐标或GPS时显示） -->
+  <view class="map-card" wx:if="{{trip && hasLocation}}">
+    <map
+      longitude="{{centerLng}}"
+      latitude="{{centerLat}}"
+      scale="14"
+      markers="{{markers}}"
+      polyline="{{polyline}}"
+      include-points="{{includePoints}}"
+      show-location
+      enable-3D
+      style="width: 100%; height: 25vh; border-radius: 16px;"
+    ></map>
+  </view>
+
+  <!-- 无坐标占位（站点无坐标且无GPS时显示） -->
+  <view class="map-card no-gps-card" wx:if="{{trip && !hasLocation}}">
+    <image src="/images/icons/bus-front.svg" class="bus-icon-large" mode="aspectFit"></image>
+    <text class="no-gps-text">{{lastUpdateText}}</text>
+  </view>
+
+  <!-- 路线信息头部（含进度摘要+速度+导航） -->
+  <view class="route-header" wx:if="{{trip}}">
+    <view class="route-line">
+      <image src="/images/icons/bus-front.svg" class="route-bus-icon" mode="aspectFit"></image>
+      <text class="route-from">{{fromName}}</text>
+      <text class="route-arrow">→</text>
+      <text class="route-to">{{toName}}</text>
+    </view>
+    <view class="route-meta">
+      <text class="meta-date">{{trip.trip_date}} {{trip.departure_time}}发车</text>
+      <text class="meta-plate" wx:if="{{trip.vehicle}}">{{trip.vehicle.plate_no}}</text>
+    </view>
+    <view class="progress-summary">
+      <view class="summary-num-wrap">
+        <text class="summary-num {{effectivePassedOrder > 0 ? 'num-active' : 'num-idle'}}">{{effectivePassedOrder}}</text>
+        <text class="summary-sep">/</text>
+        <text class="summary-total">{{totalStations}}</text>
+      </view>
+      <text class="summary-label">{{effectivePassedOrder > 0 ? '已过站' : '尚未发车'}}</text>
+      <!-- 有GPS时显示速度+导航按钮 -->
+      <view class="summary-status" wx:if="{{location}}">
+        <view class="status-dot active"></view>
+        <text class="speed-text">{{speedText}}</text>
+        <text class="update-text">{{lastUpdateText}}</text>
+      </view>
+      <!-- 无GPS但有站点地图时显示状态文字 -->
+      <view class="summary-status" wx:if="{{!location && hasLocation}}">
+        <view class="status-dot inactive"></view>
+        <text class="update-text">{{lastUpdateText}}</text>
+      </view>
+      <view class="nav-btn" wx:if="{{location}}" catchtap="navigateToVehicle">导航</view>
+    </view>
+  </view>
+
+  <!-- 站点垂直时间线 -->
+  <view class="timeline-card" wx:if="{{stations.length > 0}}">
+    <view class="timeline">
+      <view class="tl-item" wx:for="{{stations}}" wx:key="station_id">
+        <!-- 左侧：圆圈 + 连接线 -->
+        <view class="tl-left">
+          <view class="tl-circle tl-circle-{{item.circleType}}"></view>
+          <view class="tl-line {{item.circleType === 'passed' || item.circleType === 'current' ? 'tl-line-on' : 'tl-line-off'}}" wx:if="{{!item.isLast}}"></view>
+        </view>
+        <!-- 右侧：站点信息 -->
+        <view class="tl-right">
+          <view class="tl-station-row">
+            <text class="tl-name {{item.circleType !== 'future' ? 'tl-name-active' : ''}}">{{item.stationName}}</text>
+            <text class="tl-tag" wx:if="{{item.circleType === 'current'}}">当前位置</text>
+          </view>
+          <view class="tl-time-row">
+            <text class="tl-time" wx:if="{{item.isFirst}}">发车站</text>
+            <text class="tl-time" wx:elif="{{item.arrivalText}}">预计{{item.arrivalText}}到达</text>
+            <text class="tl-time" wx:elif="{{item.isLast}}">终点站</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{!trip && loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载失败 -->
+  <view class="error-state" wx:if="{{!trip && !loading && loadError}}">
+    <image src="/images/icons/bus-front.svg" class="error-icon" mode="aspectFit"></image>
+    <text class="error-text">{{errorText}}</text>
+    <view class="retry-btn" bindtap="retryLoad">重试</view>
+  </view>
+
+</view>

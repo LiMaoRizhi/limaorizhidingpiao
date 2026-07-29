@@ -1,0 +1,273 @@
+<!--班次详情-->
+<navigation-bar title="班次详情" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="page-content" wx:if="{{trip}}">
+
+    <!-- 班次信息卡片 -->
+    <view class="trip-card">
+      <view class="trip-route">
+        <view class="trip-station-btn" bindtap="showFromStationPicker">
+          <text class="trip-from" wx:if="{{fromStationName}}">{{fromStationName}}</text>
+          <text class="trip-placeholder" wx:else>选择上车站</text>
+          <text class="trip-switch-hint">点击切换</text>
+        </view>
+        <view class="trip-arrow">
+          <view class="arrow-line"></view>
+          <image class="arrow-icon-img" src="/images/icons/route-direction.svg" />
+          <view class="arrow-line"></view>
+        </view>
+        <view class="trip-station-btn" bindtap="showToStationPicker">
+          <text class="trip-to" wx:if="{{toStationName}}">{{toStationName}}</text>
+          <text class="trip-placeholder" wx:else>选择下车站</text>
+          <text class="trip-switch-hint">点击切换</text>
+        </view>
+      </view>
+      <view class="trip-info">
+        <view class="info-item">
+          <text class="info-label">发车时间</text>
+          <text class="info-value">{{trip.trip_date}} {{trip.departure_time}}</text>
+        </view>
+        <view class="info-item" wx:if="{{trip.arrivalText}}">
+          <text class="info-label">到达时间</text>
+          <text class="info-value">{{trip.arrivalText}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">行程时长</text>
+          <text class="info-value">{{trip.durationStr}}</text>
+        </view>
+        <view class="info-item" wx:if="{{routeStations.length > 0}}">
+          <text class="info-label">途经站点</text>
+          <text class="info-value">{{routeStations.length}}站</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">余座</text>
+          <text class="seats-pill">{{trip.seatsText}}</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 到站进度+地图合并卡片（点击跳转到站进度页面） -->
+    <view class="bus-progress-card" wx:if="{{trip.status === 1 || trip.status === 2}}" bindtap="goToProgressDetail">
+      <view class="bp-header">
+        <image src="/images/icons/bus-front.svg" class="bp-icon" mode="aspectFit"></image>
+        <text class="bp-title">到站进度</text>
+        <text class="bp-count" wx:if="{{effectivePassedOrder > 0}}">已过{{effectivePassedOrder}}/{{routeStations.length}}站</text>
+        <text class="bp-count" wx:else>共{{routeStations.length}}站</text>
+        <text class="bp-link">查看详情 ›</text>
+      </view>
+      <view class="bp-map-wrapper">
+        <map wx:if="{{hasVehicleLocation && mapReady}}"
+             longitude="{{vehicleMapLng}}"
+             latitude="{{vehicleMapLat}}"
+             scale="14"
+             markers="{{vehicleMarkers}}"
+             polyline="{{vehiclePolyline}}"
+             include-points="{{vehicleIncludePoints}}"
+             enable-zoom="{{false}}"
+             enable-scroll="{{false}}"
+             enable-rotate="{{false}}"
+             enable-overlooking="{{false}}"
+             show-location="{{false}}"
+             style="width: 100%; height: 200rpx; border-radius: 12rpx;">
+        </map>
+        <view class="bp-map-placeholder" wx:else>
+          <image src="/images/icons/bus-front.svg" class="bp-map-icon" mode="aspectFit"></image>
+          <text class="bp-map-text">{{trackPlaceholderText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 区间票价 + 途经站点 -->
+    <view class="section" wx:if="{{routeStations.length > 0}}">
+      <view class="interval-price-row" wx:if="{{fromStationId && toStationId}}">
+        <text class="interval-price-label">区间票价</text>
+        <text class="interval-price-value">¥{{intervalPrice}}<text class="per-person">/人</text></text>
+        <text class="seats-pill interval-seats-pill {{intervalAvailableSeats === 0 ? 'seats-soldout' : intervalAvailableSeats > 0 && intervalAvailableSeats <= 5 ? 'seats-tight' : ''}}" wx:if="{{intervalSeatsText}}">{{intervalSeatsText}}</text>
+      </view>
+
+      <!-- 完整站点序列 -->
+      <view class="station-timeline">
+        <view class="timeline-header">
+          <view class="timeline-title-wrap">
+            <image class="timeline-icon" src="/images/icons/route-stations.svg" />
+            <text class="timeline-title">途经站点</text>
+          </view>
+          <text class="timeline-count">共{{routeStations.length}}站</text>
+        </view>
+        <view class="timeline-list">
+          <view class="timeline-item {{item.station_id === fromStationId ? 'is-from' : ''}} {{item.station_id === toStationId ? 'is-to' : ''}}" wx:for="{{routeStations}}" wx:key="station_id">
+            <view class="timeline-rail">
+              <view class="rail-line {{index === 0 ? 'line-hidden' : ''}}"></view>
+              <view class="rail-dot"></view>
+              <view class="rail-line {{index === routeStations.length - 1 ? 'line-hidden' : ''}}"></view>
+            </view>
+            <view class="timeline-body">
+              <view class="timeline-info">
+                <text class="timeline-name">{{item.station ? item.station.name : ''}}</text>
+                <view class="timeline-badge" wx:if="{{item.station_id === fromStationId}}">上车</view>
+                <view class="timeline-badge" wx:if="{{item.station_id === toStationId}}">下车</view>
+              </view>
+              <text class="timeline-stop">第{{item.stop_order}}站</text>
+            </view>
+            <text class="timeline-price">¥{{item.price}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 乘客信息 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="title-wrap">
+          <image class="title-icon" src="/images/icons/passenger-info.svg" />
+          <text class="section-title">乘客信息</text>
+        </view>
+      </view>
+      <!-- 已选乘客 -->
+      <view class="passenger-list" wx:if="{{passengers.length > 0}}">
+        <view class="passenger-card" wx:for="{{passengers}}" wx:key="uid">
+          <view class="pc-info">
+            <text class="pc-name">{{item.name}}</text>
+            <text class="pc-id">{{item.maskedIdCardNo}}</text>
+          </view>
+          <view class="pc-remove" data-idx="{{index}}" bindtap="removePassenger">
+            <image class="remove-icon" src="/images/icons/delete-icon.svg" />
+          </view>
+        </view>
+      </view>
+      <!-- 添加按钮 -->
+      <view class="add-passenger-bar" bindtap="addPassenger">添加乘客信息</view>
+    </view>
+
+    <!-- 联系人信息 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="title-wrap">
+          <image class="title-icon" src="/images/icons/contact-info.svg" />
+          <text class="section-title">联系人信息</text>
+        </view>
+      </view>
+      <view class="contact-form">
+        <view class="form-field" id="contact-name">
+          <text class="field-label">联系人</text>
+          <input class="c-input {{contactFocused === 'name' ? 'c-input--focus' : ''}}" placeholder="请输入联系人" value="{{contactName}}" bindinput="onContactNameInput" bindfocus="onContactFocus" bindblur="onContactBlur" data-field="name" cursor-spacing="20" />
+        </view>
+        <view class="form-field" id="contact-phone">
+          <text class="field-label">手机号</text>
+          <input class="c-input {{contactFocused === 'phone' ? 'c-input--focus' : ''}}" type="number" placeholder="请输入手机号" value="{{contactPhone}}" bindinput="onContactPhoneInput" bindfocus="onContactFocus" bindblur="onContactBlur" data-field="phone" maxlength="11" cursor-spacing="20" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 优惠券 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="title-wrap">
+          <image class="title-icon" src="/images/icons/coupon-detail.svg" />
+          <text class="section-title">优惠券</text>
+        </view>
+      </view>
+      <view class="coupon-ticket-box" bindtap="showCouponPicker" wx:if="{{coupons.length > 0}}">
+        <!-- 已选优惠券 -->
+        <view class="coupon-ticket-row" wx:if="{{selectedCoupon}}">
+          <view class="coupon-ticket-badge">
+            <text class="coupon-badge-text">{{selectedCoupon.discount_text}}</text>
+          </view>
+          <view class="coupon-ticket-divider"></view>
+          <view class="coupon-ticket-detail">
+            <text class="coupon-ticket-name">{{selectedCoupon.name}}</text>
+            <text class="coupon-ticket-hint">点击更换</text>
+          </view>
+          <text class="coupon-ticket-arrow">›</text>
+        </view>
+        <!-- 未选优惠券 -->
+        <view class="coupon-ticket-row coupon-ticket-empty" wx:else>
+          <image class="coupon-ticket-icon" src="/images/icons/coupon-detail.svg" />
+          <text class="coupon-ticket-placeholder">选择优惠券</text>
+          <text class="coupon-ticket-arrow">›</text>
+        </view>
+      </view>
+      <!-- 暂无可用 -->
+      <view class="coupon-ticket-box coupon-ticket-none" wx:else>
+        <text class="coupon-ticket-placeholder">暂无可用优惠券</text>
+      </view>
+      <view class="coupon-clear" wx:if="{{selectedCoupon}}" catchtap="clearCoupon">不使用优惠券</view>
+    </view>
+
+    <!-- 底部下单 -->
+    <view class="bottom-bar {{contactFocused ? 'bottom-bar-hide' : ''}}">
+      <view class="total-price">
+        <text class="price-label">{{passengers.length > 0 ? '合计' : '单价'}}</text>
+        <text class="price-num">¥{{passengers.length > 0 ? finalPrice : intervalPrice}}</text>
+        <text class="price-origin" wx:if="{{selectedCoupon && discountAmount != '0.00'}}">¥{{originPrice}}</text>
+        <text class="price-count" wx:if="{{passengers.length > 0}}">×{{passengers.length}}人</text>
+      </view>
+      <button class="order-btn" loading="{{orderLoading}}" bindtap="createOrder">
+        <image class="order-btn-bg" src="/images/icons/water-bg.jpg" mode="aspectFill" />
+        <view class="water-flow-layer"></view>
+        <text class="order-btn-text">立即下单</text>
+      </button>
+    </view>
+
+  </view>
+
+<!-- 优惠券选择弹窗 -->
+<view class="modal-mask" wx:if="{{showCouponPicker}}" bindtap="closeCouponPicker" catchtouchmove="noop">
+  <view class="picker-modal" catchtap="noop">
+    <view class="modal-title">选择优惠券</view>
+    <scroll-view scroll-y class="picker-scroll">
+      <view class="coupon-card {{selectedCoupon && selectedCoupon.id === item.id ? 'coupon-card-active' : ''}} {{item.not_usable ? 'coupon-card-disabled' : ''}}" wx:for="{{couponList}}" wx:key="id" data-coupon="{{item}}" bindtap="selectCoupon">
+        <view class="coupon-card-left">
+          <text class="coupon-card-amount">{{item.discount_text}}</text>
+          <text class="coupon-card-type">{{item.type === 1 ? '满减券' : item.type === 2 ? '折扣券' : '抵用券'}}</text>
+        </view>
+        <view class="coupon-card-right">
+          <text class="coupon-card-name">{{item.name}}</text>
+          <text class="coupon-card-desc" wx:if="{{item.not_usable}}">差¥{{item.diff_amount}}元可用</text>
+          <text class="coupon-card-desc" wx:else>{{item.desc}}　有效期至 {{item.expired_at}}</text>
+        </view>
+        <view class="coupon-check" wx:if="{{!item.not_usable}}">
+          <view class="coupon-check-circle" wx:if="{{selectedCoupon && selectedCoupon.id === item.id}}">
+            <text class="coupon-check-tick">✓</text>
+          </view>
+          <view class="coupon-check-empty" wx:else></view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="coupon-none-row {{!selectedCoupon ? 'coupon-none-active' : ''}}" bindtap="clearCouponInPicker">
+      <text class="coupon-none-text">不使用优惠券</text>
+      <view class="coupon-check">
+        <view class="coupon-check-circle" wx:if="{{!selectedCoupon}}">
+          <text class="coupon-check-tick">✓</text>
+        </view>
+        <view class="coupon-check-empty" wx:else></view>
+      </view>
+    </view>
+    <view class="picker-cancel" bindtap="closeCouponPicker">取消</view>
+  </view>
+</view>
+
+<!-- 站点选择弹窗 -->
+<view class="modal-mask" wx:if="{{showStationPicker}}" bindtap="closeStationPicker" catchtouchmove="noop">
+  <view class="picker-modal" catchtap="noop" style="height:80vh;max-height:80vh;">
+    <view class="modal-header">
+      <text class="modal-title-text">{{stationPickerType === 'from' ? '选择上车站' : '选择下车站'}}</text>
+      <view class="modal-close" catchtap="closeStationPicker">×</view>
+    </view>
+    <view class="picker-search-box {{searchFocused ? 'picker-search-box-focus' : ''}}">
+      <image class="picker-search-icon" src="/images/icons/search.svg" />
+      <input class="picker-search-input" placeholder="输入站名/拼音搜索" value="{{stationSearchValue}}" bindinput="onStationSearchInput" bindfocus="onStationSearchFocus" bindblur="onStationSearchBlur" bindconfirm="onStationSearchConfirm" adjust-position="{{false}}" always-embed="{{true}}" cursor-spacing="20" confirm-type="search" />
+    </view>
+    <scroll-view scroll-y class="picker-scroll" style="height:{{stationScrollHeight}};">
+      <view class="picker-item" wx:for="{{filteredRouteStations}}" wx:key="station_id" data-sid="{{item.station_id}}" bindtap="onStationSelect">
+        <view class="picker-info">
+          <text class="picker-name">第{{item.stop_order}}站</text>
+          <text class="picker-card">{{item.station ? item.station.name : ''}}  ¥{{item.price}}</text>
+        </view>
+        <text class="picker-add" wx:if="{{(stationPickerType === 'from' && item.station_id === fromStationId) || (stationPickerType === 'to' && item.station_id === toStationId)}}">✓</text>
+      </view>
+      <view class="picker-empty" wx:if="{{filteredRouteStations.length === 0}}">未找到匹配站点</view>
+    </scroll-view>
+  </view>
+</view>

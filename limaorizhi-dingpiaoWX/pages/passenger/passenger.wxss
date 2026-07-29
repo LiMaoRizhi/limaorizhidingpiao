@@ -1,0 +1,82 @@
+page { background: #f5f6f8; }
+
+.scrollarea { height: 100vh; }
+.scrollarea--select { height: calc(100vh - 60px); }
+
+.page-content { padding: 16px; }
+
+/* ==================== 乘客列表 ==================== */
+.passenger-list { display: flex; flex-direction: column; gap: 12px; }
+
+.passenger-card {
+  background: #fff; border-radius: 12px; padding: 16px 20px;
+  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+}
+
+/* 勾选框 */
+.check-box { margin-right: 14px; flex-shrink: 0; }
+
+.check-circle {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #d0d0d0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.check-circle--active {
+  background: #1a1a1a; border-color: #1a1a1a;
+}
+
+.check-tick {
+  font-size: 13px; color: #fff; font-weight: 700;
+}
+
+/* 乘客信息 */
+.p-info { display: flex; flex-direction: column; flex: 1; }
+.p-name { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+.p-card { font-size: 14px; color: #999; margin-top: 6px; }
+
+/* 管理操作 */
+.p-actions { display: flex; flex-direction: row; gap: 12px; flex-shrink: 0; }
+.p-edit { font-size: 14px; color: #1a1a1a; }
+.p-delete { font-size: 14px; color: #ff3b30; }
+
+/* 空状态 */
+.empty-state {
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 0;
+}
+.empty-text { font-size: 16px; color: #999; }
+
+/* 添加按钮 */
+.add-btn {
+  width: 100%; height: 50px; background: #1a1a1a; color: #fff;
+  font-size: 16px; font-weight: 500; border-radius: 25px; border: none; margin-top: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.add-btn::after { border: none; }
+
+/* ==================== 底部确认栏 ==================== */
+.confirm-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: 60px; background: #fff;
+  border-top: 1px solid #eee;
+  display: flex; flex-direction: row; align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+}
+
+.confirm-count {
+  font-size: 14px; color: #666;
+}
+
+.confirm-btn {
+  background: #1a1a1a; color: #fff;
+  font-size: 14px; font-weight: 500;
+  padding: 9px 28px; border-radius: 20px;
+}
+
+.confirm-btn--disabled {
+  background: #d0d0d0; color: #fff;
+}

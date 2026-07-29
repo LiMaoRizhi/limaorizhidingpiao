@@ -1,0 +1,185 @@
+<!--首页-->
+<navigation-bar back="{{false}}" background="rgba(255,255,255,0.5)"></navigation-bar>
+
+  <view class="page-content">
+
+    <!-- 按装修布局动态渲染组件 -->
+    <block wx:for="{{layoutList}}" wx:key="type">
+
+      <!-- 轮播图 -->
+      <block wx:if="{{item.type === 'banner'}}">
+        <swiper class="banner-swiper" indicator-dots circular autoplay interval="4000" wx:if="{{bannerList.length > 0}}">
+          <swiper-item wx:for="{{bannerList}}" wx:key="id" wx:for-item="banner">
+            <view class="banner-item">
+              <image class="banner-image" src="{{banner.image_url}}" mode="aspectFill" />
+              <view wx:if="{{banner.title}}" class="banner-title-wrap {{banner.titleEffect === 1 ? 'effect-shadow' : ''}} {{banner.titleEffect === 2 ? 'effect-glass' : ''}} {{banner.titleEffect === 3 ? 'effect-liquid' : ''}}">
+                <text class="banner-title banner-title-{{banner.titleColor || 'white'}}">{{banner.title}}</text>
+              </view>
+            </view>
+          </swiper-item>
+        </swiper>
+      </block>
+
+      <!-- 优惠券展示 -->
+      <block wx:if="{{item.type === 'coupon'}}">
+        <view class="coupon-section" wx:if="{{couponList.length > 0}}">
+          <view class="coupon-section-header">
+            <image class="coupon-section-icon" src="/images/icons/coupon-ticket.svg" />
+            <text class="coupon-section-title">优惠福利</text>
+          </view>
+          <scroll-view scroll-x class="coupon-scroll" enhanced show-scrollbar="{{false}}">
+            <view class="coupon-card" wx:for="{{couponList}}" wx:key="id" wx:for-item="coupon" data-coupon="{{coupon}}" bindtap="claimCoupon">
+              <view class="coupon-card-left">
+                <text class="coupon-value">{{coupon.valueText}}</text>
+                <text class="coupon-desc">{{coupon.desc}}</text>
+              </view>
+              <view class="coupon-card-right">
+                <text class="coupon-label">{{coupon.label}}</text>
+                <text class="coupon-name">{{coupon.name}}</text>
+                <view class="coupon-claim-btn {{coupon.claimed ? 'claimed' : ''}}">
+                  <text>{{coupon.claimed ? '已领取' : '立即领取'}}</text>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+      </block>
+
+      <!-- 公告通知 -->
+      <block wx:if="{{item.type === 'notice'}}">
+        <view class="notice-bar" wx:if="{{noticeText}}">
+          <image class="notice-megaphone-icon" src="/images/icons/notice-megaphone.svg" />
+          <view class="notice-marquee">
+            <text class="notice-content">{{noticeText}}</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 搜索筛选区（站点筛选 + 日期） -->
+      <block wx:if="{{item.type === 'search'}}">
+        <view class="station-filter-wrapper">
+          <view class="clear-filter-btn" bindtap="clearFilter" wx:if="{{selectedFromStation || selectedToStation}}">
+            <image class="btn-bg-img" src="/images/icons/water-bg.jpg" mode="aspectFill" />
+            <view class="water-flow-layer"></view>
+            <image class="clear-filter-icon" src="/images/icons/clear-filter.svg" />
+            <text class="clear-filter-text">清除筛选</text>
+          </view>
+          <view class="station-filter">
+            <view class="station-box" bindtap="showFromPicker" hover-class="station-box-hover" hover-stay-time="80">
+              <text class="station-label">出发地</text>
+              <text class="station-name {{selectedFromStation ? 'station-name-active' : ''}}">{{selectedFromStation ? selectedFromStation.name : '全部地区'}}</text>
+            </view>
+            <view class="swap-btn" bindtap="swapStations" hover-class="station-box-hover" hover-stay-time="80">
+              <image class="swap-icon" src="/images/icons/route-direction.svg" />
+            </view>
+            <view class="station-box" bindtap="showToPicker" hover-class="station-box-hover" hover-stay-time="80">
+              <text class="station-label">到达地</text>
+              <text class="station-name {{selectedToStation ? 'station-name-active' : ''}}">{{selectedToStation ? selectedToStation.name : '全部地区'}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="date-bar">
+          <text class="date-label">出行日期</text>
+          <picker mode="date" value="{{tripDate}}" bindchange="onDateChange">
+            <text class="date-value">{{tripDate}}</text>
+          </picker>
+          <view class="date-bar-right">
+            <view class="glass-refresh" bindtap="handleRefresh" hover-class="glass-refresh-hover">
+              <image class="btn-bg-img" src="/images/icons/water-bg.jpg" mode="aspectFill" />
+              <view class="water-flow-layer"></view>
+              <view class="ripple-container">
+                <view class="ripple {{ripples[index] ? 'ripple-active' : ''}}" wx:for="{{ripples}}" wx:key="index" style="left:{{item.x}}px;top:{{item.y}}px;"></view>
+              </view>
+              <text class="glass-refresh-text">刷新</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 车次列表 -->
+      <block wx:if="{{item.type === 'trips'}}">
+        <view class="sort-bar" wx:if="{{routeList.length > 0}}">
+          <view class="sort-chip {{sortBy === 'direct' ? 'active' : ''}}" data-sort="direct" bindtap="onSortChange">直达优先</view>
+          <view class="sort-chip {{sortBy === 'time' ? 'active' : ''}}" data-sort="time" bindtap="onSortChange">发车时间</view>
+          <view class="sort-chip {{sortBy === 'price' ? 'active' : ''}}" data-sort="price" bindtap="onSortChange">价格</view>
+          <view class="sort-chip {{sortBy === 'duration' ? 'active' : ''}}" data-sort="duration" bindtap="onSortChange">耗时</view>
+        </view>
+        <view class="route-list">
+          <view class="route-card" wx:for="{{routeList}}" wx:key="id" wx:for-item="trip" data-trip="{{trip}}" bindtap="onTripTap">
+            <view class="route-top">
+              <view class="route-path">
+                <text class="route-from">{{trip.from}}</text>
+                <image class="route-nav-icon" src="/images/icons/route-direction.svg" />
+                <text class="route-to">{{trip.to}}</text>
+              </view>
+              <text class="route-seats seats-{{trip.seatsStatus}}" wx:if="{{trip.seats}}">{{trip.seats}}</text>
+            </view>
+            <view class="route-via" wx:if="{{trip.viaStations.length > 0}}">
+              <text class="via-tag {{trip.isDirect ? 'via-direct' : 'via-transfer'}}">{{trip.isDirect ? '直达' : '经' + trip.stopCountBetween + '站'}}</text>
+              <text class="via-total">全程{{trip.stationCount}}站</text>
+              <text class="via-more">站点详情›</text>
+            </view>
+            <view class="route-bottom">
+              <view class="route-info">
+                <image class="route-bus-icon" src="/images/icons/bus.svg" />
+                <text class="route-duration">{{trip.duration}}</text>
+                <text class="route-arrival" wx:if="{{trip.arrivalText}}">{{trip.arrivalText}}到</text>
+              </view>
+              <view class="route-action">
+                <text class="route-price">¥{{trip.price}}<text class="route-price-unit" wx:if="{{!trip.priceIsInterval}}">起</text></text>
+                <view class="route-btn {{trip.availableSeats === 0 ? 'route-btn-disabled' : ''}}">
+                  <image class="route-btn-bg" src="/images/icons/water-bg.jpg" mode="aspectFill" wx:if="{{trip.availableSeats > 0}}" />
+                  <view class="water-flow-layer" wx:if="{{trip.availableSeats > 0}}"></view>
+                  <text class="route-btn-text">{{trip.availableSeats === 0 ? '售罄' : '订票'}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="empty-state" wx:if="{{routeList.length === 0}}">
+          <text class="empty-text">暂无可购车次</text>
+        </view>
+      </block>
+
+    </block>
+
+  </view>
+
+<!-- 站点选择弹窗 -->
+<view class="modal-mask" id="stationMask" wx:if="{{showStationPicker}}" bindtap="onStationMaskTap" catchtouchmove="noop">
+  <view class="station-modal" catchtap="noop" style="height:80vh;max-height:80vh;">
+    <view class="modal-header">
+      <text class="modal-title-text">{{stationPickerType === 'from' ? '选择出发站' : '选择到达站'}}</text>
+      <view class="modal-close" catchtap="closeStationPicker">×</view>
+    </view>
+    <view class="station-search-box {{stationSearchFocused ? 'station-search-box-focus' : ''}}">
+      <image class="station-search-icon" src="/images/icons/search.svg" />
+      <input class="station-search-input" placeholder="中文 / 拼音 / 首字母" value="{{stationSearchValue}}" bindinput="onStationSearch" bindfocus="onStationSearchFocus" bindblur="onStationSearchBlur" bindconfirm="onStationSearchConfirm" adjust-position="{{false}}" always-embed="{{true}}" cursor-spacing="20" confirm-type="search" />
+      <text class="station-search-clear" wx:if="{{stationSearchValue}}" catchtap="clearStationSearch">×</text>
+    </view>
+    <scroll-view scroll-y class="station-scroll" style="height:{{stationScrollHeight}};">
+      <view class="station-item" bindtap="onStationTap" data-station="{{item}}" wx:for="{{filteredStations}}" wx:key="id">
+        <text>{{item.name}}</text>
+      </view>
+      <view class="station-empty" wx:if="{{filteredStations.length === 0}}">未找到匹配站点</view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 水波纹刷新提示 -->
+<view class="water-toast {{showRefreshToast ? 'water-toast-show' : ''}}">
+  <view class="water-toast-bg">
+    <image class="toast-water-img" src="/images/icons/water-bg.jpg" mode="aspectFill" />
+    <view class="water-flow-layer"></view>
+    <view class="water-wave water-wave-1"></view>
+    <view class="water-wave water-wave-2"></view>
+    <view class="water-wave water-wave-3"></view>
+    <text class="water-toast-text">已刷新</text>
+  </view>
+</view>
+
+<!-- 点击刷新水花扩散特效 -->
+<view class="water-splash {{showRefreshToast ? 'water-splash-show' : ''}}">
+  <image class="water-splash-img" src="/images/icons/water-bg.jpg" mode="aspectFill" />
+</view>

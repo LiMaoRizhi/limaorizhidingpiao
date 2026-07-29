@@ -1,0 +1,20 @@
+<!--添加/编辑乘客信息-->
+<navigation-bar title="{{editingId ? '编辑乘客' : '添加乘客'}}" back="{{true}}" background="#fff"></navigation-bar>
+
+<scroll-view class="scrollarea" scroll-y>
+  <view class="page-content">
+
+    <view class="form-item">
+      <text class="form-label">姓名</text>
+      <input class="form-input {{focusedField === 'name' ? 'form-input--focus' : ''}}" placeholder="请输入姓名" value="{{formName}}" bindinput="onNameInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" data-field="name" always-embed="{{true}}" />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">证件号</text>
+      <input class="form-input {{focusedField === 'idcard' ? 'form-input--focus' : ''}}" placeholder="请输入身份证号" value="{{formIdCardNo}}" bindinput="onIdCardInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" data-field="idcard" disabled="{{editingId ? true : false}}" always-embed="{{true}}" />
+    </view>
+
+    <button class="save-btn" bindtap="savePassenger">保存</button>
+
+  </view>
+</scroll-view>

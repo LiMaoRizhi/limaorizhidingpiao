@@ -1,0 +1,166 @@
+<!--订单详情-->
+<navigation-bar title="订单详情" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<scroll-view class="scrollarea" scroll-y wx:if="{{order}}">
+  <view class="page-content">
+
+    <!-- 订单状态 -->
+    <view class="status-bar" style="background: {{statusColor}};">
+      <text class="status-text">{{statusText}}</text>
+    </view>
+
+    <!-- 路线信息（长按可删除订单） -->
+    <view class="route-card" bindlongpress="onLongPressDelete" data-id="{{order.id}}" data-status="{{order.status}}">
+      <view class="route-row">
+        <view class="route-col">
+          <text class="route-city">{{order.fromName}}</text>
+          <text class="route-time">{{order.departure_time}} 发车</text>
+        </view>
+        <view class="route-arrow">
+          <view class="arrow-line"></view>
+          <image class="arrow-icon-img" src="/images/icons/route-direction.svg" />
+          <view class="arrow-line"></view>
+        </view>
+        <view class="route-col">
+          <text class="route-city">{{order.toName}}</text>
+          <text class="route-time" wx:if="{{order.arrivalText}}">{{order.arrivalText}} 到达</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 类型标签 -->
+    <view class="type-badge {{isCargo ? 'cargo' : 'ticket'}}">{{isCargo ? '货物托运' : '车票订单'}}</view>
+
+    <!-- 二维码（仅车票订单+待出行状态显示） -->
+    <view class="qrcode-section" wx:if="{{!isCargo && order.status === 1}}">
+      <image wx:if="{{qrcodeUrl}}" class="qrcode-img" src="{{qrcodeUrl}}" mode="aspectFit" bindtap="previewQrcode" />
+      <view wx:elif="{{qrcodeLoading}}" class="qrcode-placeholder">
+        <text>二维码加载中...</text>
+      </view>
+      <view wx:elif="{{qrcodeError}}" class="qrcode-error">
+        <text class="qrcode-error-icon">!</text>
+        <text class="qrcode-error-text">{{qrcodeError}}</text>
+      </view>
+      <text class="qrcode-tip">乘车时出示此二维码给司机核验</text>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="info-card">
+      <view class="info-row" bindtap="copyOrderNo">
+        <text class="info-label">订单号</text>
+        <text class="info-value">{{order.order_no}}</text>
+        <text class="copy-icon">复制</text>
+      </view>
+
+      <!-- 车票订单字段 -->
+      <block wx:if="{{!isCargo}}">
+        <view class="info-row">
+          <text class="info-label">联系人</text>
+          <text class="info-value">{{order.contact_name}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">联系电话</text>
+          <text class="info-value">{{order.contact_phone}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">购票数量</text>
+          <text class="info-value">{{order.passenger_count}}人</text>
+        </view>
+      </block>
+
+      <!-- 托运订单字段 -->
+      <block wx:else>
+        <view class="info-row">
+          <text class="info-label">寄件人</text>
+          <text class="info-value">{{order.sender_name}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">寄件电话</text>
+          <text class="info-value">{{order.sender_phone}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">收件人</text>
+          <text class="info-value">{{order.receiver_name}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">收件电话</text>
+          <text class="info-value">{{order.receiver_phone}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">货物类型</text>
+          <text class="info-value">{{order.cargo_type}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">重量</text>
+          <text class="info-value">{{order.weight}}kg</text>
+        </view>
+        <view class="info-row" wx:if="{{order.description}}">
+          <text class="info-label">备注</text>
+          <text class="info-value">{{order.description}}</text>
+        </view>
+      </block>
+
+      <view class="info-row">
+        <text class="info-label">订单金额</text>
+        <text class="info-value price">¥{{order.totalPriceText}}</text>
+      </view>
+      <view class="info-row" wx:if="{{order.pay_time}}">
+        <text class="info-label">支付时间</text>
+        <text class="info-value">{{order.pay_time}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">下单时间</text>
+        <text class="info-value">{{order.created_at}}</text>
+      </view>
+    </view>
+
+    <!-- 司机信息（可联系司机） -->
+    <view class="info-card" wx:if="{{order.trip.driver}}">
+      <view class="card-title">司机信息</view>
+      <view class="info-row">
+        <text class="info-label">司机</text>
+        <text class="info-value">{{order.trip.driver.name}}</text>
+      </view>
+      <view class="info-row" bindtap="callDriver" data-phone="{{order.trip.driver.phone}}">
+        <text class="info-label">电话</text>
+        <text class="info-value">{{order.trip.driver.phone}}</text>
+        <text class="copy-icon" wx:if="{{order.trip.driver.phone}}">拨号</text>
+      </view>
+    </view>
+
+    <!-- 乘客信息 -->
+    <view class="info-card" wx:if="{{passengers.length > 0}}">
+      <view class="card-title">乘客信息</view>
+      <view class="passenger-row" wx:for="{{passengers}}" wx:key="id">
+        <view class="p-info">
+          <text class="p-name">{{item.name}}</text>
+          <text class="p-card">{{item.id_card_no}}</text>
+        </view>
+        <view class="p-status" wx:if="{{item.check_status === 1}}">
+          <text class="checked">已核验 ✓</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-bar">
+      <button class="action-btn pay-btn" wx:if="{{order.status === 0}}" bindtap="handlePay">立即支付</button>
+      <button class="action-btn cancel-btn" wx:if="{{order.status === 0}}" bindtap="handleCancel">取消订单</button>
+      <button class="action-btn refund-btn" wx:if="{{order.status === 1}}" bindtap="handleRefund">{{isCargo ? '申请退款' : '申请退票'}}</button>
+      <button class="action-btn track-btn" wx:if="{{showTrackBtn}}" bindtap="handleViewTrack">{{trackBtnText}}</button>
+    </view>
+
+  </view>
+</scroll-view>
+
+<!-- 长按删除确认弹窗 -->
+<view class="delete-mask" wx:if="{{showDeleteModal}}" bindtap="cancelDelete">
+  <view class="delete-popup" catchtap="">
+    <view class="delete-warning">确认删除？</view>
+    <view class="delete-desc">删除后订单将不再显示，如需查看请联系客服。{{deleteTipExtra}}</view>
+    <view class="delete-actions">
+      <view class="delete-btn cancel-btn" bindtap="cancelDelete">取消</view>
+      <view class="delete-btn confirm-btn" bindtap="confirmDelete">删除</view>
+    </view>
+  </view>
+</view>

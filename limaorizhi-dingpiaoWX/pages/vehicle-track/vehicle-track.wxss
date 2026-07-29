@@ -1,0 +1,167 @@
+/* 乘客端车辆位置追踪页面样式 */
+.page-content {
+  padding: 24rpx;
+}
+
+/* 班次信息条 */
+.trip-bar {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.trip-route {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.route-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.route-arrow {
+  font-size: 32rpx;
+  color: #007aff;
+  font-weight: 600;
+}
+
+.trip-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trip-meta text {
+  font-size: 26rpx;
+  color: #8a8a8a;
+}
+
+.plate-no {
+  font-weight: 600 !important;
+  color: #007aff !important;
+}
+
+/* ==================== 合并卡片：地图+状态+进度 ==================== */
+.track-card {
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+  margin-bottom: 24rpx;
+}
+
+/* 地图区域 */
+.map-section {
+  width: 100%;
+}
+
+/* 无GPS时显示大巴图标 */
+.no-gps-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0 60rpx;
+  background: #f5f6f8;
+}
+
+.bus-icon-large {
+  width: 120rpx;
+  height: 120rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.5;
+}
+
+.no-gps-text {
+  font-size: 26rpx;
+  color: #8a8a8a;
+}
+
+/* 状态信息条（行内紧凑布局） */
+.status-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 28rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 8rpx rgba(52,199,89,0.5);
+  flex-shrink: 0;
+}
+
+.speed-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.update-text {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+.nav-btn-small {
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
+  border-radius: 8rpx;
+  padding: 10rpx 28rpx;
+  line-height: 1.4;
+}
+
+.nav-btn-small::after {
+  border: none;
+}
+
+/* ==================== 到站进度入口条 ==================== */
+.progress-section {
+  padding: 24rpx 28rpx;
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.bus-icon-small {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+}
+
+.progress-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.progress-count {
+  font-size: 26rpx;
+  color: #8a8a8a;
+  margin-left: auto;
+}
+
+.progress-more {
+  font-size: 24rpx;
+  color: #1296db;
+}

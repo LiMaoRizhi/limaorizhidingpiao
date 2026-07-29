@@ -1,0 +1,97 @@
+<!--订单-->
+<navigation-bar title="我的订单" back="{{false}}" background="rgba(255,255,255,0.5)"></navigation-bar>
+
+<!-- 筛选标签栏（固定在导航栏下方） -->
+<view class="fixed-tabs">
+  <view
+    class="header-tab {{activeTab === item.key ? 'active' : ''}}"
+    wx:for="{{tabs}}"
+    wx:key="key"
+    data-key="{{item.key}}"
+    bindtap="onTabChange"
+  >
+    <text>{{item.text}}</text>
+    <view class="tab-line" wx:if="{{activeTab === item.key}}"></view>
+  </view>
+</view>
+
+<scroll-view class="scrollarea" scroll-y bindscrolltolower="onReachBottom" lower-threshold="100">
+  <view class="page-content">
+
+    <!-- 未登录提示 -->
+    <view class="empty-state" wx:if="{{!isLogin}}">
+      <view class="login-prompt">
+        <text class="empty-text">请先登录查看订单</text>
+        <view class="login-btn" bindtap="goLogin">去登录</view>
+      </view>
+    </view>
+
+    <!-- 订单列表 -->
+    <view class="order-list" wx:if="{{isLogin && filteredOrders.length > 0}}">
+      <view class="order-card" wx:for="{{filteredOrders}}" wx:key="id" bindlongpress="onLongPressOrder" data-id="{{item.id}}" data-status="{{item.status}}">
+        <view class="order-card-tap" bindtap="goToDetail" data-id="{{item.id}}">
+        <view class="order-header">
+          <text class="order-no"><text class="type-tag {{item.isCargo ? 'cargo' : 'ticket'}}">{{item.typeText}}</text> {{item.orderNo}}</text>
+          <view class="order-status status-{{item.status}}">
+            <text>{{item.statusText}}</text>
+          </view>
+        </view>
+        <view class="order-route">
+          <text class="route-city">{{item.from}}</text>
+          <view class="route-arrow">
+            <view class="arrow-line"></view>
+            <image class="arrow-icon-img" src="/images/icons/route-direction.svg" />
+            <view class="arrow-line"></view>
+          </view>
+          <text class="route-city">{{item.to}}</text>
+        </view>
+        <view class="order-info">
+          <text class="info-time">{{item.date}} {{item.time}} 发车</text>
+          <view class="info-right">
+            <text class="info-seats">{{item.infoText}}</text>
+            <text class="info-price">¥{{item.price}}</text>
+          </view>
+        </view>
+        </view>
+        <view class="order-footer">
+          <view
+            class="order-action-secondary"
+            wx:if="{{item.secondaryAction}}"
+            bindtap="onSecondaryAction"
+            data-id="{{item.id}}"
+            data-type="{{item.secondaryActionType}}"
+            data-cargo="{{item.isCargo}}"
+          >
+            <text>{{item.secondaryAction}}</text>
+          </view>
+          <view
+            class="order-action action-{{item.status}}"
+            bindtap="onOrderAction"
+            data-id="{{item.id}}"
+            data-status="{{item.status}}"
+          >
+            <text>{{item.actionText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态：已登录但无订单 -->
+    <view class="empty-state" wx:if="{{isLogin && filteredOrders.length === 0}}">
+      <text class="empty-text">暂无订单</text>
+    </view>
+
+  </view>
+</scroll-view>
+
+<!-- 长按删除确认弹窗 -->
+<view class="delete-mask" wx:if="{{showDeleteModal}}" bindtap="cancelDeleteOrder">
+  <view class="delete-popup" catchtap="">
+    <view class="delete-warning">确认删除？</view>
+    <view class="delete-desc">删除后订单将不再显示，如需查看请联系客服。{{deleteTipExtra}}</view>
+    <view class="delete-actions">
+      <view class="delete-btn cancel-btn" bindtap="cancelDeleteOrder">取消</view>
+      <view class="delete-btn confirm-btn" bindtap="confirmDeleteOrder">删除</view>
+    </view>
+  </view>
+</view>

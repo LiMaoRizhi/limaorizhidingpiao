@@ -1,0 +1,323 @@
+/* 司机端行程追踪页面样式 */
+.page-content {
+  padding: 24rpx;
+}
+
+/* 班次信息卡片 */
+.trip-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.trip-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.trip-from {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trip-to {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.trip-arrow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin: 0 16rpx;
+}
+
+.arrow-line {
+  flex: 1;
+  height: 2rpx;
+  background: #d1d1d6;
+}
+
+.arrow-icon-img {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.trip-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.info-label {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+/* 定位状态卡片 */
+.status-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+}
+
+.status-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #d1d1d6;
+}
+
+.status-dot.active {
+  background: #34c759;
+  box-shadow: 0 0 12rpx rgba(52,199,89,0.5);
+}
+
+.status-dot.error {
+  background: #ff3b30;
+  box-shadow: 0 0 12rpx rgba(255,59,48,0.5);
+}
+
+.status-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.row-label {
+  font-size: 26rpx;
+  color: #8a8a8a;
+}
+
+.row-value {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.status-tip {
+  padding: 24rpx;
+  background: #f5f6f8;
+  border-radius: 12rpx;
+}
+
+.status-tip text {
+  font-size: 26rpx;
+  color: #8a8a8a;
+  line-height: 1.6;
+}
+
+/* 站点序列卡片 */
+.station-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.station-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.station-card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.station-card-hint {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+.station-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.station-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.station-item:last-child {
+  border-bottom: none;
+}
+
+/* 下一站高亮 */
+.station-item.is-next {
+  background: #f0f8ff;
+  border-radius: 12rpx;
+  padding-left: 12rpx;
+  padding-right: 12rpx;
+}
+
+/* 药丸形序号徽章：未标记=灰色 */
+.station-pill {
+  min-width: 64rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  border-radius: 24rpx;
+  padding: 0 16rpx;
+  background: #e8e8ed;
+  color: #8a8a8a;
+  font-size: 26rpx;
+  font-weight: 600;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* 已标记 = 黑色药丸 */
+.station-pill.pill-marked {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.station-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.station-name {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.station-time {
+  font-size: 22rpx;
+  color: #8a8a8a;
+}
+
+/* 按钮区域 */
+.station-btn-area {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 已过站标识 */
+.station-done {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.done-check {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.done-text {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+/* 标记按钮 */
+.station-btn {
+  font-size: 24rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 24rpx;
+  font-weight: 500;
+}
+
+.btn-active {
+  background: #007aff;
+  color: #fff;
+}
+
+.btn-locked {
+  background: #f5f6f8;
+  color: #c7c7cc;
+}
+
+.station-reset {
+  text-align: center;
+  padding: 20rpx;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #ff9500;
+}
+
+/* 按钮区域 */
+.btn-area {
+  display: flex;
+  justify-content: center;
+  padding: 40rpx 0;
+}
+
+.btn-primary {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  background: #007aff;
+  border-radius: 48rpx;
+}
+
+.btn-danger {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+  background: #ff3b30;
+  border-radius: 48rpx;
+}

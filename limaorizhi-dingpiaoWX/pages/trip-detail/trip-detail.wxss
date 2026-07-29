@@ -1,0 +1,1098 @@
+page {
+  background: #f5f6f8;
+}
+
+.page-content {
+  padding: 12px 16px 130px;
+}
+
+/* ==================== 班次卡片 ==================== */
+.trip-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 0;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.trip-route {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.trip-from, .trip-to {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1296db;
+}
+
+.trip-station-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.trip-station-btn:active {
+  opacity: 0.6;
+}
+
+.trip-placeholder {
+  font-size: 14px;
+  font-weight: 500;
+  color: #bbb;
+}
+
+.trip-switch-hint {
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+}
+
+.trip-arrow {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 12px;
+}
+
+.arrow-line {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, #e0e0e0, #d0d0d0);
+  border-radius: 1px;
+}
+
+.arrow-icon-img {
+  width: 16px;
+  height: 16px;
+  margin: 0 4px;
+}
+
+.trip-info {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.info-item {
+  width: 50%;
+  margin-bottom: 8px;
+}
+
+.info-label {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 3px;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.info-value.price {
+  color: #1a1a1a;
+  font-weight: bold;
+}
+
+.seats-pill {
+  display: inline-block;
+  font-size: 14px;
+  color: #1a1a1a;
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* ==================== 车辆位置地图卡片 ==================== */
+.track-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 14px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.track-card:active {
+  opacity: 0.8;
+}
+
+.track-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.track-card-title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.track-card-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.track-card-link {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.track-map-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.track-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  background: #f5f5f5;
+  border-radius: 12px;
+}
+
+.track-placeholder-text {
+  font-size: 13px;
+  color: #999;
+}
+
+/* ==================== 区块通用 ==================== */
+.section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 14px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.section-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.5px;
+}
+
+.title-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-bar {
+  width: 3px;
+  height: 16px;
+  background: #1a1a1a;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.title-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* ==================== 乘客卡片 ==================== */
+.passenger-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid #eee;
+}
+
+.pc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.pc-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.pc-id {
+  font-size: 12px;
+  color: #999;
+}
+
+.pc-remove {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+/* 添加乘客信息按钮（底部长方形） */
+.add-passenger-bar {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  padding: 14px 0;
+  margin-top: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.remove-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ==================== 联系人 ==================== */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.c-input {
+  background: #fff;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 15px;
+  color: #1a1a1a;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #c8c8c8;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.c-input--focus {
+  border-color: #1e6fff;
+  box-shadow: 0 0 0 3px rgba(30, 111, 255, 0.12);
+}
+
+/* ==================== 底部下单栏 ==================== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  z-index: 100;
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease;
+}
+
+.bottom-bar-hide {
+  transform: translateY(150%);
+}
+
+.total-price {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.price-label {
+  font-size: 14px;
+  color: #999;
+  margin-right: 6px;
+}
+
+.price-num {
+  font-size: 26px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.price-origin {
+  font-size: 14px;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 6px;
+}
+
+.price-count {
+  font-size: 14px;
+  color: #999;
+  margin-left: 6px;
+}
+
+.order-btn {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a1a 0%, #3d3d3d 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border-radius: 24px;
+  border: none;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: 10px;
+  overflow: hidden;
+}
+
+.order-btn-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+.water-flow-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 32%,
+    rgba(255, 255, 255, 0.15) 38%,
+    rgba(255, 255, 255, 0.08) 44%,
+    transparent 56%,
+    rgba(255, 255, 255, 0.05) 68%,
+    rgba(255, 255, 255, 0.1) 74%,
+    rgba(255, 255, 255, 0.05) 80%,
+    transparent 92%
+  );
+  background-size: 200% 100%;
+  animation: water-shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes water-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.order-btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+.order-btn::after {
+  border: none;
+}
+
+/* ==================== 弹窗 ==================== */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  animation: fade-in 0.25s ease;
+}
+
+.picker-modal {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  animation: slide-up 0.25s ease;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-header {
+  position: relative;
+  text-align: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  font-size: 24px;
+  color: #999;
+  font-weight: 400;
+}
+
+.modal-close:active {
+  color: #1a1a1a;
+}
+
+.modal-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.picker-scroll {
+  flex: 1;
+}
+
+.picker-search-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 10px 16px;
+  padding: 0 12px;
+  height: 40px;
+  background: #fff;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.picker-search-box-focus {
+  border-color: #2689FF;
+  background: #fff;
+}
+
+.picker-search-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.picker-search-input {
+  flex: 1;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.picker-empty {
+  text-align: center;
+  padding: 30px 0;
+  font-size: 14px;
+  color: #999;
+}
+
+.picker-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.picker-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.picker-card {
+  font-size: 13px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.picker-add {
+  font-size: 20px;
+  color: #1a1a1a;
+}
+
+.picker-cancel {
+  text-align: center;
+  padding: 14px 0;
+  font-size: 16px;
+  color: #999;
+  border-top: 1px solid #eee;
+}
+
+/* ==================== 优惠券选择（票据风格） ==================== */
+.coupon-ticket-box {
+  margin-top: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.coupon-ticket-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+/* 已选：左侧黑色标签 */
+.coupon-ticket-badge {
+  background: #1a1a1a;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 56px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.coupon-badge-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+/* 虚线分隔 */
+.coupon-ticket-divider {
+  width: 0;
+  height: 28px;
+  border-left: 1px dashed #e0e0e0;
+  flex-shrink: 0;
+}
+/* 中间信息 */
+.coupon-ticket-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.coupon-ticket-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.coupon-ticket-hint {
+  font-size: 11px;
+  color: #bbb;
+}
+/* 未选：占位 */
+.coupon-ticket-empty {
+  gap: 8px;
+}
+.coupon-ticket-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.coupon-ticket-placeholder {
+  flex: 1;
+  font-size: 14px;
+  color: #999;
+}
+/* 右箭头 */
+.coupon-ticket-arrow {
+  font-size: 20px;
+  color: #ccc;
+  flex-shrink: 0;
+}
+/* 暂无可用 */
+.coupon-ticket-none {
+  padding: 14px 16px;
+}
+.coupon-ticket-none .coupon-ticket-placeholder {
+  text-align: center;
+}
+.coupon-clear {
+  font-size: 13px;
+  color: #999;
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* ==================== 优惠券弹窗卡片 ==================== */
+.coupon-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  position: relative;
+}
+.coupon-card-active {
+  background: #f8f8f8;
+}
+.coupon-card-disabled {
+  opacity: 0.45;
+}
+.coupon-card-disabled .coupon-card-amount,
+.coupon-card-disabled .coupon-card-name {
+  color: #999;
+}
+.coupon-card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding-right: 16px;
+  border-right: 1px dashed #e0e0e0;
+}
+.coupon-card-amount {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.coupon-card-type {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+.coupon-card-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 16px;
+  min-width: 0;
+}
+.coupon-card-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.coupon-card-desc {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 勾选框 */
+.coupon-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+}
+.coupon-check-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.coupon-check-tick {
+  font-size: 12px;
+  color: #fff;
+  font-weight: 700;
+}
+.coupon-check-empty {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #d0d0d0;
+  box-sizing: border-box;
+}
+
+/* 不使用优惠券行 */
+.coupon-none-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #eee;
+}
+.coupon-none-active {
+  background: #f8f8f8;
+}
+.coupon-none-text {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* ==================== 上下车站选择（黑白主题） ==================== */
+.station-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 16px;
+  margin-top: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.station-hint {
+  font-size: 12px;
+  color: #999;
+}
+.station-select-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 0 4px;
+}
+.station-select-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px 14px;
+  border-radius: 14px;
+  position: relative;
+  background: #f7f7f7;
+  border: 1.5px solid #e0e0e0;
+}
+.station-badge {
+  position: absolute;
+  top: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.from-badge {
+  background: #1a1a1a;
+}
+.to-badge {
+  background: #1a1a1a;
+}
+.station-select-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.station-select-placeholder {
+  font-size: 14px;
+  color: #bbb;
+}
+.station-select-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+}
+.station-arrow-icon {
+  width: 24px;
+  height: 24px;
+}
+.interval-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px 4px;
+  margin-top: 4px;
+  border-top: 1px dashed #e0e0e0;
+}
+.interval-price-label {
+  font-size: 14px;
+  color: #666;
+}
+.interval-price-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.per-person {
+  font-size: 13px;
+  font-weight: 400;
+  color: #999;
+}
+.interval-seats-pill {
+  margin-left: 8px;
+  font-size: 12px;
+}
+.interval-seats-pill.seats-tight {
+  color: #1a1a1a;
+  border-color: #d0d0d0;
+  background: transparent;
+}
+.interval-seats-pill.seats-soldout {
+  color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+/* ==================== 途经站点时间轴 ==================== */
+.station-timeline {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #e0e0e0;
+}
+.timeline-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.timeline-title-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.timeline-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.timeline-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.timeline-count {
+  font-size: 12px;
+  color: #999;
+}
+.timeline-list {
+  padding-left: 2px;
+}
+.timeline-item {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 48px;
+}
+.timeline-rail {
+  width: 16px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.rail-line {
+  flex: 1;
+  width: 2px;
+  background: #e0e0e0;
+  min-height: 8px;
+}
+.rail-line.line-hidden {
+  visibility: hidden;
+}
+.rail-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #d0d0d0;
+  flex-shrink: 0;
+  margin: 6px 0;
+}
+.timeline-item.is-from .rail-dot,
+.timeline-item.is-to .rail-dot {
+  width: 12px;
+  height: 12px;
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+}
+.timeline-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0 6px 12px;
+  min-height: 48px;
+}
+.timeline-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.timeline-name {
+  font-size: 15px;
+  color: #333;
+}
+.timeline-item.is-from .timeline-name,
+.timeline-item.is-to .timeline-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.timeline-badge {
+  font-size: 10px;
+  color: #fff;
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.timeline-stop {
+  font-size: 12px;
+  color: #bbb;
+  flex-shrink: 0;
+}
+.timeline-price {
+  font-size: 13px;
+  color: #999;
+  align-self: center;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+/* ==================== 到站进度+地图合并卡片 ==================== */
+.bus-progress-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bus-progress-card:active {
+  opacity: 0.85;
+}
+
+.bp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bp-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.bp-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.bp-count {
+  font-size: 13px;
+  color: #8a8a8a;
+}
+
+.bp-link {
+  margin-left: auto;
+  font-size: 13px;
+  color: #1296db;
+}
+
+.bp-map-wrapper {
+  margin-top: 12px;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.bp-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 160rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+}
+
+.bp-map-icon {
+  width: 40rpx;
+  height: 40rpx;
+  opacity: 0.4;
+}
+
+.bp-map-text {
+  font-size: 12px;
+  color: #999;
+}

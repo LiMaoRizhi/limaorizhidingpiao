@@ -1,0 +1,44 @@
+<!--乘客实名管理 / 选择乘客-->
+<navigation-bar title="{{selectMode ? '选择乘客' : '乘客实名'}}" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<scroll-view class="scrollarea {{selectMode ? 'scrollarea--select' : ''}}" scroll-y>
+  <view class="page-content">
+
+    <!-- 乘客列表 -->
+    <view class="passenger-list" wx:if="{{passengers.length > 0}}">
+      <view class="passenger-card" wx:for="{{passengers}}" wx:key="id" data-id="{{item.id}}" bindtap="{{selectMode ? 'toggleSelect' : ''}}">
+        <!-- 勾选模式：显示复选框 -->
+        <view class="check-box" wx:if="{{selectMode}}">
+          <view class="check-circle {{item.checked ? 'check-circle--active' : ''}}">
+            <text class="check-tick" wx:if="{{item.checked}}">✓</text>
+          </view>
+        </view>
+        <!-- 乘客信息 -->
+        <view class="p-info" data-item="{{item}}" bindtap="{{selectMode ? '' : 'showEditForm'}}">
+          <text class="p-name">{{item.name}}</text>
+          <text class="p-card">身份证：{{item.id_card_no}}</text>
+        </view>
+        <!-- 管理模式：编辑/删除 -->
+        <view class="p-actions" wx:if="{{!selectMode}}">
+          <view class="p-edit" data-item="{{item}}" bindtap="showEditForm">编辑</view>
+          <view class="p-delete" data-id="{{item.id}}" bindtap="deletePassenger">删除</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{passengers.length === 0}}">
+      <text class="empty-text">{{selectMode ? '暂无乘客，请先添加' : '暂无乘客信息'}}</text>
+    </view>
+
+    <!-- 添加按钮 -->
+    <button class="add-btn" bindtap="showAddForm">添加乘客信息</button>
+
+  </view>
+</scroll-view>
+
+<!-- 勾选模式底部确认栏 -->
+<view class="confirm-bar" wx:if="{{selectMode}}">
+  <view class="confirm-count">已选 {{selectedIds.length}} 人</view>
+  <view class="confirm-btn {{selectedIds.length === 0 ? 'confirm-btn--disabled' : ''}}" bindtap="confirmSelection">确认选择</view>
+</view>

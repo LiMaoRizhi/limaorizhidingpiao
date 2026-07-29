@@ -1,0 +1,998 @@
+page {
+  background: #f5f6f8;
+}
+
+.page-content {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* 轮播图 */
+.banner-swiper {
+  width: 100%;
+  height: 180px;
+  margin-bottom: 12px;
+}
+
+.banner-item {
+  height: 100%;
+  margin: 0 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+}
+
+/* 轮播图标题 */
+.banner-title-wrap {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 2;
+  max-width: calc(100% - 32px);
+}
+
+.banner-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* 标题颜色 */
+.banner-title-white { color: #ffffff; }
+.banner-title-black { color: #000000; }
+.banner-title-yellow { color: #ffcc00; }
+.banner-title-red { color: #ff3333; }
+.banner-title-blue { color: #2689ff; }
+.banner-title-green { color: #33cc33; }
+.banner-title-cyan { color: #00cccc; }
+.banner-title-purple { color: #9933ff; }
+
+/* 标题特效 - 阴影 */
+.effect-shadow .banner-title {
+  text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+}
+
+/* 标题特效 - 磨砂玻璃 */
+.effect-glass {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 6px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.effect-glass .banner-title {
+  text-shadow: none;
+}
+
+/* 标题特效 - 液态玻璃（更透明更通透） */
+.effect-liquid {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(2px) saturate(180%);
+  -webkit-backdrop-filter: blur(2px) saturate(180%);
+  border-radius: 6px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.effect-liquid .banner-title {
+  text-shadow: none;
+}
+
+/* 优惠券展示 */
+.coupon-section {
+  margin: 12px 16px 0;
+}
+
+.coupon-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.coupon-section-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.coupon-section-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.coupon-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.coupon-card {
+  display: inline-flex;
+  flex-direction: row;
+  width: 300rpx;
+  height: 100px;
+  margin-right: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.coupon-card-left {
+  width: 120rpx;
+  background: linear-gradient(135deg, #2689FF, #1a6dd0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 4rpx;
+}
+
+.coupon-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+}
+
+.coupon-desc {
+  font-size: 9px;
+  color: rgba(255,255,255,0.9);
+  margin-top: 4px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.coupon-card-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20rpx;
+  overflow: hidden;
+}
+
+.coupon-label {
+  font-size: 11px;
+  color: #2689FF;
+  font-weight: 500;
+}
+
+.coupon-name {
+  font-size: 13px;
+  color: #333;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coupon-claim-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  padding: 3px 12px;
+  background: linear-gradient(135deg, #2689FF, #1a6dd0);
+  border-radius: 14px;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.coupon-claim-btn.claimed {
+  background: #e0e0e0;
+  color: #999;
+}
+
+/* 公告通知 - 与管理后台装修页面统一：白底黑框黑字 */
+.notice-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 16px 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #1a1a1a;
+}
+
+.notice-megaphone-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.notice-marquee {
+  flex: 1;
+  overflow: hidden;
+}
+
+.notice-content {
+  display: inline-block;
+  font-size: 13px;
+  color: #1a1a1a;
+  white-space: nowrap;
+  animation: notice-scroll 12s linear infinite;
+}
+
+@keyframes notice-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* 车次列表 */
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.route-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.route-top {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.route-path {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+
+.route-from {
+  font-size: 19px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.route-nav-icon {
+  width: 20px;
+  height: 20px;
+  margin: 0 10px;
+}
+
+.route-to {
+  font-size: 19px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.route-seats {
+  display: inline-block;
+  font-size: 12px;
+  color: #1a1a1a;
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* 充足/紧张均用黑色文字+灰色边框透明背景药丸；售罄红色 */
+.route-seats.seats-available {
+  color: #1a1a1a;
+  border-color: #d0d0d0;
+  background: transparent;
+}
+
+.route-seats.seats-tight {
+  color: #1a1a1a;
+  border-color: #d0d0d0;
+  background: transparent;
+}
+
+.route-seats.seats-soldout {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.08);
+}
+
+.route-bottom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.route-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.route-bus-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.route-time {
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+}
+
+.route-duration {
+  font-size: 13px;
+  color: #666;
+  margin-left: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.route-action {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.route-price {
+  font-size: 22px;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-right: 14px;
+}
+
+.route-price-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+}
+
+.route-btn {
+  position: relative;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 24px;
+  border-radius: 22px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.route-btn-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+.route-btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+.route-btn .water-flow-layer {
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 32%,
+    rgba(255, 255, 255, 0.15) 38%,
+    rgba(255, 255, 255, 0.08) 44%,
+    transparent 56%,
+    rgba(255, 255, 255, 0.05) 68%,
+    rgba(255, 255, 255, 0.1) 74%,
+    rgba(255, 255, 255, 0.05) 80%,
+    transparent 92%
+  );
+}
+
+.route-btn.route-btn-disabled {
+  background: #e0e0e0;
+  color: #999;
+}
+
+/* 站点筛选 */
+.station-filter-wrapper {
+  position: relative;
+  margin: 24px 16px 0;
+}
+
+.clear-filter-btn {
+  position: absolute;
+  top: -10px;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  z-index: 2;
+}
+
+.btn-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* 水面流动高光层 */
+.water-flow-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.25) 32%,
+    rgba(255, 255, 255, 0.4) 38%,
+    rgba(255, 255, 255, 0.25) 44%,
+    transparent 56%,
+    rgba(255, 255, 255, 0.15) 68%,
+    rgba(255, 255, 255, 0.3) 74%,
+    rgba(255, 255, 255, 0.15) 80%,
+    transparent 92%
+  );
+  background-size: 200% 100%;
+  animation: water-shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes water-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.clear-filter-icon {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.clear-filter-text {
+  font-size: 11px;
+  color: #1a1a1a;
+  position: relative;
+  z-index: 1;
+}
+
+.station-filter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.station-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.station-box-hover {
+  opacity: 0.6;
+}
+
+.station-label {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.station-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1296db;
+}
+
+.station-name-active {
+  color: #1296db;
+}
+
+.swap-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swap-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* 日期栏 */
+.date-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 10px 16px 0;
+  padding: 8px 16px;
+}
+
+.date-label {
+  font-size: 14px;
+  color: #1a1a1a;
+  margin-right: 10px;
+}
+
+.date-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1296db;
+}
+
+.date-bar-right {
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 玻璃透明刷新按钮 */
+.glass-refresh {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.glass-refresh-hover {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.glass-refresh-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 3px;
+  position: relative;
+  z-index: 2;
+}
+
+/* 水波纹容器 */
+.ripple-container {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 水波纹 */
+.ripple {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: rgba(18, 150, 219, 0.15);
+}
+
+.ripple-active {
+  animation: ripple-wave 0.8s ease-out forwards;
+}
+
+@keyframes ripple-wave {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 120px;
+    height: 120px;
+    opacity: 0;
+  }
+}
+
+/* 水波纹刷新提示 */
+.water-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.water-toast-show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.water-toast-bg {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.toast-water-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.water-toast-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 3;
+}
+
+/* 水波纹层 */
+.water-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 60%, transparent 80%);
+  animation: water-flow 2s ease-in-out infinite;
+  z-index: 1;
+}
+
+.water-wave-1 {
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 0s;
+}
+
+.water-wave-2 {
+  width: 60px;
+  height: 60px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 0.3s;
+}
+
+.water-wave-3 {
+  width: 40px;
+  height: 40px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 0.6s;
+}
+
+@keyframes water-flow {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.4);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.8;
+  }
+}
+
+/* 点击刷新水花扩散特效 */
+.water-splash {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.water-splash-show {
+  animation: water-splash-expand 0.8s ease-out forwards;
+}
+
+.water-splash-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+}
+
+@keyframes water-splash-expand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.6;
+  }
+  100% {
+    width: 280px;
+    height: 280px;
+    opacity: 0;
+  }
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+}
+
+.empty-text {
+  font-size: 15px;
+  color: #999;
+}
+
+/* 站点选择弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  animation: fade-in 0.25s ease;
+}
+
+.station-modal {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  animation: slide-up 0.25s ease;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-header {
+  position: relative;
+  text-align: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  font-size: 24px;
+  color: #999;
+  font-weight: 400;
+}
+
+.modal-close:active {
+  color: #1a1a1a;
+}
+
+.modal-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.station-scroll {
+  flex: 1;
+}
+
+.station-item {
+  padding: 14px 20px;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.station-cancel {
+  text-align: center;
+  padding: 14px 0;
+  font-size: 16px;
+  color: #999;
+  border-top: 1px solid #eee;
+}
+
+/* 站点弹窗搜索框 */
+.station-search-box {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 10px 16px;
+  padding: 0 12px;
+  height: 40px;
+  background: #fff;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.station-search-box-focus {
+  border-color: #2689FF;
+  background: #fff;
+}
+
+.station-search-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.station-search-input {
+  flex: 1;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.station-search-clear {
+  font-size: 18px;
+  color: #999;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.station-empty {
+  text-align: center;
+  padding: 30px 0;
+  font-size: 14px;
+  color: #999;
+}
+
+/* 排序栏 */
+.sort-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.sort-chip {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #1a1a1a;
+  padding: 6px 16px;
+  background: #fff;
+  border: 1px solid #1a1a1a;
+  border-radius: 16px;
+}
+
+.sort-chip.active {
+  color: #fff;
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  font-weight: 500;
+}
+
+/* 途经走向 */
+.route-via {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
+}
+
+.via-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #1a1a1a;
+  padding: 2px 8px;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.via-tag.via-transfer {
+  color: #999;
+  border-color: #bbb;
+}
+
+.via-total {
+  font-size: 12px;
+  color: #666;
+}
+
+.via-more {
+  flex: 1;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+}
