@@ -17,9 +17,9 @@
 
 <table>
   <tr>
-    <td><img src="screenshots/小程序用户首页.png" width="200"/></td>
-    <td><img src="screenshots/小程序用户选座页上半部分.png" width="200"/></td>
-    <td><img src="screenshots/小程序用户订单页.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-2.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-6.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-3.png" width="200"/></td>
   </tr>
   <tr>
     <td align="center">首页</td>
@@ -30,9 +30,9 @@
 
 <table>
   <tr>
-    <td><img src="screenshots/小程序用户轨迹页.png" width="200"/></td>
-    <td><img src="screenshots/小程序用户我的页.png" width="200"/></td>
-    <td><img src="screenshots/小程序司机端首页.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-16.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-5.png" width="200"/></td>
+    <td><img src="screenshots/screenshot-7.png" width="200"/></td>
   </tr>
   <tr>
     <td align="center">车辆追踪</td>
@@ -45,8 +45,8 @@
 
 <table>
   <tr>
-    <td><img src="screenshots/管理员登录页.png" width="400"/></td>
-    <td><img src="screenshots/管理员首页.png" width="400"/></td>
+    <td><img src="screenshots/screenshot-13.png" width="400"/></td>
+    <td><img src="screenshots/screenshot-11.png" width="400"/></td>
   </tr>
   <tr>
     <td align="center">登录页面</td>
@@ -56,8 +56,8 @@
 
 <table>
   <tr>
-    <td><img src="screenshots/管理员订单页.png" width="400"/></td>
-    <td><img src="screenshots/管理员设置页面.png" width="400"/></td>
+    <td><img src="screenshots/screenshot-14.png" width="400"/></td>
+    <td><img src="screenshots/screenshot-15.png" width="400"/></td>
   </tr>
   <tr>
     <td align="center">订单管理</td>
@@ -67,7 +67,7 @@
 
 ### 3D效果展示
 
-<img src="screenshots/管理员小票订单3D旋转.gif" width="600"/>
+<img src="screenshots/screenshot-10.png" width="600"/>
 
 *电子票3D旋转展示效果*
 
