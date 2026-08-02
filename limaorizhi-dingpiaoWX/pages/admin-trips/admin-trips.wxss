@@ -1,0 +1,80 @@
+/* 管理后台 - 班次管理 */
+page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #f5f6f8; }
+.page { display: flex; flex-direction: column; flex: 1; height: 0; background: #f5f6f8; }
+
+.filter-bar { background: #fff; padding: 8px 12px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
+.search-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; }
+.search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
+.search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }
+.search-clear { width: 18px; height: 18px; line-height: 18px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 14px; }
+.filter-toggle { padding: 0 10px; height: 32px; line-height: 30px; font-size: 12px; color: #2c2c2c; background: transparent; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; max-width: 100px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.filter-toggle.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.add-btn { height: 32px; line-height: 32px; padding: 0 12px; font-size: 13px; color: #fff; background: #1a1a1a; border-radius: 8px; white-space: nowrap; }
+
+.date-row { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; }
+.date-box { height: 30px; line-height: 30px; padding: 0 12px; background: #f5f6f8; border-radius: 6px; font-size: 12px; color: #999; }
+.date-box.filled { color: #2c2c2c; }
+.clear-date { font-size: 12px; color: #f5222d; }
+
+.tab-scroll { white-space: nowrap; margin-top: 8px; height: 32px; line-height: 32px; }
+.tab-item { display: inline-block; padding: 0 13px; height: 32px; line-height: 30px; font-size: 13px; color: #666; margin-right: 4px; border-radius: 16px; border: 1px solid #ddd; box-sizing: border-box; }
+.tab-item.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+.route-dropdown { position: absolute; top: 110px; left: 12px; right: 12px; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 50; max-height: 240px; overflow: hidden; }
+.route-list { max-height: 240px; }
+.route-option { padding: 10px 14px; font-size: 13px; color: #2c2c2c; border-bottom: 0.5px solid #f5f5f5; }
+.route-option:last-child { border-bottom: none; }
+.route-option.active { color: #1a1a1a; font-weight: 600; background: #f5f6f8; }
+
+.list-scroll { flex: 1; height: 0; overflow: auto; }
+.list-wrap { padding: 10px 12px 30px; }
+.total-tip { font-size: 11px; color: #aaa; padding: 4px 0 8px; }
+
+.trip-card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.card-top { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; }
+.route-block { flex: 1; margin-right: 8px; }
+.trip-route { font-size: 14px; font-weight: 600; color: #1a1a1a; display: block; }
+.trip-no { font-size: 11px; color: #c5c8cc; margin-top: 3px; display: block; }
+.card-meta { margin-top: 6px; font-size: 12px; color: #666; }
+.card-bottom { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #f5f5f5; }
+.seat-info, .assign-info { display: flex; flex-direction: row; align-items: center; font-size: 11px; color: #999; }
+.meta-divider { margin: 0 5px; color: #ddd; }
+.assign-text { color: #666; }
+
+.status-tag { font-size: 11px; padding: 1px 7px; border-radius: 12px; flex-shrink: 0; border: 1px solid; box-sizing: border-box; }
+.status-sale { background: transparent; color: #52c41a; border-color: #52c41a; }
+.status-travel { background: transparent; color: #1890ff; border-color: #1890ff; }
+.status-done { background: transparent; color: #888; border-color: #ccc; }
+.status-cancel { background: transparent; color: #999; border-color: #ccc; }
+
+.loading, .loading-more, .no-more { text-align: center; font-size: 12px; color: #bbb; padding: 16px 0; }
+.empty { text-align: center; color: #ccc; font-size: 13px; padding: 50px 0; }
+
+/* 卡片操作行 */
+.card-actions { display: flex; flex-direction: row; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #f5f5f5; }
+.op-btn { flex: 1; height: 30px; line-height: 30px; text-align: center; font-size: 12px; color: #1a1a1a; border: 1px solid #1a1a1a; border-radius: 6px; }
+.op-btn.danger { color: #ff4d4f; border-color: #ff4d4f; }
+
+/* 表单弹层 */
+.mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.mask.show { opacity: 1; visibility: visible; }
+.form-sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 16px 16px 0 0; max-height: 85vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s; }
+.form-sheet.show { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: #e5e5e5; border-radius: 2px; margin: 8px auto 4px; }
+.form-header { padding: 6px 16px 10px; }
+.form-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.form-body { padding: 0 16px; max-height: 60vh; }
+.form-item { padding: 8px 0; }
+.form-label { display: block; font-size: 12px; color: #999; margin-bottom: 6px; }
+.req { color: #ff4d4f; }
+.form-input { background: #f5f6f8; border-radius: 8px; height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; }
+.form-picker { width: 100%; }
+.picker-text { background: #f5f6f8; border-radius: 8px; height: 38px; line-height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.picker-arrow { color: #bbb; margin-left: 8px; }
+
+.action-bar { display: flex; flex-direction: row; gap: 10px; padding: 12px 16px 20px; border-top: 0.5px solid #f0f0f0; }
+.action-btn { flex: 1; height: 42px; line-height: 42px; text-align: center; font-size: 14px; border-radius: 8px; }
+.action-btn.ghost { background: #f5f6f8; color: #666; }
+.action-btn.primary { background: #1a1a1a; color: #fff; }
+.action-btn.disabled { opacity: 0.6; }

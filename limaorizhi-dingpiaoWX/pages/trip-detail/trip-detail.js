@@ -1,4 +1,4 @@
-﻿// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
+// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request } = require('../../utils/request')
 const { matchStation } = require('../../utils/pinyin')
@@ -33,6 +33,10 @@ Page({
     intervalAvailableSeats: -1, // 区间可用余座（-1=加载中）
     intervalSeatsText: '', // 区间余座文案
     finalPrice: '0.00', // 优惠后总价（合计展示用）
+    insuranceFeeUnit: 0, // 保险费单价（元/人，从配置读取，0=未开启保险）
+    buyInsurance: false, // 是否勾选购买保险
+    insuranceRequired: false, // 是否强制购买保险（后端配置）
+    insuranceTotal: '0.00', // 保险费小计（元）
     showStationPicker: false,
     stationPickerType: '',
     stationSearchValue: '',
@@ -74,7 +78,8 @@ Page({
       preToStationId: options.to_sid ? parseInt(options.to_sid) : 0
     })
     this.loadTripDetail(tripId)
-    
+    this.loadConfig()
+
     const token = wx.getStorageSync('user_token')
     if (token) {
       this.setData({ isLogin: true })
@@ -154,15 +159,44 @@ Page({
     return 0
   },
 
-  // 计算优惠后总价并更新显示
+  // 加载系统配置（保险费单价等公开配置）
+  loadConfig() {
+    request({ url: '/api/wx/config', method: 'GET' }).then(res => {
+      const config = res.data || {}
+      const fee = parseFloat(config.insurance_fee) || 0
+      const required = config.insurance_required === 'true'
+      // 强制购买且配置了单价时，默认勾选且不可取消
+      const updateData = { insuranceFeeUnit: fee, insuranceRequired: required }
+      if (required && fee > 0) {
+        updateData.buyInsurance = true
+      }
+      this.setData(updateData)
+      this.calcTotalPrice()
+    }).catch((e) => { log.error('加载配置失败', e) })
+  },
+
+  // 切换保险勾选，重新计算合计
+  toggleInsurance() {
+    // 强制购买时不允许取消勾选
+    if (this.data.insuranceRequired && this.data.buyInsurance) {
+      wx.showToast({ title: '该班次必购保险', icon: 'none' })
+      return
+    }
+    this.setData({ buyInsurance: !this.data.buyInsurance })
+    this.calcTotalPrice()
+  },
+
+  // 计算优惠后总价并更新显示（保险费在优惠券折扣后叠加，不参与满减判断）
   calcTotalPrice() {
     const basePrice = (parseFloat(this.data.intervalPrice) || 0) * this.data.passengers.length
     const discount = this.calcDiscount(basePrice)
     const final = Math.max(0, basePrice - discount)
+    const insuranceTotal = this.data.buyInsurance ? this.data.insuranceFeeUnit * this.data.passengers.length : 0
     const updateData = {
-      finalPrice: final.toFixed(2),
+      finalPrice: (final + insuranceTotal).toFixed(2),
       originPrice: basePrice.toFixed(2),
-      discountAmount: discount.toFixed(2)
+      discountAmount: discount.toFixed(2),
+      insuranceTotal: insuranceTotal.toFixed(2)
     }
     // 已选优惠券但订单金额不再满足门槛时自动取消选择，避免传给后端报错
     if (this.data.selectedCoupon && this.data.selectedCoupon.min_spend > 0 && basePrice < this.data.selectedCoupon.min_spend) {
@@ -407,6 +441,9 @@ Page({
 
   // 添加乘客：跳转到乘客实名页（勾选模式）
   addPassenger() {
+    // 把当前已选乘客 id 列表写入 storage，供选择页回显已选状态
+    const preselectIds = (this.data.passengers || []).map(p => p.id)
+    wx.setStorageSync('trip_preselect_ids', preselectIds)
     wx.navigateTo({ url: '/pages/passenger/passenger?selectMode=1' })
   },
 
@@ -690,10 +727,11 @@ Page({
     const directLabel = stopCount === 0 ? '直达' : '经' + stopCount + '站'
     const basePrice = (parseFloat(this.data.intervalPrice) || 0) * passengers.length
     const discount = this.calcDiscount(basePrice)
-    const totalPrice = Math.max(0, basePrice - discount).toFixed(2)
+    const insuranceTotal = this.data.buyInsurance ? this.data.insuranceFeeUnit * passengers.length : 0
+    const totalPrice = (Math.max(0, basePrice - discount) + insuranceTotal).toFixed(2)
     const tripNo = trip.trip_no || ''
     const arrivalText = formatArrivalTime(trip.arrival_time, trip.arrival_day_offset)
-    const confirmContent = '车次：' + tripNo + '\n日期：' + trip.trip_date + ' ' + trip.departure_time + '发车\n到达：' + (arrivalText || '详见班次') + '\n上车：' + this.data.fromStationName + '（第' + fromOrder + '站）\n下车：' + this.data.toStationName + '（第' + toOrder + '站）\n' + directLabel + '　' + passengers.length + '人\n合计：¥' + totalPrice
+    const confirmContent = '车次：' + tripNo + '\n日期：' + trip.trip_date + ' ' + trip.departure_time + '发车\n到达：' + (arrivalText || '详见班次') + '\n上车：' + this.data.fromStationName + '（第' + fromOrder + '站）\n下车：' + this.data.toStationName + '（第' + toOrder + '站）\n' + directLabel + '　' + passengers.length + '人' + (this.data.buyInsurance ? '\n保险：¥' + insuranceTotal.toFixed(2) : '') + '\n合计：¥' + totalPrice
     const confirmed = await new Promise(resolve => {
       wx.showModal({
         title: '请确认行程信息',
@@ -723,7 +761,8 @@ Page({
           })),
           contact_name: contactName,
           contact_phone: contactPhone,
-          coupon_id: this.data.selectedCoupon ? this.data.selectedCoupon.id : 0
+          coupon_id: this.data.selectedCoupon ? this.data.selectedCoupon.id : 0,
+          buy_insurance: this.data.buyInsurance
         }
       })
 

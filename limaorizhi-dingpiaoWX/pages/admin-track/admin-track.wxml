@@ -1,0 +1,97 @@
+<!--管理后台 - 车辆轨迹-->
+<navigation-bar title="车辆轨迹" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <!-- 列表视图 -->
+  <block wx:if="{{viewMode === 'list'}}">
+    <view class="list-header">
+      <text class="list-title">运行中班次 ({{list.length}})</text>
+      <text class="list-sub">点击查看实时轨迹</text>
+    </view>
+    <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}">
+      <view class="list-wrap">
+        <view class="trip-card" wx:for="{{list}}" wx:key="trip_id" data-id="{{item.trip_id}}" bindtap="onTripTap">
+          <view class="card-top">
+            <view class="route-block">
+              <text class="trip-route">{{item.from_station}} → {{item.to_station}}</text>
+              <text class="trip-meta">{{item.trip_date}} {{item.departure_time}} 发车</text>
+            </view>
+            <view class="freshness-tag {{item.has_gps ? 'fresh' : 'no-gps'}}">{{item.freshness}}</view>
+          </view>
+          <view class="card-bottom">
+            <view class="info-group">
+              <text class="info-text">{{item.vehicle_plate_no}}</text>
+              <text class="info-divider" wx:if="{{item.driver_name !== '未分配'}}">·</text>
+              <text class="info-text" wx:if="{{item.driver_name !== '未分配'}}">{{item.driver_name}}</text>
+              <text class="info-divider" wx:if="{{item.total_stations}}">·</text>
+              <text class="info-text" wx:if="{{item.total_stations}}">过站{{item.passed_order}}/{{item.total_stations}}</text>
+            </view>
+            <text class="view-track">查看轨迹 ›</text>
+          </view>
+        </view>
+
+        <view class="loading" wx:if="{{loading}}">加载中...</view>
+        <view class="empty" wx:if="{{!loading && list.length === 0}}">
+          <text>当前没有运行中的班次</text>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <!-- 详情/轨迹视图 -->
+  <block wx:if="{{viewMode === 'detail'}}">
+    <scroll-view class="detail-scroll" scroll-y enable-back-to-top>
+      <view class="detail-back" bindtap="backToList">‹ 返回列表</view>
+
+      <view class="track-loading" wx:if="{{trackLoading}}">加载轨迹中...</view>
+
+      <block wx:if="{{detail && !trackLoading}}">
+        <!-- 班次信息 -->
+        <view class="trip-info-card">
+          <view class="trip-info-top">
+            <text class="trip-info-route">{{detail.from_station}} → {{detail.to_station}}</text>
+          </view>
+          <view class="trip-info-meta">
+            <text>{{detail.trip_date}} {{detail.departure_time}} 出发</text>
+          </view>
+          <view class="trip-info-row">
+            <text class="row-label">班次号</text>
+            <text class="row-value">{{detail.trip_no}}</text>
+          </view>
+          <view class="trip-info-row">
+            <text class="row-label">车辆</text>
+            <text class="row-value">{{detail.vehicle_plate}}</text>
+          </view>
+          <view class="trip-info-row">
+            <text class="row-label">司机</text>
+            <text class="row-value">{{detail.driver_name}}</text>
+          </view>
+        </view>
+
+        <!-- 地图 -->
+        <view class="map-card" wx:if="{{hasTrack}}">
+          <map id="trackMap"
+               longitude="{{centerLng}}"
+               latitude="{{centerLat}}"
+               scale="13"
+               markers="{{markers}}"
+               polyline="{{polyline}}"
+               include-points="{{includePoints}}"
+               show-location
+               enable-3D
+               style="width: 100%; height: 45vh; border-radius: 10px;">
+          </map>
+          <view class="map-legend">
+            <text class="legend-text">{{pointCount}} 个轨迹点 · {{stationCount}} 个站点</text>
+          </view>
+        </view>
+
+        <view class="no-track" wx:if="{{!hasTrack}}">
+          <image class="no-track-icon" src="/images/icons/bus-front.svg" mode="aspectFit"></image>
+          <text class="no-track-text">该班次暂无GPS轨迹数据</text>
+          <text class="no-track-sub">司机尚未上报位置信息</text>
+        </view>
+      </block>
+    </scroll-view>
+  </block>
+</view>

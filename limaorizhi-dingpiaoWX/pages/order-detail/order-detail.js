@@ -73,6 +73,7 @@ Page({
           toName,
           arrivalText,
           totalPriceText: (parseFloat(order.total_price) || 0).toFixed(2),
+          insuranceFeeText: (parseFloat(order.insurance_fee) || 0).toFixed(2),
           pay_time: formatDateTime(order.pay_time),
           created_at: formatDateTime(order.created_at)
         },

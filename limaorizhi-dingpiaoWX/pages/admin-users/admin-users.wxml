@@ -1,0 +1,130 @@
+<!--管理后台 - 用户管理-->
+<navigation-bar title="用户管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <!-- 顶部筛选条 -->
+  <view class="filter-bar">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="昵称 / 手机号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+    </view>
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeStatus === item.key ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onStatusTab">{{item.text}}</view>
+    </scroll-view>
+  </view>
+
+  <!-- 列表 -->
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <view class="total-tip" wx:if="{{!loading && list.length > 0}}">共 {{total}} 位用户</view>
+
+      <view class="user-card" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="onUserTap">
+        <view class="card-top">
+          <image class="user-avatar" src="{{item.avatar_url || '/images/icons/default-avatar.svg'}}" mode="aspectFit"></image>
+          <view class="user-main">
+            <view class="user-name-row">
+              <text class="user-name">{{item.nickname}}</text>
+              <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+            </view>
+            <text class="user-phone">{{item.phone}}</text>
+          </view>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">{{item.order_count}} 单</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">消费 ¥{{item.total_amount}}</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">{{item.created_at}}</text>
+        </view>
+      </view>
+
+      <view class="loading" wx:if="{{loading && list.length === 0}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && list.length === 0}}"><text>暂无用户</text></view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && list.length > 0 && !hasMore}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 详情弹窗 -->
+<view class="mask {{detailVisible ? 'show' : ''}}" bindtap="closeDetail">
+  <view class="detail-sheet {{detailVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="detail-close" bindtap="closeDetail">×</view>
+
+    <view class="detail-loading" wx:if="{{detailLoading}}">加载中...</view>
+
+    <block wx:if="{{detail && !detailLoading}}">
+      <!-- 用户头部 -->
+      <view class="detail-header">
+        <image class="detail-avatar" src="{{detail.avatar_url || '/images/icons/default-avatar.svg'}}" mode="aspectFit"></image>
+        <view class="detail-userinfo">
+          <view class="detail-name-row">
+            <text class="detail-name">{{detail.nickname}}</text>
+            <text class="status-tag status-{{detail.statusCls}}">{{detail.statusText}}</text>
+          </view>
+          <text class="detail-phone">{{detail.phone}}</text>
+          <text class="detail-time">注册于 {{detail.created_at}}</text>
+        </view>
+      </view>
+
+      <!-- 统计 -->
+      <view class="stat-grid">
+        <view class="stat-cell">
+          <text class="stat-num">{{detail.order_count}}</text>
+          <text class="stat-lab">订单数</text>
+        </view>
+        <view class="stat-cell">
+          <text class="stat-num">¥{{detail.total_amount}}</text>
+          <text class="stat-lab">消费金额</text>
+        </view>
+        <view class="stat-cell">
+          <text class="stat-num">{{detail.refund_count}}</text>
+          <text class="stat-lab">退票数</text>
+        </view>
+        <view class="stat-cell">
+          <text class="stat-num">{{detail.cargo_count}}</text>
+          <text class="stat-lab">托运单</text>
+        </view>
+      </view>
+
+      <!-- 最近订单 -->
+      <view class="detail-section" wx:if="{{recentOrders.length > 0}}">
+        <view class="section-title">最近订单</view>
+        <view class="order-item" wx:for="{{recentOrders}}" wx:key="order_no">
+          <view class="order-top">
+            <text class="order-route">{{item.from}} → {{item.to}}</text>
+            <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+          </view>
+          <view class="order-bottom">
+            <text class="order-type">{{item.typeText}} · {{item.order_no}}</text>
+            <text class="order-price">¥{{item.price}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 常用乘客 -->
+      <view class="detail-section" wx:if="{{passengers.length > 0}}">
+        <view class="section-title">常用乘客 ({{passengers.length}})</view>
+        <view class="passenger-item" wx:for="{{passengers}}" wx:key="id">
+          <text class="passenger-name">{{item.name}}</text>
+          <text class="passenger-meta">{{item.id_card_no}} · {{item.phone}}</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="action-bar">
+        <view class="action-btn danger" wx:if="{{detail.canBan}}" data-action="ban" bindtap="onToggleStatus">封禁用户</view>
+        <view class="action-btn primary" wx:if="{{detail.canUnban}}" data-action="unban" bindtap="onToggleStatus">解除封禁</view>
+        <view class="action-btn ghost" bindtap="closeDetail">关闭</view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<view class="action-loading-mask" wx:if="{{actionLoading}}">
+  <view class="action-loading-text">处理中...</view>
+</view>

@@ -104,6 +104,10 @@
         <text class="info-label">订单金额</text>
         <text class="info-value price">¥{{order.totalPriceText}}</text>
       </view>
+      <view class="info-row" wx:if="{{order.insuranceFeeText != '0.00'}}">
+        <text class="info-label">其中保险费</text>
+        <text class="info-value">¥{{order.insuranceFeeText}}</text>
+      </view>
       <view class="info-row" wx:if="{{order.pay_time}}">
         <text class="info-label">支付时间</text>
         <text class="info-value">{{order.pay_time}}</text>

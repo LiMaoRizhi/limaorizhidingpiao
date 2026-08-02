@@ -1,0 +1,222 @@
+<!--管理后台 - 订单管理-->
+<navigation-bar title="订单管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <!-- 顶部筛选条 -->
+  <view class="filter-bar">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="订单号 / 手机号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+      <view class="filter-toggle {{showFilter ? 'active' : ''}}" bindtap="toggleFilter">
+        <text>筛选</text>
+      </view>
+    </view>
+
+    <!-- 类型 tab -->
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeType === item.key ? 'active' : ''}}" wx:for="{{typeTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onTypeTab">{{item.text}}</view>
+    </scroll-view>
+
+    <!-- 状态 tab -->
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeStatus === item.key ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onStatusTab">{{item.text}}</view>
+    </scroll-view>
+
+    <!-- 高级筛选面板（日期范围） -->
+    <view class="filter-panel" wx:if="{{showFilter}}">
+      <view class="date-row">
+        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+          <view class="date-box">{{startDate || '开始日期'}}</view>
+        </picker>
+        <text class="date-divide">至</text>
+        <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+          <view class="date-box">{{endDate || '结束日期'}}</view>
+        </picker>
+      </view>
+      <view class="filter-actions">
+        <view class="filter-btn ghost" bindtap="onClearDate">清空</view>
+        <view class="filter-btn primary" bindtap="onApplyDate">应用</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 列表 -->
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <view class="total-tip" wx:if="{{!loading && list.length > 0}}">共 {{total}} 条</view>
+
+      <view class="order-card" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="onOrderTap">
+        <view class="card-top">
+          <text class="card-route">{{item.route}}</text>
+          <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">{{item.trip_date}} {{item.departure_time}}</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">{{item.typeText}}</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">{{item.countText}}</text>
+        </view>
+        <view class="card-bottom">
+          <view class="contact-info">
+            <text class="contact-name">{{item.contact}}</text>
+            <text class="contact-phone">{{item.phone}}</text>
+          </view>
+          <text class="card-price">¥{{item.total_price}}</text>
+        </view>
+        <view class="card-no">{{item.order_no}}</view>
+      </view>
+
+      <!-- 状态 -->
+      <view class="loading" wx:if="{{loading && list.length === 0}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && list.length === 0}}">
+        <text>暂无订单</text>
+      </view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && list.length > 0 && !hasMore}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 详情弹窗 -->
+<view class="mask {{detailVisible ? 'show' : ''}}" bindtap="closeDetail">
+  <view class="detail-sheet {{detailVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+
+    <view class="detail-loading" wx:if="{{detailLoading}}">加载中...</view>
+
+    <block wx:if="{{detail && !detailLoading}}">
+      <!-- 顶部状态条 -->
+      <view class="detail-header">
+        <view class="detail-route">{{detail.from}} → {{detail.to}}</view>
+        <view class="status-tag status-{{detail.statusCls}}">{{detail.statusText}}</view>
+      </view>
+
+      <!-- 订单基础信息 -->
+      <view class="detail-section">
+        <view class="detail-row">
+          <text class="row-label">订单号</text>
+          <view class="row-value copyable" bindtap="onCopyOrderNo">
+            <text class="row-text">{{detail.order_no}}</text>
+            <text class="copy-icon">复制</text>
+          </view>
+        </view>
+        <view class="detail-row">
+          <text class="row-label">类型</text>
+          <text class="row-value">{{detail.typeText}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="row-label">出发</text>
+          <text class="row-value">{{detail.trip_date}} {{detail.departure_time}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detail.route_name}}">
+          <text class="row-label">线路</text>
+          <text class="row-value">{{detail.route_name}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="row-label">{{detail.isCargo ? '重量' : '人数'}}</text>
+          <text class="row-value">{{detail.countText}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="row-label">金额</text>
+          <text class="row-value price">¥{{detail.total_price}}</text>
+        </view>
+      </view>
+
+      <!-- 联系人/托运信息 -->
+      <view class="detail-section">
+        <view class="section-title">{{detail.isCargo ? '托运信息' : '联系人'}}</view>
+        <block wx:if="{{detail.isCargo}}">
+          <view class="detail-row">
+            <text class="row-label">寄件人</text>
+            <text class="row-value">{{detail.sender_name}} {{detail.sender_phone}}</text>
+          </view>
+          <view class="detail-row">
+            <text class="row-label">收件人</text>
+            <text class="row-value">{{detail.receiver_name}} {{detail.receiver_phone}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{detail.cargo_type}}">
+            <text class="row-label">货物类型</text>
+            <text class="row-value">{{detail.cargo_type}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{detail.description}}">
+            <text class="row-label">描述</text>
+            <text class="row-value">{{detail.description}}</text>
+          </view>
+        </block>
+        <block wx:else>
+          <view class="detail-row">
+            <text class="row-label">联系人</text>
+            <text class="row-value">{{detail.contact_name}} {{detail.contact_phone}}</text>
+          </view>
+        </block>
+      </view>
+
+      <!-- 乘客名单（车票） -->
+      <view class="detail-section" wx:if="{{!detail.isCargo && passengers.length > 0}}">
+        <view class="section-title">乘客名单 ({{passengers.length}})</view>
+        <view class="passenger-item" wx:for="{{passengers}}" wx:key="id" wx:for-item="p" wx:for-index="pi">
+          <view class="passenger-top">
+            <text class="passenger-name">{{p.name}}</text>
+            <text class="check-tag {{p.check_status === 1 ? 'checked' : ''}}">{{p.check_text}}</text>
+          </view>
+          <view class="passenger-meta">
+            <text>{{p.id_card_no}}</text>
+            <text wx:if="{{p.phone}}"> · {{p.phone}}</text>
+            <text wx:if="{{p.seat_no}}"> · 座位 {{p.seat_no}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 用户/支付信息 -->
+      <view class="detail-section">
+        <view class="section-title">用户与支付</view>
+        <view class="detail-row">
+          <text class="row-label">下单用户</text>
+          <text class="row-value">{{detail.user_nickname}} {{detail.user_phone}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detail.pay_time}}">
+          <text class="row-label">支付时间</text>
+          <text class="row-value">{{detail.pay_time}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detail.pay_method}}">
+          <text class="row-label">支付方式</text>
+          <text class="row-value">{{detail.pay_method}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="row-label">下单时间</text>
+          <text class="row-value">{{detail.created_at}}</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="action-bar">
+        <view class="action-btn {{item.danger ? 'danger' : 'primary'}}" wx:for="{{detail.actions}}" wx:key="to" data-to="{{item.to}}" data-label="{{item.label}}" bindtap="onStatusAction">
+          {{item.label}}
+        </view>
+        <view class="action-btn refund" wx:if="{{detail.canRefund}}" bindtap="openRefundModal">退款</view>
+        <view class="action-btn ghost" bindtap="closeDetail">关闭</view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<!-- 退款原因弹窗 -->
+<view class="mask {{showRefundModal ? 'show' : ''}}" bindtap="cancelRefund">
+  <view class="refund-modal" catchtap="preventBubble">
+    <view class="modal-title">退款原因</view>
+    <textarea class="refund-textarea" placeholder="请输入退款原因（可选）" value="{{refundReason}}" maxlength="200" bindinput="onReasonInput"></textarea>
+    <view class="modal-actions">
+      <view class="modal-btn ghost" bindtap="cancelRefund">取消</view>
+      <view class="modal-btn danger" bindtap="confirmRefund">确定退款</view>
+    </view>
+  </view>
+</view>
+
+<!-- 操作进行中蒙层 -->
+<view class="action-loading-mask" wx:if="{{actionLoading}}">
+  <view class="action-loading-text">处理中...</view>
+</view>

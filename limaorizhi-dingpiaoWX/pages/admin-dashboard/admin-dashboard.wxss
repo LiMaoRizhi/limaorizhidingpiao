@@ -1,0 +1,148 @@
+/* 统计看板 */
+.scrollarea { height: 100vh; }
+.page-content { padding: 12px 14px 40px; box-sizing: border-box; }
+.loading { text-align: center; color: #999; padding: 60px 0; font-size: 14px; }
+
+/* 核心指标 4 卡 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.stat-label {
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
+}
+
+/* 次要指标行 */
+.sub-row {
+  display: flex;
+  flex-direction: row;
+  background: #fff;
+  border-radius: 12px;
+  margin-top: 10px;
+  padding: 14px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.sub-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sub-num { font-size: 16px; font-weight: 600; color: #2c2c2c; }
+.sub-lab { font-size: 11px; color: #999; margin-top: 4px; }
+
+/* 累计条 */
+.total-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #888;
+}
+.total-item { margin: 0 6px; }
+.total-divide { color: #ddd; }
+
+/* 分区 */
+.section {
+  background: #fff;
+  border-radius: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.section-head { margin-bottom: 12px; }
+.section-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+
+/* 趋势柱状 */
+.trend-chart {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  height: 120px;
+  gap: 4px;
+}
+.trend-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+.trend-bar {
+  width: 60%;
+  background: linear-gradient(180deg, #2c2c2c, #555);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+.trend-date { font-size: 8px; color: #bbb; margin-top: 4px; transform: scale(0.85); }
+
+/* 排行 */
+.rank-list { display: flex; flex-direction: column; }
+.rank-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 0.5px solid #f0f0f0;
+}
+.rank-item:last-child { border-bottom: none; }
+.rank-no {
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  background: #f0f0f0;
+  color: #666;
+  border-radius: 50%;
+  font-size: 12px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.rank-name { flex: 1; font-size: 14px; color: #1a1a1a; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rank-count { font-size: 12px; color: #999; }
+
+/* 订单列表 */
+.order-list { display: flex; flex-direction: column; }
+.order-item {
+  padding: 10px 0;
+  border-bottom: 0.5px solid #f0f0f0;
+}
+.order-item:last-child { border-bottom: none; }
+.order-top, .order-bottom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.order-bottom { margin-top: 4px; }
+.order-route { font-size: 14px; color: #1a1a1a; font-weight: 500; }
+.order-status { font-size: 11px; padding: 1px 7px; border-radius: 12px; border: 1px solid; box-sizing: border-box; }
+.status-pay { background: transparent; color: #fa8c16; border-color: #fa8c16; }
+.status-travel { background: transparent; color: #1890ff; border-color: #1890ff; }
+.status-done { background: transparent; color: #888; border-color: #ccc; }
+.status-refund { background: transparent; color: #f5222d; border-color: #f5222d; }
+.status-cancel { background: transparent; color: #999; border-color: #ccc; }
+.order-type { font-size: 11px; color: #bbb; }
+.order-price { font-size: 13px; color: #1a1a1a; font-weight: 600; }
+
+.empty { text-align: center; color: #ccc; font-size: 13px; padding: 20px 0; }
+.footer-tip { text-align: center; font-size: 11px; color: #bbb; margin-top: 18px; }

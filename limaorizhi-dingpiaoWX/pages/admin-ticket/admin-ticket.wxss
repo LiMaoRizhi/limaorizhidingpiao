@@ -1,0 +1,152 @@
+/* 管理后台 - 售票管理（班次 + 票价） */
+page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #f5f6f8; }
+.page { display: flex; flex-direction: column; flex: 1; height: 0; background: #f5f6f8; position: relative; }
+
+/* 筛选区 */
+.filter-bar { background: #fff; padding: 8px 12px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
+.search-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; }
+.search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
+.search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }
+.search-clear { width: 18px; height: 18px; line-height: 18px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 14px; }
+.filter-toggle { padding: 0 10px; height: 32px; line-height: 30px; font-size: 12px; color: #2c2c2c; background: transparent; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; max-width: 110px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.filter-toggle.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.add-btn { height: 32px; line-height: 32px; padding: 0 12px; font-size: 13px; color: #fff; background: #1a1a1a; border-radius: 8px; white-space: nowrap; }
+
+.date-row { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-top: 8px; }
+.date-box { height: 30px; line-height: 30px; padding: 0 12px; background: #f5f6f8; border-radius: 6px; font-size: 12px; color: #999; }
+.date-box.filled { color: #2c2c2c; }
+.clear-date { font-size: 12px; color: #f5222d; }
+
+.tab-scroll { white-space: nowrap; margin-top: 8px; height: 32px; line-height: 32px; }
+.tab-item { display: inline-block; padding: 0 13px; height: 32px; line-height: 30px; font-size: 13px; color: #666; margin-right: 4px; border-radius: 16px; border: 1px solid #ddd; box-sizing: border-box; }
+.tab-item.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+/* 线路下拉 */
+.route-dropdown { position: absolute; top: 110px; left: 12px; right: 12px; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 50; max-height: 240px; overflow: hidden; }
+.route-list { max-height: 240px; }
+.route-option { padding: 10px 14px; font-size: 13px; color: #2c2c2c; border-bottom: 0.5px solid #f5f5f5; }
+.route-option:last-child { border-bottom: none; }
+.route-option.active { color: #1a1a1a; font-weight: 600; background: #f5f6f8; }
+
+/* 列表 */
+.list-scroll { flex: 1; height: 0; overflow: auto; }
+.list-wrap { padding: 10px 12px 30px; }
+.total-tip { font-size: 11px; color: #aaa; padding: 4px 0 8px; }
+
+.trip-card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.card-top { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; }
+.route-block { flex: 1; margin-right: 8px; }
+.trip-route { font-size: 14px; font-weight: 600; color: #1a1a1a; display: block; }
+.trip-no { font-size: 11px; color: #c5c8cc; margin-top: 3px; display: block; }
+
+.price-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px; }
+.price { font-size: 16px; font-weight: 700; color: #ff4d4f; }
+.seat-info { font-size: 12px; color: #666; }
+
+/* 每站票价入口 */
+.fare-link { margin-top: 6px; font-size: 12px; color: #1890ff; }
+
+.card-meta { margin-top: 6px; font-size: 12px; color: #666; display: flex; flex-direction: row; align-items: center; }
+.meta-text { color: #666; }
+.meta-divider { margin: 0 5px; color: #ddd; }
+
+.status-tag { font-size: 11px; padding: 1px 7px; border-radius: 12px; flex-shrink: 0; border: 1px solid; box-sizing: border-box; }
+.status-ok { background: transparent; color: #52c41a; border-color: #52c41a; }
+.status-travel { background: transparent; color: #1890ff; border-color: #1890ff; }
+.status-done { background: transparent; color: #888; border-color: #ccc; }
+.status-ban { background: transparent; color: #999; border-color: #ccc; }
+
+.card-actions { display: flex; flex-direction: row; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #f5f5f5; }
+.op-btn { flex: 1; height: 30px; line-height: 30px; text-align: center; font-size: 12px; color: #1a1a1a; border: 1px solid #1a1a1a; border-radius: 6px; }
+.op-btn.danger { color: #ff4d4f; border-color: #ff4d4f; }
+
+.loading, .loading-more, .no-more { text-align: center; font-size: 12px; color: #bbb; padding: 16px 0; }
+.empty { text-align: center; color: #ccc; font-size: 13px; padding: 50px 0; }
+
+/* 表单弹层 */
+.mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.mask.show { opacity: 1; visibility: visible; }
+.form-sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 16px 16px 0 0; max-height: 85vh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.25s; }
+.form-sheet.show { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: #e5e5e5; border-radius: 2px; margin: 8px auto 4px; }
+.form-header { padding: 6px 16px 10px; }
+.form-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.form-body { padding: 0 16px; max-height: 60vh; }
+.form-item { padding: 8px 0; }
+.form-item-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.form-label { display: block; font-size: 12px; color: #999; margin-bottom: 6px; }
+.req { color: #ff4d4f; }
+.form-input { background: #f5f6f8; border-radius: 8px; height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; }
+.form-picker { width: 100%; }
+.picker-text { background: #f5f6f8; border-radius: 8px; height: 38px; line-height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.picker-arrow { color: #bbb; margin-left: 8px; }
+
+.action-bar { display: flex; flex-direction: row; gap: 10px; padding: 12px 16px 20px; border-top: 0.5px solid #f0f0f0; }
+.action-btn { flex: 1; height: 42px; line-height: 42px; text-align: center; font-size: 14px; border-radius: 8px; }
+.action-btn.ghost { background: #f5f6f8; color: #666; }
+.action-btn.ghost-dark { background: #fff; color: #1a1a1a; border: 1px solid #1a1a1a; }
+.action-btn.primary { background: #1a1a1a; color: #fff; }
+.action-btn.danger { background: #ff4d4f; color: #fff; }
+.action-btn.disabled { opacity: 0.5; }
+
+/* 超管工具条 */
+.toolbar-row { display: flex; flex-direction: row; gap: 8px; margin-top: 8px; }
+.tool-btn { flex: 1; height: 30px; line-height: 30px; text-align: center; font-size: 12px; color: #1a1a1a; border: 1px solid #1a1a1a; border-radius: 8px; box-sizing: border-box; }
+.tool-btn.warn { color: #ff4d4f; border-color: #ff4d4f; }
+
+/* 批量生成 - 日期多选 */
+.date-add-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.date-add-box { height: 38px; line-height: 38px; padding: 0 12px; background: #f5f6f8; border-radius: 8px; font-size: 13px; color: #999; flex: 1; box-sizing: border-box; }
+.date-add-box.filled { color: #1a1a1a; }
+.date-add-btn { width: 60px; height: 38px; line-height: 38px; text-align: center; background: #1a1a1a; color: #fff; border-radius: 8px; font-size: 13px; }
+.date-chips { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.date-chip { display: flex; flex-direction: row; align-items: center; background: #f5f6f8; border-radius: 14px; padding: 4px 6px 4px 10px; height: 26px; box-sizing: border-box; }
+.chip-text { font-size: 12px; color: #1a1a1a; }
+.chip-remove { width: 16px; height: 16px; line-height: 16px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 12px; margin-left: 4px; }
+
+/* 乘客名单 */
+.passenger-row { background: #f5f6f8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.passenger-top { display: flex; flex-direction: row; align-items: center; }
+.p-name { font-size: 14px; font-weight: 600; color: #1a1a1a; flex: 1; }
+.p-seat { font-size: 12px; color: #666; margin-right: 8px; }
+.p-status { font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid; }
+.p-status.on { color: #52c41a; border-color: #52c41a; }
+.p-status.off { color: #999; border-color: #ddd; }
+.passenger-line { display: flex; flex-direction: row; align-items: center; margin-top: 5px; }
+.p-route { font-size: 12px; color: #2c2c2c; }
+.p-meta { font-size: 11px; color: #999; margin-right: 12px; }
+
+/* 清理历史 - 预览 */
+.cleanup-preview { margin-top: 4px; }
+.preview-tip { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+.preview-tip.ok { background: #f0fff0; color: #52c41a; }
+.preview-tip.warn { background: #fff7e6; color: #fa8c16; }
+.stat-grid { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.stat-cell { flex: 0 0 calc(33.33% - 4px); background: #f5f6f8; border-radius: 6px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; }
+.stat-num { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.stat-lbl { font-size: 10px; color: #999; margin-top: 2px; }
+.order-stats { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 10px; background: #f5f6f8; border-radius: 6px; font-size: 11px; color: #666; }
+.os-item { color: #666; }
+.os-item.paid { color: #ff4d4f; font-weight: 600; }
+.os-divider { margin: 0 6px; color: #ddd; }
+.active-warn { margin-top: 8px; padding: 8px 10px; background: #fff1f0; border-radius: 6px; font-size: 11px; color: #ff4d4f; }
+
+/* 每站票价弹层 */
+.fare-sub { display: block; font-size: 12px; color: #999; margin-top: 4px; }
+.fare-tip { background: #f7f8fa; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #595959; line-height: 1.6; margin-bottom: 8px; }
+.fare-table { border: 0.5px solid #eee; border-radius: 8px; overflow: hidden; }
+.fare-row { display: flex; flex-direction: row; align-items: center; padding: 9px 10px; border-bottom: 0.5px solid #f5f5f5; }
+.fare-row:last-child { border-bottom: none; }
+.fare-row.fare-head { background: #fafafa; font-size: 11px; color: #999; }
+.fare-row.is-start { background: #ecf5ff; }
+.fare-row.is-end { background: #fafafa; }
+.fare-idx { width: 24px; flex-shrink: 0; font-size: 12px; color: #999; text-align: center; }
+.fare-row.is-start .fare-idx { color: #1890ff; font-weight: 600; }
+.fare-name { flex: 1; font-size: 13px; color: #1a1a1a; padding: 0 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fare-cum { width: 64px; flex-shrink: 0; font-size: 12px; color: #666; text-align: right; }
+.fare-seg { width: 64px; flex-shrink: 0; font-size: 13px; color: #ff4d4f; font-weight: 600; text-align: right; }
+.fare-row.is-start .fare-seg { color: #999; font-weight: 400; }
+.fare-total { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 10px; padding: 10px 12px; background: #1a1a1a; border-radius: 8px; }
+.ft-label { font-size: 12px; color: #ccc; }
+.ft-value { font-size: 16px; font-weight: 700; color: #fff; }

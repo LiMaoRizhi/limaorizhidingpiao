@@ -1,0 +1,150 @@
+<!--管理后台 - 班次管理-->
+<navigation-bar title="班次管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <view class="filter-bar">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="班次号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+      <view class="filter-toggle {{showRoutePicker ? 'active' : ''}}" bindtap="toggleRoutePicker">
+        <text>{{routes[routeIndex].name || '线路'}}</text>
+      </view>
+      <view class="add-btn" wx:if="{{isSuperAdmin}}" bindtap="openAdd">+ 新增</view>
+    </view>
+
+    <view class="date-row">
+      <picker mode="date" value="{{tripDate}}" bindchange="onDateChange">
+        <view class="date-box {{tripDate ? 'filled' : ''}}">{{tripDate || '发车日期'}}</view>
+      </picker>
+      <view class="clear-date" wx:if="{{tripDate}}" bindtap="onClearDate">清除</view>
+    </view>
+
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeStatus === item.key ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onStatusTab">{{item.text}}</view>
+    </scroll-view>
+  </view>
+
+  <!-- 线路下拉 -->
+  <view class="route-dropdown" wx:if="{{showRoutePicker}}" catchtap="preventBubble">
+    <scroll-view class="route-list" scroll-y>
+      <view class="route-option {{routeIndex === idx ? 'active' : ''}}" wx:for="{{routes}}" wx:key="id" wx:for-item="r" wx:for-index="idx" data-index="{{idx}}" bindtap="onRoutePick">{{r.name}}</view>
+    </scroll-view>
+  </view>
+
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <view class="total-tip" wx:if="{{!loading && list.length > 0}}">共 {{total}} 个班次</view>
+
+      <view class="trip-card" wx:for="{{list}}" wx:key="id">
+        <view class="card-top">
+          <view class="route-block">
+            <text class="trip-route">{{item.from}} → {{item.to}}</text>
+            <text class="trip-no">{{item.trip_no}}</text>
+          </view>
+          <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">{{item.trip_date}} {{item.departure_time}} 出发</text>
+        </view>
+        <view class="card-bottom">
+          <view class="seat-info">
+            <text class="seat-text">余座 {{item.available_seats}}/{{item.total_seats}}</text>
+            <text class="meta-divider">·</text>
+            <text class="seat-text">¥{{item.base_price}}起</text>
+          </view>
+          <view class="assign-info">
+            <text class="assign-text">{{item.vehicle_plate}}</text>
+            <text class="meta-divider" wx:if="{{item.driver_text !== '未分配'}}">·</text>
+            <text class="assign-text" wx:if="{{item.driver_text !== '未分配'}}">{{item.driver_text}}</text>
+          </view>
+        </view>
+        <view class="card-actions" wx:if="{{isSuperAdmin}}">
+          <view class="op-btn" data-id="{{item.id}}" bindtap="openEdit">编辑</view>
+          <view class="op-btn danger" data-id="{{item.id}}" bindtap="onDelete">删除</view>
+        </view>
+      </view>
+
+      <view class="loading" wx:if="{{loading && list.length === 0}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && list.length === 0}}"><text>暂无班次</text></view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && list.length > 0 && !hasMore}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 新增/编辑表单弹层（字段对齐 admin-trips.js 的 form data） -->
+<view class="mask {{formVisible ? 'show' : ''}}" bindtap="closeForm">
+  <view class="form-sheet {{formVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">{{formMode === 'edit' ? '编辑班次' : '新增班次'}}</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="form-item">
+        <text class="form-label">线路 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formRouteNames}}" value="{{tripRouteIndex}}" bindchange="onTripRouteChange">
+          <view class="picker-text">{{formRoutes[tripRouteIndex].name || '请选择线路'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">车辆 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formVehicleNames}}" value="{{tripVehicleIndex}}" bindchange="onTripVehicleChange">
+          <view class="picker-text">{{formVehicles[tripVehicleIndex].plate_no || '请选择车辆'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">司机</text>
+        <picker class="form-picker" mode="selector" range="{{formDriverNames}}" value="{{tripDriverIndex}}" bindchange="onTripDriverChange">
+          <view class="picker-text">{{formDriverNames[tripDriverIndex]}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">班次号</text>
+        <input class="form-input" type="text" placeholder="选填，留空系统自动生成" value="{{form.trip_no}}" data-field="trip_no" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">发车日期 <text class="req">*</text></text>
+        <picker class="form-picker" mode="date" value="{{form.trip_date}}" bindchange="onTripDateChange">
+          <view class="picker-text">{{form.trip_date || '请选择日期'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">发车时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{form.departure_time}}" bindchange="onDepTimeChange">
+          <view class="picker-text">{{form.departure_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">到达时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{form.arrival_time}}" bindchange="onArrTimeChange">
+          <view class="picker-text">{{form.arrival_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">到达天数偏移（0=当天，1=次日）</text>
+        <input class="form-input" type="number" placeholder="0" value="{{form.arrival_day_offset}}" data-field="arrival_day_offset" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">总座位数 <text class="req">*</text></text>
+        <input class="form-input" type="number" placeholder="必填，大于0" value="{{form.total_seats}}" data-field="total_seats" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">参考票价</text>
+        <input class="form-input" type="digit" placeholder="全程参考价（可选）" value="{{form.base_price}}" data-field="base_price" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">状态</text>
+        <picker class="form-picker" mode="selector" range="{{formStatusNames}}" value="{{tripStatusIndex}}" bindchange="onTripStatusChange">
+          <view class="picker-text">{{formStatusNames[tripStatusIndex]}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn ghost" bindtap="closeForm">取消</view>
+      <view class="action-btn primary {{submitting ? 'disabled' : ''}}" bindtap="onSave">{{submitting ? '保存中...' : '保存'}}</view>
+    </view>
+  </view>
+</view>

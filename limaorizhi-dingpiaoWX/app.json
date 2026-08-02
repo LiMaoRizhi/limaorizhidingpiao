@@ -16,7 +16,18 @@
     "pages/bus-progress/bus-progress",
     "pages/gift/gift",
     "pages/profile/profile",
-    "pages/agreement/agreement"
+    "pages/agreement/agreement",
+    "pages/admin/admin",
+    "pages/admin-dashboard/admin-dashboard",
+    "pages/admin-orders/admin-orders",
+    "pages/admin-users/admin-users",
+    "pages/admin-vehicles/admin-vehicles",
+    "pages/admin-drivers/admin-drivers",
+    "pages/admin-trips/admin-trips",
+    "pages/admin-ticket/admin-ticket",
+    "pages/admin-marketing/admin-marketing",
+    "pages/admin-track/admin-track",
+    "pages/admin-ai/admin-ai"
   ],
   "window": {
     "navigationBarTextStyle": "black",

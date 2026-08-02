@@ -613,6 +613,43 @@ export const configApi = {
   update: (data: { configs?: SystemConfigData; [key: string]: unknown }) => http.put<void>('/admin/config', data),
 }
 
+// 保险公司配置（通用保险对接框架）
+interface InsuranceProvider {
+  id: number
+  name: string
+  api_url: string
+  app_id: string
+  app_secret_masked: string
+  product_code: string
+  fee: number
+  is_active: boolean
+  required: boolean
+  remark: string
+  created_at: string
+  updated_at: string
+}
+
+interface InsuranceProviderCreateData {
+  name: string
+  api_url: string
+  app_id: string
+  app_secret?: string
+  product_code?: string
+  fee?: number
+  required?: boolean
+  remark?: string
+  is_active?: boolean
+}
+
+export const insuranceProviderApi = {
+  list: (params: PageParams) => http.get<PageResult<InsuranceProvider>>('/admin/insurance-providers', params),
+  create: (data: InsuranceProviderCreateData) => http.post<InsuranceProvider>('/admin/insurance-providers', data),
+  update: (id: number, data: Partial<InsuranceProviderCreateData>) =>
+    http.put<InsuranceProvider>(`/admin/insurance-providers/${id}`, data),
+  delete: (id: number) => http.delete<void>(`/admin/insurance-providers/${id}`),
+  activate: (id: number) => http.put<void>(`/admin/insurance-providers/${id}/activate`),
+}
+
 // 管理员
 export const adminApi = {
   list: (params: PageParams) => http.get<PageResult<AdminUser>>('/admin/admins', params),

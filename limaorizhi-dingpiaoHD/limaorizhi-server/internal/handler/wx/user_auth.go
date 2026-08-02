@@ -364,19 +364,37 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	response.OKMsg(c, "账号已注销", nil)
 }
 
-// buildUserResponse 构建用户信息响应（含 is_driver 标识）
+// buildUserResponse 构建用户信息响应（含 is_driver / is_admin 标识）
 // is_driver 用于小程序端判断是否显示司机核销入口：仅当用户手机号匹配启用状态的司机时为 true
+// is_admin 用于小程序端判断是否显示管理后台入口：仅当用户手机号匹配启用状态的管理员时为 true
+// 注：is_admin 仅控制前端入口可见性，真正的管理接口鉴权由 WxAdminAuth 中间件独立校验，前端隐藏≠安全
 func (h *UserHandler) buildUserResponse(user model.User) gin.H {
 	var driverCount int64
 	if user.Phone != "" {
 		h.DB.Model(&model.Driver{}).Where("phone = ? AND status = 1", user.Phone).Count(&driverCount)
 	}
+	// 管理员身份识别：手机号匹配启用状态的管理员账号（与 is_driver 同一套思路）
+	isAdmin := false
+	adminRole := 0
+	adminRealName := ""
+	if user.Phone != "" {
+		var admin model.AdminUser
+		h.DB.Where("phone = ? AND status = 1", user.Phone).First(&admin)
+		if admin.ID > 0 {
+			isAdmin = true
+			adminRole = int(admin.Role)
+			adminRealName = admin.RealName
+		}
+	}
 	return gin.H{
-		"id":         user.ID,
-		"nickname":   user.Nickname,
-		"avatar_url": user.AvatarURL,
-		"phone":      user.Phone,
-		"is_driver":  driverCount > 0,
+		"id":             user.ID,
+		"nickname":       user.Nickname,
+		"avatar_url":     user.AvatarURL,
+		"phone":          user.Phone,
+		"is_driver":      driverCount > 0,
+		"is_admin":       isAdmin,
+		"admin_role":     adminRole,     // 1=超级管理员 2=普通管理员，前端可据此隐藏超管专属功能
+		"admin_real_name": adminRealName, // 管理后台展示用
 	}
 }
 

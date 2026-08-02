@@ -1,0 +1,358 @@
+<!--管理后台 - 售票管理（班次 + 票价，照搬后端 trips.vue）-->
+<navigation-bar title="售票管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <!-- 筛选区 -->
+  <view class="filter-bar">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="搜索班次号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+      <view class="filter-toggle {{showRoutePicker ? 'active' : ''}}" bindtap="toggleRoutePicker">{{routes[routeIndex].name || '全部线路'}}</view>
+      <view class="add-btn" wx:if="{{isSuperAdmin}}" bindtap="openAdd">+ 新增</view>
+    </view>
+    <view class="date-row">
+      <picker mode="date" value="{{tripDate}}" bindchange="onDateChange">
+        <view class="date-box {{tripDate ? 'filled' : ''}}">{{tripDate || '发车日期'}}</view>
+      </picker>
+      <view class="clear-date" wx:if="{{tripDate}}" bindtap="onClearDate">清除</view>
+    </view>
+    <scroll-view class="tab-scroll" scroll-x>
+      <view class="tab-item {{activeStatus === item.key ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onStatusTab">{{item.text}}</view>
+    </scroll-view>
+    <!-- 超管工具条：批量生成 / 清理历史（参考后端 toolbar） -->
+    <view class="toolbar-row" wx:if="{{isSuperAdmin}}">
+      <view class="tool-btn" bindtap="openBatch">批量生成</view>
+      <view class="tool-btn warn" bindtap="openCleanup">清理历史</view>
+    </view>
+  </view>
+
+  <!-- 线路下拉 -->
+  <view class="route-dropdown" wx:if="{{showRoutePicker}}" catchtap="preventBubble">
+    <scroll-view class="route-list" scroll-y>
+      <view class="route-option {{routeIndex === index ? 'active' : ''}}" wx:for="{{routes}}" wx:key="id" data-index="{{index}}" bindtap="onRoutePick">{{item.name}}</view>
+    </scroll-view>
+  </view>
+
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <view class="total-tip" wx:if="{{!loading && list.length > 0}}">共 {{total}} 个班次</view>
+
+      <view class="trip-card" wx:for="{{list}}" wx:key="id">
+        <view class="card-top">
+          <view class="route-block">
+            <text class="trip-route">{{item.from}} → {{item.to}}</text>
+            <text class="trip-no">{{item.trip_no}}</text>
+          </view>
+          <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+        </view>
+        <view class="price-row">
+          <text class="price">¥{{item.base_price}}</text>
+          <text class="seat-info">可售 {{item.available_seats}}/{{item.total_seats}}</text>
+        </view>
+        <view class="fare-link" data-id="{{item.id}}" bindtap="openFare">查看每站票价 ›</view>
+        <view class="card-meta">
+          <text class="meta-text">出发 {{item.trip_date}} {{item.departure_time}}</text>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">到达 {{item.arrival_date}} {{item.arrival_time}}</text>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">{{item.vehicle_plate}}</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">{{item.driver_text}}</text>
+        </view>
+        <view class="card-actions">
+          <view class="op-btn" data-id="{{item.id}}" bindtap="openPassengers">乘客名单</view>
+          <view class="op-btn" wx:if="{{isSuperAdmin}}" data-id="{{item.id}}" bindtap="openEdit">编辑</view>
+          <view class="op-btn danger" wx:if="{{isSuperAdmin}}" data-id="{{item.id}}" bindtap="onDelete">删除</view>
+        </view>
+      </view>
+
+      <view class="loading" wx:if="{{loading}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && list.length === 0}}"><text>暂无班次</text></view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && list.length > 0 && !hasMore}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 新增/编辑表单弹层（对齐后端编辑弹窗字段） -->
+<view class="mask {{formVisible ? 'show' : ''}}" bindtap="closeForm">
+  <view class="form-sheet {{formVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">{{formMode === 'edit' ? '编辑班次' : '新增班次'}}</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="form-item">
+        <text class="form-label">线路 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formRouteNames}}" value="{{tripRouteIndex}}" bindchange="onTripRouteChange">
+          <view class="picker-text">{{formRoutes[tripRouteIndex].name || '请选择线路'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">车辆 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formVehicleNames}}" value="{{tripVehicleIndex}}" bindchange="onTripVehicleChange">
+          <view class="picker-text">{{formVehicles[tripVehicleIndex].plate_no || '请选择车辆'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">司机</text>
+        <picker class="form-picker" mode="selector" range="{{formDriverNames}}" value="{{tripDriverIndex}}" bindchange="onTripDriverChange">
+          <view class="picker-text">{{formDriverNames[tripDriverIndex]}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">班次号</text>
+        <input class="form-input" type="text" placeholder="选填，留空系统自动生成" value="{{form.trip_no}}" data-field="trip_no" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">发车日期 <text class="req">*</text></text>
+        <picker class="form-picker" mode="date" value="{{form.trip_date}}" bindchange="onTripDateChange">
+          <view class="picker-text">{{form.trip_date || '请选择日期'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">发车时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{form.departure_time}}" bindchange="onDepTimeChange">
+          <view class="picker-text">{{form.departure_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">到达日期 <text class="req">*</text></text>
+        <picker class="form-picker" mode="date" value="{{form.arrival_date}}" bindchange="onArrDateChange">
+          <view class="picker-text">{{form.arrival_date || '请选择日期'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">到达时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{form.arrival_time}}" bindchange="onArrTimeChange">
+          <view class="picker-text">{{form.arrival_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">总座位数</text>
+        <input class="form-input" type="number" placeholder="留0自动取车辆座位数" value="{{form.total_seats}}" data-field="total_seats" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">可售座位</text>
+        <input class="form-input" type="number" placeholder="留0等于总座位数" value="{{form.available_seats}}" data-field="available_seats" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">参考票价</text>
+        <input class="form-input" type="digit" placeholder="全程参考价，实际按区间价表算" value="{{form.base_price}}" data-field="base_price" bindinput="onFormInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">状态</text>
+        <picker class="form-picker" mode="selector" range="{{formStatusNames}}" value="{{tripStatusIndex}}" bindchange="onTripStatusChange">
+          <view class="picker-text">{{formStatusNames[tripStatusIndex]}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn ghost" bindtap="closeForm">取消</view>
+      <view class="action-btn primary {{submitting ? 'disabled' : ''}}" bindtap="onSave">{{submitting ? '保存中...' : '保存'}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 批量生成班次弹层（简化版：日期多选 + 默认发车/到达时间 + 跨天天数） -->
+<view class="mask {{batchVisible ? 'show' : ''}}" bindtap="closeBatch">
+  <view class="form-sheet {{batchVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">批量生成班次</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="form-item">
+        <text class="form-label">线路 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formRouteNames}}" value="{{batchRouteIndex}}" bindchange="onBatchRouteChange">
+          <view class="picker-text">{{formRoutes[batchRouteIndex].name || '请选择线路'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">车辆 <text class="req">*</text></text>
+        <picker class="form-picker" mode="selector" range="{{formVehicleNames}}" value="{{batchVehicleIndex}}" bindchange="onBatchVehicleChange">
+          <view class="picker-text">{{formVehicles[batchVehicleIndex].plate_no || '请选择车辆'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">司机</text>
+        <picker class="form-picker" mode="selector" range="{{formDriverNames}}" value="{{batchDriverIndex}}" bindchange="onBatchDriverChange">
+          <view class="picker-text">{{formDriverNames[batchDriverIndex]}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">参考票价</text>
+        <input class="form-input" type="digit" placeholder="全程参考价（可选）" value="{{batchForm.base_price}}" data-field="base_price" bindinput="onBatchBasePriceInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">默认发车时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{batchForm.departure_time}}" bindchange="onBatchDepTimeChange">
+          <view class="picker-text">{{batchForm.departure_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">默认到达时间 <text class="req">*</text></text>
+        <picker class="form-picker" mode="time" value="{{batchForm.arrival_time}}" bindchange="onBatchArrTimeChange">
+          <view class="picker-text">{{batchForm.arrival_time || '请选择时间'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">到达天数偏移（0=当天，1=次日）</text>
+        <input class="form-input" type="number" placeholder="0" value="{{batchForm.arrival_day_offset}}" bindinput="onBatchOffsetChange" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">发车日期 <text class="req">*</text>（已选 {{selectedDates.length}} 个）</text>
+        <view class="date-add-row">
+          <picker mode="date" value="{{batchDateInput}}" bindchange="onBatchDateInput">
+            <view class="date-add-box {{batchDateInput ? 'filled' : ''}}">{{batchDateInput || '选择日期'}}</view>
+          </picker>
+          <view class="date-add-btn" bindtap="addBatchDate">添加</view>
+        </view>
+        <view class="date-chips" wx:if="{{selectedDates.length > 0}}">
+          <view class="date-chip" wx:for="{{selectedDates}}" wx:key="*this">
+            <text class="chip-text">{{item}}</text>
+            <text class="chip-remove" data-date="{{item}}" bindtap="removeBatchDate">×</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn ghost" bindtap="closeBatch">取消</view>
+      <view class="action-btn primary {{batchSubmitting ? 'disabled' : ''}}" bindtap="onBatchSave">{{batchSubmitting ? '生成中...' : '生成 ' + selectedDates.length + ' 个班次'}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 乘客名单弹层（只读） -->
+<view class="mask {{passengersVisible ? 'show' : ''}}" bindtap="closePassengers">
+  <view class="form-sheet {{passengersVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">乘客名单 · {{passengersTripNo}}</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="loading" wx:if="{{passengersLoading}}">加载中...</view>
+      <view class="empty" wx:if="{{!passengersLoading && passengersList.length === 0}}"><text>暂无乘客（仅显示已支付订单）</text></view>
+      <view class="passenger-row" wx:for="{{passengersList}}" wx:key="name">
+        <view class="passenger-top">
+          <text class="p-name">{{item.name}}</text>
+          <text class="p-seat">座位 {{item.seat_no}}</text>
+          <text class="p-status {{item.check_status === '已核销' ? 'on' : 'off'}}">{{item.check_status}}</text>
+        </view>
+        <view class="passenger-line">
+          <text class="p-route">{{item.from}} → {{item.to}}</text>
+        </view>
+        <view class="passenger-line">
+          <text class="p-meta">身份证 {{item.id_card_no}}</text>
+        </view>
+        <view class="passenger-line">
+          <text class="p-meta">手机 {{item.phone}}</text>
+          <text class="p-meta" wx:if="{{item.checked_at !== '-'}}">核销 {{item.checked_at}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn primary" bindtap="closePassengers">关闭</view>
+    </view>
+  </view>
+</view>
+
+<!-- 清理历史班次弹层（预览 → 确认） -->
+<view class="mask {{cleanupVisible ? 'show' : ''}}" bindtap="closeCleanup">
+  <view class="form-sheet {{cleanupVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">清理历史班次</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="form-item">
+        <text class="form-label">截止日期 <text class="req">*</text>（清理此日期之前，不含当天）</text>
+        <picker class="form-picker" mode="date" value="{{cleanupForm.before_date}}" bindchange="onCleanupDateChange">
+          <view class="picker-text">{{cleanupForm.before_date || '请选择日期'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">清理范围</text>
+        <picker class="form-picker" mode="selector" range="{{routes}}" range-key="name" value="{{cleanupRouteIndex}}" bindchange="onCleanupRouteChange">
+          <view class="picker-text">{{routes[cleanupRouteIndex].name || '全部线路'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+
+      <view class="cleanup-preview" wx:if="{{cleanupPreview}}">
+        <view class="preview-tip {{cleanupPreview.has_active ? 'warn' : 'ok'}}">
+          <text wx:if="{{cleanupPreview.trip_count > 0}}">将清理 {{cleanupPreview.trip_count}} 个历史班次</text>
+          <text wx:else>该范围没有可清理的历史班次</text>
+        </view>
+        <view class="stat-grid">
+          <view class="stat-cell"><text class="stat-num">{{cleanupPreview.status_breakdown.offline}}</text><text class="stat-lbl">下架</text></view>
+          <view class="stat-cell"><text class="stat-num">{{cleanupPreview.status_breakdown.available}}</text><text class="stat-lbl">可售(过期)</text></view>
+          <view class="stat-cell"><text class="stat-num">{{cleanupPreview.status_breakdown.cancelled}}</text><text class="stat-lbl">已取消</text></view>
+          <view class="stat-cell"><text class="stat-num">{{cleanupPreview.status_breakdown.completed}}</text><text class="stat-lbl">已完成</text></view>
+          <view class="stat-cell"><text class="stat-num">{{cleanupPreview.status_breakdown.departed}}</text><text class="stat-lbl">已发车(不清理)</text></view>
+        </view>
+        <view class="order-stats">
+          <text class="os-item">关联订单 {{cleanupPreview.total_orders}}</text>
+          <text class="os-divider">·</text>
+          <text class="os-item">待支付 {{cleanupPreview.pending_orders}}</text>
+          <text class="os-divider">·</text>
+          <text class="os-item paid">已支付 {{cleanupPreview.paid_orders}}</text>
+          <text class="os-divider">·</text>
+          <text class="os-item">历史 {{cleanupPreview.history_orders}}</text>
+        </view>
+        <view class="active-warn" wx:if="{{cleanupPreview.has_active}}">
+          <text>存在活跃订单，执行清理将自动取消并退款已支付订单。</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn ghost" bindtap="closeCleanup">取消</view>
+      <view class="action-btn ghost-dark {{cleanupSubmitting ? 'disabled' : ''}}" bindtap="previewCleanup">{{cleanupSubmitting ? '处理中...' : (cleanupPreview ? '重新预览' : '预览')}}</view>
+      <view class="action-btn danger {{cleanupSubmitting || !cleanupPreview ? 'disabled' : ''}}" bindtap="executeCleanup">确认清理</view>
+    </view>
+  </view>
+</view>
+
+<!-- 每站票价弹层（只读，展示该班次所属线路的累计票价表） -->
+<view class="mask {{fareVisible ? 'show' : ''}}" bindtap="closeFare">
+  <view class="form-sheet {{fareVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="form-header">
+      <text class="form-title">每站票价 · {{fareTripNo}}</text>
+      <text class="fare-sub" wx:if="{{fareRouteName}}">{{fareRouteName}}</text>
+    </view>
+    <scroll-view class="form-body" scroll-y>
+      <view class="loading" wx:if="{{fareLoading}}">加载中...</view>
+      <view class="empty" wx:if="{{!fareLoading && fareStations.length === 0}}"><text>暂无票价数据</text></view>
+
+      <block wx:if="{{!fareLoading && fareStations.length > 0}}">
+        <view class="fare-tip">累计票价制：每站累计价 = 起点到该站总价；段价 = 与上一站的差价。实际票价不低于线路起步价。</view>
+        <view class="fare-table">
+          <view class="fare-row fare-head">
+            <text class="fare-idx">#</text>
+            <text class="fare-name">站点</text>
+            <text class="fare-cum">累计价</text>
+            <text class="fare-seg">段价</text>
+          </view>
+          <view class="fare-row {{item.isStart ? 'is-start' : ''}} {{item.isEnd ? 'is-end' : ''}}" wx:for="{{fareStations}}" wx:key="idx">
+            <text class="fare-idx">{{item.idx}}</text>
+            <text class="fare-name">{{item.name}}</text>
+            <text class="fare-cum">¥{{item.cumPrice}}</text>
+            <text class="fare-seg">{{item.segPrice === '—' ? '—' : '¥' + item.segPrice}}</text>
+          </view>
+        </view>
+        <view class="fare-total">
+          <text class="ft-label">全程票价</text>
+          <text class="ft-value">¥{{fareTotalPrice}}</text>
+        </view>
+      </block>
+    </scroll-view>
+    <view class="action-bar">
+      <view class="action-btn primary" bindtap="closeFare">关闭</view>
+    </view>
+  </view>
+</view>

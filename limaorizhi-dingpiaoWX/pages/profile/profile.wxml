@@ -9,7 +9,7 @@
       <!-- 头像（view 做视觉，button 透明覆盖做 chooseAvatar 交互） -->
       <view class="avatar-wrapper">
         <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img-real" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
-        <image wx:else class="avatar-img-real" src="/images/limaorizhitouxiang.jpg" mode="aspectFill" />
+        <image wx:else class="avatar-img-real" src="/images/icons/default-avatar.svg" mode="aspectFill" />
         <button class="avatar-overlay" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar"></button>
       </view>
       <view class="user-info">

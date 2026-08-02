@@ -122,6 +122,13 @@ func (h *ConfigHandler) Update(c *gin.Context) {
 				return
 			}
 		}
+		if key == "insurance_fee" {
+			feeVal, err := strconv.ParseFloat(value, 64)
+			if err != nil || feeVal < 0 || feeVal > 1000 {
+				response.FailMsg(c, response.CodeParamError, "保险费必须为0-1000之间的数字")
+				return
+			}
+		}
 		// upsert: 存在则更新，不存在则创建
 		var cfg model.SystemConfig
 		result := h.DB.Where("config_key = ?", key).First(&cfg)

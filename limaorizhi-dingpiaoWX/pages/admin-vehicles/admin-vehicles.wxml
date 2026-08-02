@@ -1,0 +1,89 @@
+<!--管理后台 - 车辆管理-->
+<navigation-bar title="车辆管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <view class="filter-bar">
+    <view class="search-row">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="车牌号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+      <view class="add-btn" wx:if="{{isSuperAdmin}}" bindtap="openAdd">+ 新增车辆</view>
+    </view>
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeStatus === item.key ? 'active' : ''}}" wx:for="{{statusTabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onStatusTab">{{item.text}}</view>
+    </scroll-view>
+  </view>
+
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <view class="total-tip" wx:if="{{!loading && list.length > 0}}">共 {{total}} 辆车</view>
+
+      <view class="vehicle-card" wx:for="{{list}}" wx:key="id">
+        <view class="card-top">
+          <image class="vehicle-icon" src="/images/icons/bus-front.svg" mode="aspectFit"></image>
+          <view class="vehicle-main">
+            <text class="vehicle-plate">{{item.plate_no}}</text>
+            <text class="vehicle-type">{{item.vehicle_type}}</text>
+          </view>
+          <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-meta">
+          <text class="meta-text">座位数 {{item.seat_count}}</text>
+          <text class="meta-divider">·</text>
+          <text class="meta-text">ID: {{item.id}}</text>
+        </view>
+        <view class="card-actions" wx:if="{{isSuperAdmin}}">
+          <view class="act-btn edit" data-id="{{item.id}}" bindtap="openEdit">编辑</view>
+          <view class="act-btn delete" data-id="{{item.id}}" bindtap="onDelete">删除</view>
+        </view>
+      </view>
+
+      <view class="loading" wx:if="{{loading && list.length === 0}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && list.length === 0}}"><text>暂无车辆</text></view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && list.length > 0 && !hasMore}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 新增 / 编辑 弹层 -->
+<view class="mask {{formVisible ? 'show' : ''}}" bindtap="closeForm">
+  <view class="form-sheet {{formVisible ? 'show' : ''}}" catchtap="preventBubble">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">{{formMode === 'edit' ? '编辑车辆' : '新增车辆'}}</view>
+
+    <view class="form-body">
+      <view class="form-item">
+        <text class="form-label">车牌号<text class="req">*</text></text>
+        <input class="form-input" type="text" placeholder="如 京A12345" value="{{form.plate_no}}" bindinput="onPlateInput" maxlength="20"></input>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">车型</text>
+        <picker class="form-picker" mode="selector" range="{{vehicleTypes}}" value="{{typeIndex}}" bindchange="onTypeChange">
+          <view class="picker-text">{{form.vehicle_type || '请选择车型'}}<text class="picker-arrow">›</text></view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">座位数<text class="req">*</text></text>
+        <input class="form-input" type="number" placeholder="请输入座位数" value="{{form.seat_count}}" bindinput="onSeatInput"></input>
+      </view>
+
+      <view class="form-item form-item-switch">
+        <text class="form-label">状态</text>
+        <view class="switch-wrap">
+          <text class="switch-text {{form.status === 1 ? 'on' : ''}}">{{form.status === 1 ? '可用' : '维修'}}</text>
+          <switch checked="{{form.status === 1}}" bindchange="onStatusChange" color="#1a1a1a"></switch>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <view class="form-btn ghost {{submitting ? 'disabled' : ''}}" bindtap="closeForm">取消</view>
+      <view class="form-btn primary {{submitting ? 'disabled' : ''}}" bindtap="onSave">保存</view>
+    </view>
+  </view>
+</view>

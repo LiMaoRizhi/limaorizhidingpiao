@@ -2,6 +2,7 @@
 package wx
 
 import (
+	"strconv"
 	"time"
 
 	"limaorizhi-server/internal/model"
@@ -91,7 +92,7 @@ func (h *UserHandler) TripDetail(c *gin.Context) {
 	}
 	effectiveOrder := effectivePassedOrder(h.DB, trip, routeStations)
 	response.OK(c, gin.H{
-		"trip":                  trip,
+		"trip":                   trip,
 		"effective_passed_order": effectiveOrder,
 	})
 }
@@ -136,11 +137,11 @@ func (h *UserHandler) TripAvailableSeats(c *gin.Context) {
 	}
 
 	response.OK(c, gin.H{
-		"trip_id":          trip.ID,
-		"total_seats":      trip.TotalSeats,
-		"available_seats":  avail,
-		"from_station_id":  fromStationID,
-		"to_station_id":    toStationID,
+		"trip_id":         trip.ID,
+		"total_seats":     trip.TotalSeats,
+		"available_seats": avail,
+		"from_station_id": fromStationID,
+		"to_station_id":   toStationID,
 	})
 }
 
@@ -206,10 +207,12 @@ func (h *UserHandler) PublicConfig(c *gin.Context) {
 		"site_name":                     true,
 		"customer_service_phone":        true,
 		"after_sales_wechat":            true,
-		"notice":                         true,
+		"notice":                        true,
 		"order_expire_minutes":          true,
 		"refund_before_departure_hours": true,
 		"refund_fee_rate":               true,
+		"insurance_fee":                 true,
+		"insurance_required":            true,
 		"cargo_price_per_km":            true,
 		"cargo_min_fee":                 true,
 		"cargo_free_weight":             true,
@@ -218,8 +221,8 @@ func (h *UserHandler) PublicConfig(c *gin.Context) {
 		"mine_menu_layout_type":         true,
 		"logout_position":               true,
 		// 协议政策（用户协议 + 隐私政策，小程序登录页展示）
-		"user_agreement":                true,
-		"privacy_policy":                true,
+		"user_agreement": true,
+		"privacy_policy": true,
 	}
 	var configs []model.SystemConfig
 	h.DB.Find(&configs)
@@ -227,6 +230,16 @@ func (h *UserHandler) PublicConfig(c *gin.Context) {
 	for _, cfg := range configs {
 		if publicKeys[cfg.ConfigKey] {
 			result[cfg.ConfigKey] = cfg.ConfigValue
+		}
+	}
+	// 保险公司配置覆盖：若启用了一家保险公司，insurance_fee/insurance_required 用其值覆盖，
+	// 向后兼容：未配置保险公司时仍读 system_configs 兜底。
+	if provider, err := service.GetActiveProvider(h.DB); err == nil && provider != nil {
+		result["insurance_fee"] = strconv.FormatFloat(provider.Fee, 'f', -1, 64)
+		if provider.Required {
+			result["insurance_required"] = "true"
+		} else {
+			result["insurance_required"] = "false"
 		}
 	}
 	response.OK(c, result)

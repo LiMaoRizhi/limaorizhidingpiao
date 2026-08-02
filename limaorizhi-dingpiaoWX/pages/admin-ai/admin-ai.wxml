@@ -1,0 +1,133 @@
+<!--管理后台 - 数字员工（AI 流式对话）-->
+<navigation-bar title="数字员工" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+
+  <!-- 顶栏：模型切换 + 清空 -->
+  <view class="topbar">
+    <view class="model-btn" bindtap="toggleModelPicker">
+      <text class="model-name">{{currentModelName || '未选择模型'}}</text>
+      <!-- 诊断徽标：加载中/加载失败/服务商·模型数。定位"无模型可选"是接口失败还是数据为空 -->
+      <text class="model-diag {{modelsLoadError ? 'diag-err' : ''}}">{{modelsLoading ? '加载中' : (modelsLoadError ? '加载失败' : (providers.length + '服务商·' + modelsTotal + '模型'))}}</text>
+      <text class="arrow {{modelPickerVisible ? 'up' : ''}}"></text>
+    </view>
+    <view class="clear-btn" bindtap="onClearTap" wx:if="{{messages.length > 0}}">
+      <text>清空</text>
+    </view>
+  </view>
+
+  <!-- 模型选择浮层 -->
+  <view class="picker-mask" wx:if="{{modelPickerVisible}}" bindtap="closeModelPicker">
+    <view class="picker-sheet" catchtap="onPickerContentTap">
+      <view class="picker-header">
+        <text class="picker-title">选择模型</text>
+        <text class="picker-close" bindtap="closeModelPicker">×</text>
+      </view>
+      <scroll-view class="picker-body" scroll-y>
+        <!-- 加载失败或列表为空：给重试入口，避免用户面对空白列表 -->
+        <view class="picker-empty" wx:if="{{modelsLoadError || providers.length === 0}}">
+          <text class="picker-empty-text">{{modelsLoadError ? '模型列表加载失败' : '暂无可用模型'}}</text>
+          <view class="picker-empty-retry" bindtap="reloadModels">点击重试</view>
+        </view>
+        <block wx:for="{{providers}}" wx:key="value" wx:for-item="p">
+          <view class="provider-group" wx:if="{{p.models.length > 0}}">
+            <view class="provider-name">
+              {{p.name}}
+              <text class="provider-tag {{p.has_key ? 'ok' : 'no'}}">{{p.has_key ? '已配置' : '未配置Key'}}</text>
+            </view>
+            <view class="model-item {{m.selected ? 'selected' : ''}} {{(!p.has_key) ? 'disabled' : ''}}"
+                  wx:for="{{p.models}}" wx:key="id" wx:for-item="m"
+                  data-model="{{m.id}}" data-provider="{{p.value}}"
+                  bindtap="onModelSelect">
+              <view class="model-info">
+                <view class="model-title-row">
+                  <image class="model-type-icon" wx:if="{{m.icon}}" src="/images/icons/model-icon-{{m.icon}}.svg" mode="aspectFit"></image>
+                  <text class="model-title">{{m.name}}</text>
+                  <text class="model-tag tag-{{m.tag_type}}" wx:if="{{m.tag}}">{{m.tag}}</text>
+                </view>
+                <text class="model-desc" wx:if="{{m.description}}">{{m.description}}</text>
+              </view>
+              <text class="check" wx:if="{{m.selected}}">✓</text>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 对话列表 -->
+  <scroll-view class="chat-list" scroll-y scroll-into-view="{{scrollIntoView}}" scroll-with-animation enhanced show-scrollbar="{{false}}">
+    <!-- 空状态：纯净聊天入口 -->
+    <view class="empty-state" wx:if="{{messages.length === 0}}">
+      <view class="ai-avatar-big">
+        <image class="avatar-img spinning" src="/images/icons/admin-ai-avatar.svg" mode="aspectFit"></image>
+      </view>
+      <view class="welcome-title">你好，我是数字员工</view>
+      <view class="welcome-sub">有什么可以帮你的？</view>
+    </view>
+
+    <!-- 消息列表 -->
+    <view class="msg-wrap" wx:for="{{messages}}" wx:key="index" id="msg-{{index}}">
+      <!-- 用户消息 -->
+      <view class="msg-row user" wx:if="{{item.role === 'user'}}">
+        <view class="bubble user-bubble">{{item.content}}</view>
+      </view>
+      <!-- 助手消息 -->
+      <view class="msg-row assistant" wx:else>
+        <view class="assistant-avatar">
+          <image class="avatar-img {{item.loading ? 'spinning' : ''}}" src="/images/icons/admin-ai-avatar.svg" mode="aspectFit"></image>
+        </view>
+        <view class="assistant-body">
+          <!-- 思考过程（可折叠） -->
+          <view class="reasoning-block" wx:if="{{item.reasoning}}" bindtap="toggleReasoning" data-idx="{{index}}">
+            <view class="reasoning-header">
+              <text class="reasoning-icon">💭</text>
+              <text class="reasoning-title">思考过程</text>
+              <text class="reasoning-toggle">{{item.reasoningExpanded ? '收起' : '展开'}}</text>
+            </view>
+            <view class="reasoning-content" wx:if="{{item.reasoningExpanded}}">{{item.reasoning}}</view>
+          </view>
+          <!-- 正文 -->
+          <view class="bubble assistant-bubble {{item.error ? 'error-bubble' : ''}}">
+            <text wx:if="{{item.content}}">{{item.content}}</text>
+            <view class="typing" wx:if="{{item.loading && !item.content}}">
+              <view class="dot"></view>
+              <view class="dot"></view>
+              <view class="dot"></view>
+            </view>
+          </view>
+          <!-- 失败重试 -->
+          <view class="retry-row" wx:if="{{item.error}}">
+            <text class="retry-btn" bindtap="onRetryTap">重试</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-pad"></view>
+  </scroll-view>
+
+  <!-- 输入区 -->
+  <view class="input-bar">
+    <view class="stop-btn" wx:if="{{sending}}" bindtap="onStopTap">
+      <view class="stop-icon"></view>
+      <text>停止</text>
+    </view>
+    <view class="input-box">
+      <textarea class="input-field"
+                placeholder="输入问题..."
+                value="{{input}}"
+                bindinput="onInput"
+                confirm-type="send"
+                bindconfirm="onSendTap"
+                auto-height
+                maxlength="2000"
+                show-confirm-bar="{{false}}"
+                adjust-position="{{true}}"></textarea>
+    </view>
+    <view class="send-btn {{input ? 'active' : ''}}" wx:if="{{!sending}}" bindtap="onSendTap">
+      <text>发送</text>
+    </view>
+  </view>
+
+</view>

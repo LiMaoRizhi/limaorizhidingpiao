@@ -1,0 +1,68 @@
+/* 管理后台首页 */
+.scrollarea {
+  height: 100vh;
+}
+.page-content {
+  padding: 0 16px 40px;
+  box-sizing: border-box;
+}
+
+/* 分区标题 */
+.section-title {
+  font-size: 14px;
+  color: #999;
+  margin: 22px 4px 12px;
+}
+
+/* 模块九宫格 */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.module-item {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 18px 6px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.module-item.disabled {
+  opacity: 1;
+}
+.module-icon-wrap {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.module-icon {
+  width: 40px;
+  height: 40px;
+}
+.module-name {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+.module-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  color: #fff;
+  background: #ccc;
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+.tips {
+  text-align: center;
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 28px;
+}

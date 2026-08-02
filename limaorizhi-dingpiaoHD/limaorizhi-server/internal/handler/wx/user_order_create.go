@@ -20,10 +20,11 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
 // 订单相关错误（sentinel error，避免字符串比较与切片越界panic）
 
 var (
-	errNoSeat             = errors.New("余座不足")
+	errNoSeat            = errors.New("余座不足")
 	errTripUnavailable   = errors.New("班次已发车或已取消")
 	errTripDeparted      = errors.New("班次已过发车时间")
 	errOrderNotFound     = errors.New("订单不存在")
@@ -57,9 +58,9 @@ func isValidPhone(phone string) bool {
 // CreateOrder 创建订单（含座位锁定）
 type createOrderPassenger struct {
 	PassengerID uint   `json:"passenger_id"` // 非零时从常用乘客表取完整信息，前端无需传明文证件号
-	Name        string `json:"name"`            // passenger_id 为 0 时必填
+	Name        string `json:"name"`         // passenger_id 为 0 时必填
 	IDCardType  int8   `json:"id_card_type"`
-	IDCardNo    string `json:"id_card_no"`         // passenger_id 为 0 时必填
+	IDCardNo    string `json:"id_card_no"` // passenger_id 为 0 时必填
 	Phone       string `json:"phone"`
 }
 
@@ -70,7 +71,8 @@ type createOrderRequest struct {
 	Passengers    []createOrderPassenger `json:"passengers" binding:"required"`
 	ContactName   string                 `json:"contact_name" binding:"required"`
 	ContactPhone  string                 `json:"contact_phone" binding:"required"`
-	CouponID      uint                   `json:"coupon_id"` // 可选，优惠券ID
+	CouponID      uint                   `json:"coupon_id"`     // 可选，优惠券ID
+	BuyInsurance  bool                   `json:"buy_insurance"` // 已废弃：保险由后端自动附加，无需前端传参（保留字段仅兼容旧客户端请求）
 }
 
 func (h *UserHandler) CreateOrder(c *gin.Context) {
@@ -270,25 +272,39 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 		}
 		orderNo := fmt.Sprintf("DP%s%s", time.Now().Format("20060102"), hex.EncodeToString(randomBytes))
 
-		// 4. 创建订单
-		// JSONDate.Scan 已确保格式为 "2006-01-02"，无需再手动剥离 RFC3339
+	// 4. 创建订单
+	// JSONDate.Scan 已确保格式为 "2006-01-02"，无需再手动剥离 RFC3339
+	// 保险费：后台启用保险公司后自动附加（按乘客数计费），用户端无需任何操作。
+	// 保费统一由【保险配置】中启用的保险公司设定，未启用保险公司则不收保费
+	insuranceFeeUnit := 0.0
+	var insuranceProviderID uint = 0
+	if provider, perr := service.GetActiveProvider(h.DB); perr == nil && provider != nil {
+		insuranceFeeUnit = provider.Fee
+		insuranceProviderID = provider.ID
+	}
+	var insuranceTotal float64
+	if insuranceFeeUnit > 0 {
+		insuranceTotal = money.Mul(insuranceFeeUnit, passengerCount)
+	}
 		order = model.Order{
-			OrderNo:        orderNo,
-			OrderType:      1, // 车票
-			UserID:         userID,
-			TripID:         trip.ID,
-			RouteID:        trip.RouteID,
-			FromStationID:   req.FromStationID,
-			FromStationName: fromStationName,
-			ToStationID:     req.ToStationID,
-			ToStationName:   toStationName,
-			TripDate:        trip.TripDate,
-			DepartureTime:  trip.DepartureTime,
-			PassengerCount: passengerCount,
-			TotalPrice:     money.Mul(fare, passengerCount),
-			Status:         model.OrderStatusPending, // 待支付
-			ContactName:    req.ContactName,
-			ContactPhone:   req.ContactPhone,
+			OrderNo:             orderNo,
+			OrderType:           1, // 车票
+			UserID:              userID,
+			TripID:              trip.ID,
+			RouteID:             trip.RouteID,
+			FromStationID:       req.FromStationID,
+			FromStationName:     fromStationName,
+			ToStationID:         req.ToStationID,
+			ToStationName:       toStationName,
+			TripDate:            trip.TripDate,
+			DepartureTime:       trip.DepartureTime,
+			PassengerCount:      passengerCount,
+			TotalPrice:          money.Mul(fare, passengerCount), // 车票金额，保险费在优惠券折扣后叠加
+			InsuranceFee:        insuranceTotal,
+			InsuranceProviderID: insuranceProviderID,      // 0=未启用保险公司（保险未生效）
+			Status:              model.OrderStatusPending, // 待支付
+			ContactName:         req.ContactName,
+			ContactPhone:        req.ContactPhone,
 		}
 
 		if err := tx.Create(&order).Error; err != nil {
@@ -355,6 +371,14 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 			}
 		}
 
+		// 叠加保险费到订单总价（保险费不参与优惠券折扣，单独计算）
+		if insuranceTotal > 0 {
+			order.TotalPrice = money.Add(order.TotalPrice, insuranceTotal)
+			if err := tx.Model(&order).Update("total_price", order.TotalPrice).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -391,4 +415,3 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 		"passengers": passengers,
 	})
 }
-

@@ -1,0 +1,21 @@
+<!--管理后台首页-->
+<navigation-bar title="管理后台" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<scroll-view class="scrollarea" scroll-y>
+  <view class="page-content">
+
+    <!-- 模块入口 -->
+    <view class="section-title">运营管理</view>
+    <view class="module-grid">
+      <view class="module-item {{item.ready ? '' : 'disabled'}}" wx:for="{{modules}}" wx:key="key" data-item="{{item}}" bindtap="onModuleTap">
+        <view class="module-icon-wrap">
+          <image class="module-icon" src="{{item.icon}}"></image>
+        </view>
+        <text class="module-name">{{item.name}}</text>
+        <text class="module-tag" wx:if="{{!item.ready}}">开发中</text>
+      </view>
+    </view>
+
+    <view class="tips">仅管理员可见 · 所有操作均记录操作日志</view>
+  </view>
+</scroll-view>

@@ -67,8 +67,9 @@ func Setup(db *gorm.DB) *gin.Engine {
 	userPointsHandler := admin.NewUserPointsHandler(db)
 	designHandler := admin.NewDesignHandler(db)
 	idCardVerifyHandler := admin.NewIDCardVerifyHandler(db) // 身份认证缓存管理（监控 + 主动失效）
-	trackHandler := admin.NewTrackHandler(db) // 轨迹可视化（实时监控 + 历史回放）
+	trackHandler := admin.NewTrackHandler(db)               // 轨迹可视化（实时监控 + 历史回放）
 	aiHandler := admin.NewAIHandler(db)
+	insuranceProviderHandler := admin.NewInsuranceProviderHandler(db)
 	wxDriverHandler := wxhandler.NewDriverHandler(db)
 	wxUserHandler := wxhandler.NewUserHandler(db)
 	wxCargoHandler := wxhandler.NewCargoHandler(db)
@@ -226,7 +227,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 		adminGroup.DELETE("/drivers/:id", middleware.RequireSuperAdmin(), driverHandler.Delete)
 		adminGroup.GET("/drivers/availability", driverHandler.DriverAvailability) // 司机可用性查询（班次分配用）
 		adminGroup.GET("/drivers/verify-stats", middleware.RequireSuperAdmin(), driverHandler.VerifyStats)
-		adminGroup.GET("/trips/:id/passengers", driverHandler.TripPassengers) // 班次乘客名单（班次管理用）
+		adminGroup.GET("/trips/:id/passengers", driverHandler.TripPassengers)                                  // 班次乘客名单（班次管理用）
 		adminGroup.PUT("/trips/:id/assign-driver", middleware.RequireSuperAdmin(), driverHandler.AssignDriver) // 分配司机（班次管理用，超管权限）
 
 		// AI 数字员工
@@ -236,6 +237,13 @@ func Setup(db *gorm.DB) *gin.Engine {
 		adminGroup.GET("/ai/models", aiHandler.GetModels)
 		adminGroup.PUT("/ai/model", aiHandler.SwitchModel)
 		adminGroup.POST("/ai/image", middleware.RateLimit(), aiHandler.GenerateImage)
+
+		// 保险公司配置（通用保险对接框架，仅超级管理员可操作）
+		adminGroup.GET("/insurance-providers", middleware.RequireSuperAdmin(), insuranceProviderHandler.List)
+		adminGroup.POST("/insurance-providers", middleware.RequireSuperAdmin(), insuranceProviderHandler.Create)
+		adminGroup.PUT("/insurance-providers/:id", middleware.RequireSuperAdmin(), insuranceProviderHandler.Update)
+		adminGroup.DELETE("/insurance-providers/:id", middleware.RequireSuperAdmin(), insuranceProviderHandler.Delete)
+		adminGroup.PUT("/insurance-providers/:id/activate", middleware.RequireSuperAdmin(), insuranceProviderHandler.Activate)
 	}
 
 	// 小程序端（司机核销）
@@ -311,6 +319,105 @@ func Setup(db *gorm.DB) *gin.Engine {
 			// 货物托运
 			wxUser.POST("/cargo/preview", wxCargoHandler.CargoFeePreview)
 			wxUser.POST("/cargo", wxCargoHandler.CreateCargoOrder)
+		}
+
+		// 小程序管理员端接口（仅管理员可见的管理后台入口）
+		// 纯增量：复用现有 admin handler，不动 /admin/* 路由，网页后台行为完全不受影响。
+		// 鉴权链：WxUserAuth（验 wx token、写 user_id）→ WxAdminAuth（按手机号匹配 admin、写 admin_id/name/role）。
+		// 写操作（创建/修改/删除/退款等）按阶段逐步开放，避免一次性暴露过大攻击面。
+		wxAdmin := wxGroup.Group("/admin", middleware.WxUserAuth(db), middleware.WxAdminAuth(db))
+		{
+			// 管理员信息（含 role，前端据此隐藏超管专属功能）
+			wxAdmin.GET("/profile", authHandler.Profile)
+
+			// 首页统计看板
+			wxAdmin.GET("/dashboard", dashboardHandler.Stats)
+
+			// 订单管理（只读 + 状态流转；退款需超管）
+			wxAdmin.GET("/orders", orderHandler.List)
+			wxAdmin.GET("/orders/:id", orderHandler.Detail)
+			wxAdmin.PUT("/orders/:id/status", orderHandler.UpdateStatus)
+			wxAdmin.POST("/orders/:id/refund", middleware.RequireSuperAdmin(), orderHandler.Refund)
+
+			// 售票主数据（列表只读，编辑能力开放给超管，复用现有 handler）
+			wxAdmin.GET("/stations", stationHandler.List)
+			wxAdmin.GET("/stations/all", stationHandler.All)
+			wxAdmin.GET("/routes", routeHandler.List)
+			wxAdmin.GET("/routes/all", routeHandler.All)
+			wxAdmin.GET("/routes/:id/stations", routeHandler.Stations)
+			wxAdmin.GET("/trips", tripHandler.List)
+			wxAdmin.GET("/vehicles", vehicleHandler.List)
+			wxAdmin.GET("/vehicles/all", vehicleHandler.All)
+
+			// 售票主数据写操作（仅超管，与网页后台权限一致）
+			wxAdminWrite := wxAdmin.Group("", middleware.RequireSuperAdmin())
+			{
+				// 站点
+				wxAdminWrite.POST("/stations", stationHandler.Create)
+				wxAdminWrite.PUT("/stations/:id", stationHandler.Update)
+				wxAdminWrite.DELETE("/stations/:id", stationHandler.Delete)
+				// 线路
+				wxAdminWrite.POST("/routes", routeHandler.Create)
+				wxAdminWrite.PUT("/routes/:id", routeHandler.Update)
+				wxAdminWrite.DELETE("/routes/:id", routeHandler.Delete)
+				// 车辆
+				wxAdminWrite.POST("/vehicles", vehicleHandler.Create)
+				wxAdminWrite.PUT("/vehicles/:id", vehicleHandler.Update)
+				wxAdminWrite.DELETE("/vehicles/:id", vehicleHandler.Delete)
+				// 班次
+				wxAdminWrite.POST("/trips", tripHandler.Create)
+				wxAdminWrite.PUT("/trips/:id", tripHandler.Update)
+				wxAdminWrite.DELETE("/trips/:id", tripHandler.Delete)
+				wxAdminWrite.POST("/trips/batch", tripHandler.BatchCreate)
+				wxAdminWrite.POST("/trips/cleanup", tripHandler.CleanupHistory)
+				wxAdminWrite.PUT("/trips/:id/assign-driver", driverHandler.AssignDriver)
+			}
+
+			// 乘客名单（与网页后台权限一致，管理员只读）
+			wxAdmin.GET("/trips/:id/passengers", driverHandler.TripPassengers)
+
+			// 司机管理（列表需超管，与网页后台权限一致；/all 供班次选择用）
+			wxAdmin.GET("/drivers", middleware.RequireSuperAdmin(), driverHandler.List)
+			wxAdmin.GET("/drivers/all", driverHandler.All)
+			// 司机写操作（仅超管）
+			wxAdmin.POST("/drivers", middleware.RequireSuperAdmin(), driverHandler.Create)
+			wxAdmin.PUT("/drivers/:id", middleware.RequireSuperAdmin(), driverHandler.Update)
+			wxAdmin.DELETE("/drivers/:id", middleware.RequireSuperAdmin(), driverHandler.Delete)
+
+			// 用户管理（只读 + 封禁）
+			wxAdmin.GET("/users", userHandler.List)
+			wxAdmin.GET("/users/:id", userHandler.Detail)
+			wxAdmin.PUT("/users/:id/status", userHandler.UpdateStatus)
+
+			// 营销（优惠券/积分规则列表只读，写操作开放给超管；发放记录/用户积分只读）
+			wxAdmin.GET("/coupons", couponHandler.List)
+			wxAdmin.GET("/user-coupons", userCouponHandler.List)
+			wxAdmin.GET("/point-rules", pointRuleHandler.List)
+			wxAdmin.GET("/user-points", userPointsHandler.List)
+			wxAdmin.GET("/user-points/:id/records", userPointsHandler.Records)
+			// 营销写操作（仅超管）
+			wxAdmin.POST("/coupons", middleware.RequireSuperAdmin(), couponHandler.Create)
+			wxAdmin.PUT("/coupons/:id", middleware.RequireSuperAdmin(), couponHandler.Update)
+			wxAdmin.DELETE("/coupons/:id", middleware.RequireSuperAdmin(), couponHandler.Delete)
+			wxAdmin.POST("/point-rules", middleware.RequireSuperAdmin(), pointRuleHandler.Create)
+			wxAdmin.PUT("/point-rules/:id", middleware.RequireSuperAdmin(), pointRuleHandler.Update)
+			wxAdmin.DELETE("/point-rules/:id", middleware.RequireSuperAdmin(), pointRuleHandler.Delete)
+			wxAdmin.POST("/user-points/:id/adjust", middleware.RequireSuperAdmin(), userPointsHandler.Adjust)
+
+			// 退款记录
+			wxAdmin.GET("/refunds", configHandler.RefundList)
+
+			// 轨迹可视化（实时监控 + 历史回放）
+			wxAdmin.GET("/trips/active", trackHandler.ActiveTrips)
+			wxAdmin.GET("/trips/:id/track", trackHandler.TripTrack)
+
+			// 数字员工（AI 聊天，加限流防滥用）
+			wxAdmin.POST("/ai/chat", middleware.RateLimit(), aiHandler.Chat)
+			wxAdmin.GET("/ai/models", aiHandler.GetModels)
+			wxAdmin.PUT("/ai/model", aiHandler.SwitchModel)
+
+			// 保险公司配置（只读列表，写操作需超管，与网页后台权限一致）
+			wxAdmin.GET("/insurance-providers", middleware.RequireSuperAdmin(), insuranceProviderHandler.List)
 		}
 	}
 

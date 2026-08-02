@@ -1,0 +1,82 @@
+/* 管理后台 - 司机管理 */
+page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #f5f6f8; }
+.page { display: flex; flex-direction: column; flex: 1; height: 0; background: #f5f6f8; }
+
+.permission-tip { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 40px; }
+.perm-icon { font-size: 40px; color: #faad14; margin-bottom: 12px; }
+.perm-text { font-size: 14px; color: #999; text-align: center; }
+
+.filter-bar { background: #fff; padding: 8px 12px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
+.search-row { display: flex; flex-direction: row; align-items: center; }
+.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; }
+.search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
+.search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }
+.search-clear { width: 18px; height: 18px; line-height: 18px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 14px; }
+.tab-scroll { white-space: nowrap; margin-top: 8px; height: 32px; line-height: 32px; }
+.tab-item { display: inline-block; padding: 0 13px; height: 32px; line-height: 30px; font-size: 13px; color: #666; margin-right: 4px; border-radius: 16px; border: 1px solid #ddd; box-sizing: border-box; }
+.tab-item.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+.list-scroll { flex: 1; height: 0; overflow: auto; }
+.list-wrap { padding: 10px 12px 30px; }
+.total-tip { font-size: 11px; color: #aaa; padding: 4px 0 8px; }
+
+.driver-card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.card-top { display: flex; flex-direction: row; align-items: flex-start; }
+.driver-info { flex: 1; }
+.driver-name-row { display: flex; flex-direction: row; align-items: center; }
+.driver-name { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-right: 8px; }
+.driver-meta { font-size: 11px; color: #999; margin-top: 4px; display: block; }
+.card-bottom { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #f5f5f5; }
+.contact-block { flex: 1; }
+.driver-phone { font-size: 13px; color: #2c2c2c; display: block; }
+.driver-login { font-size: 10px; color: #bbb; margin-top: 2px; display: block; }
+.call-btn { padding: 4px 12px; height: 28px; line-height: 28px; background: #e6f7ff; color: #1890ff; border-radius: 14px; font-size: 12px; flex-shrink: 0; }
+
+.status-tag { font-size: 11px; padding: 1px 7px; border-radius: 12px; flex-shrink: 0; border: 1px solid; box-sizing: border-box; }
+.status-ok { background: transparent; color: #52c41a; border-color: #52c41a; }
+.status-ban { background: transparent; color: #f5222d; border-color: #f5222d; }
+
+.loading, .loading-more, .no-more { text-align: center; font-size: 12px; color: #bbb; padding: 16px 0; }
+.empty { text-align: center; color: #ccc; font-size: 13px; padding: 50px 0; }
+
+/* 新增按钮 */
+.add-btn { margin-left: 8px; height: 32px; line-height: 32px; padding: 0 12px; font-size: 13px; color: #fff; background: #1a1a1a; border-radius: 8px; flex-shrink: 0; }
+
+/* 卡片操作行 */
+.card-actions { display: flex; flex-direction: row; justify-content: flex-end; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #f5f5f5; }
+.act-btn { font-size: 12px; padding: 4px 12px; border-radius: 12px; margin-left: 8px; border: 1px solid; box-sizing: border-box; }
+.act-btn.edit { color: #1a1a1a; border-color: #d9d9d9; background: #fff; }
+.act-btn.delete { color: #f5222d; border-color: #ffccc7; background: #fff; }
+.act-btn.warn { color: #fa8c16; border-color: #ffd591; background: #fff; }
+.act-btn.primary { color: #1a1a1a; border-color: #1a1a1a; background: #fff; }
+.act-btn:active { opacity: 0.6; }
+
+/* 表单弹层 */
+.mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
+.mask.show { opacity: 1; visibility: visible; }
+.form-sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #f5f6f8; border-radius: 14px 14px 0 0; max-height: 85vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.25s; padding-bottom: env(safe-area-inset-bottom); }
+.form-sheet.show { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 8px auto 0; }
+.sheet-title { font-size: 15px; font-weight: 700; color: #1a1a1a; text-align: center; padding: 14px 16px 6px; }
+
+/* 表单内容 */
+.form-body { background: #fff; margin: 8px 0; padding: 4px 16px; }
+.form-item { display: flex; flex-direction: column; padding: 10px 0; border-bottom: 0.5px solid #f5f5f5; }
+.form-item:last-child { border-bottom: none; }
+.form-item-switch { flex-direction: row; align-items: center; justify-content: space-between; }
+.form-label { font-size: 13px; color: #666; margin-bottom: 8px; }
+.form-item-switch .form-label { margin-bottom: 0; }
+.req { color: #f5222d; margin-left: 2px; }
+.form-input { background: #f5f6f8; border-radius: 8px; height: 38px; padding: 0 12px; font-size: 14px; color: #1a1a1a; box-sizing: border-box; }
+.switch-wrap { display: flex; flex-direction: row; align-items: center; }
+.switch-text { font-size: 13px; color: #999; margin-right: 8px; }
+.switch-text.on { color: #1a1a1a; }
+.form-tip { font-size: 11px; color: #bbb; padding: 4px 0 8px; }
+
+/* 表单按钮 */
+.form-actions { display: flex; flex-direction: row; padding: 12px 16px 16px; }
+.form-btn { flex: 1; height: 42px; line-height: 42px; text-align: center; font-size: 14px; border-radius: 8px; box-sizing: border-box; }
+.form-btn.ghost { background: #fff; color: #1a1a1a; border: 1px solid #d9d9d9; margin-right: 10px; }
+.form-btn.primary { background: #1a1a1a; color: #fff; }
+.form-btn.disabled { opacity: 0.5; }
+.form-btn:active { opacity: 0.7; }

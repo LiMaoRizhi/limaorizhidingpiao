@@ -195,6 +195,17 @@
       <view class="coupon-clear" wx:if="{{selectedCoupon}}" catchtap="clearCoupon">不使用优惠券</view>
     </view>
 
+    <!-- 乘车保险（紧凑单行，仅当配置了单价时显示） -->
+    <view class="section insurance-section" wx:if="{{insuranceFeeUnit > 0}}" catchtap="toggleInsurance">
+      <view class="insurance-check {{buyInsurance ? 'checked' : ''}} {{insuranceRequired ? 'required' : ''}}">
+        <view class="insurance-check-inner" wx:if="{{buyInsurance}}"></view>
+      </view>
+      <text class="insurance-label">乘意险 ¥{{insuranceFeeUnit}}/人</text>
+      <text class="insurance-required-tag" wx:if="{{insuranceRequired}}">必购</text>
+      <text class="insurance-spacer"></text>
+      <text class="insurance-amount" wx:if="{{buyInsurance}}">+¥{{insuranceTotal}}</text>
+    </view>
+
     <!-- 底部下单 -->
     <view class="bottom-bar {{contactFocused ? 'bottom-bar-hide' : ''}}">
       <view class="total-price">

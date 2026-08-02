@@ -1,0 +1,199 @@
+<!--管理后台 - 营销管理-->
+<navigation-bar title="营销管理" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<view class="page">
+  <view class="filter-bar">
+    <view class="search-row" wx:if="{{activeTab !== 'rules'}}">
+      <view class="search-box">
+        <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
+        <input class="search-input" type="text" placeholder="{{activeTab === 'coupons' ? '优惠券名称' : (activeTab === 'records' ? '用户ID' : '手机号')}}" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
+      </view>
+    </view>
+    <scroll-view class="tab-scroll" scroll-x enable-flex>
+      <view class="tab-item {{activeTab === item.key ? 'active' : ''}}" wx:for="{{tabs}}" wx:key="key" data-key="{{item.key}}" bindtap="onTabTap">{{item.text}}</view>
+    </scroll-view>
+  </view>
+
+  <!-- 超管新增按钮 -->
+  <view class="action-bar" wx:if="{{isSuperAdmin && (activeTab === 'coupons' || activeTab === 'rules')}}">
+    <view class="add-btn" bindtap="onAdd">+ {{activeTab === 'coupons' ? '新增优惠券' : '新增规则'}}</view>
+  </view>
+
+  <scroll-view class="list-scroll" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}" bindscrolltolower="onLoadMore">
+    <view class="list-wrap">
+      <!-- 优惠券 -->
+      <block wx:if="{{activeTab === 'coupons'}}">
+        <view class="total-tip" wx:if="{{!loading && couponList.length > 0}}">共 {{couponTotal}} 张</view>
+        <view class="data-card" wx:for="{{couponList}}" wx:key="id">
+          <view class="card-top">
+            <view class="coupon-block">
+              <text class="card-title">{{item.name}}</text>
+              <text class="coupon-value">{{item.value_text}}</text>
+            </view>
+            <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+          </view>
+          <view class="card-meta">
+            <text class="meta-text">{{item.type_text}}</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">{{item.valid_days}}天有效</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">已发{{item.issued_count}}{{item.total_count ? '/' + item.total_count : ''}}</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">已用{{item.used_count}}</text>
+          </view>
+          <view class="card-actions" wx:if="{{isSuperAdmin}}">
+            <view class="card-action" data-id="{{item.id}}" bindtap="onEditCoupon">编辑</view>
+            <view class="card-action danger" data-id="{{item.id}}" bindtap="onDeleteCoupon">删除</view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 发放记录 -->
+      <block wx:if="{{activeTab === 'records'}}">
+        <view class="total-tip" wx:if="{{!loading && recordList.length > 0}}">共 {{recordTotal}} 条</view>
+        <view class="data-card" wx:for="{{recordList}}" wx:key="id">
+          <view class="card-top">
+            <view class="record-block">
+              <text class="card-title">{{item.coupon_name}}</text>
+              <text class="record-user">{{item.user_nickname}} · {{item.user_phone}}</text>
+            </view>
+            <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+          </view>
+          <view class="card-meta">
+            <text class="meta-text">{{item.coupon_type}}</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">发放 {{item.issued_at}}</text>
+          </view>
+          <view class="card-meta" wx:if="{{item.expired_at}}">
+            <text class="meta-text">到期 {{item.expired_at}}</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- 积分规则 -->
+      <block wx:if="{{activeTab === 'rules'}}">
+        <view class="data-card" wx:for="{{ruleList}}" wx:key="id">
+          <view class="card-top">
+            <text class="card-title">{{item.rule_name}}</text>
+            <text class="status-tag status-{{item.statusCls}}">{{item.statusText}}</text>
+          </view>
+          <view class="card-meta">
+            <text class="meta-text">{{item.rule_type_text}}</text>
+            <text class="meta-divider" wx:if="{{item.rule_type_text === '消费赠送'}}">·</text>
+            <text class="meta-text" wx:if="{{item.rule_type_text === '消费赠送'}}">{{item.points_per_yuan}}积分/元</text>
+            <text class="meta-divider" wx:if="{{item.fixed_points}}">·</text>
+            <text class="meta-text" wx:if="{{item.fixed_points}}">固定{{item.fixed_points}}积分</text>
+          </view>
+          <view class="rule-desc" wx:if="{{item.description}}">{{item.description}}</view>
+          <view class="card-actions" wx:if="{{isSuperAdmin}}">
+            <view class="card-action" data-id="{{item.id}}" bindtap="onEditRule">编辑</view>
+            <view class="card-action danger" data-id="{{item.id}}" bindtap="onDeleteRule">删除</view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 用户积分 -->
+      <block wx:if="{{activeTab === 'points'}}">
+        <view class="total-tip" wx:if="{{!loading && pointsList.length > 0}}">共 {{pointsTotal}} 位用户</view>
+        <view class="data-card" wx:for="{{pointsList}}" wx:key="id">
+          <view class="card-top">
+            <view class="points-block">
+              <text class="card-title">{{item.nickname}}</text>
+              <text class="points-phone">{{item.phone}}</text>
+            </view>
+            <text class="points-balance">{{item.balance}}</text>
+          </view>
+          <view class="card-meta">
+            <text class="meta-text">累计获得 {{item.total_earned}}</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">累计消耗 {{item.total_spent}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view class="loading" wx:if="{{loading}}">加载中...</view>
+      <view class="empty" wx:if="{{!loading && ((activeTab === 'coupons' && couponList.length === 0) || (activeTab === 'records' && recordList.length === 0) || (activeTab === 'rules' && ruleList.length === 0) || (activeTab === 'points' && pointsList.length === 0))}}"><text>暂无数据</text></view>
+      <view class="loading-more" wx:if="{{loadingMore}}">加载中...</view>
+      <view class="no-more" wx:if="{{!loading && !loadingMore && ((activeTab === 'coupons' && couponList.length > 0 && !couponHasMore) || (activeTab === 'records' && recordList.length > 0 && !recordHasMore) || (activeTab === 'points' && pointsList.length > 0 && !pointsHasMore))}}">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 表单弹层 -->
+<view class="form-mask" wx:if="{{formVisible}}" bindtap="onCloseForm"></view>
+<view class="form-sheet" wx:if="{{formVisible}}" catchtap="preventBubble">
+  <view class="sheet-header">
+    <text class="sheet-title">{{editingType === 'coupon' ? (editingId ? '编辑优惠券' : '新增优惠券') : (editingId ? '编辑积分规则' : '新增积分规则')}}</text>
+    <view class="sheet-close" bindtap="onCloseForm">×</view>
+  </view>
+
+  <!-- 优惠券表单 -->
+  <scroll-view class="sheet-body" scroll-y wx:if="{{editingType === 'coupon'}}">
+    <view class="form-item">
+      <text class="form-label">名称</text>
+      <input class="form-input" type="text" value="{{couponForm.name}}" placeholder="请输入优惠券名称" bindinput="onCouponNameInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">类型</text>
+      <picker mode="selector" range="{{couponTypeOptions}}" value="{{couponForm.typeIndex}}" bindchange="onCouponTypeChange">
+        <view class="form-picker">{{couponTypeOptions[couponForm.typeIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">{{couponForm.type === 1 ? '减免金额（元）' : (couponForm.type === 2 ? '折扣值（0-10，如8.5=85折）' : '抵扣金额（元）')}}</text>
+      <input class="form-input" type="digit" value="{{couponForm.discount_value}}" placeholder="请输入面值" bindinput="onCouponDiscountInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">最低消费（元）</text>
+      <input class="form-input" type="digit" value="{{couponForm.min_spend}}" placeholder="0" bindinput="onCouponMinSpendInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">有效天数</text>
+      <input class="form-input" type="number" value="{{couponForm.valid_days}}" placeholder="30" bindinput="onCouponValidDaysInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">发放总量（0=不限）</text>
+      <input class="form-input" type="number" value="{{couponForm.total_count}}" placeholder="0" bindinput="onCouponTotalCountInput"/>
+    </view>
+    <view class="form-item row-item">
+      <text class="form-label">状态</text>
+      <switch checked="{{couponForm.status === 1}}" bindchange="onCouponStatusChange" color="#1a1a1a"/>
+    </view>
+  </scroll-view>
+
+  <!-- 积分规则表单 -->
+  <scroll-view class="sheet-body" scroll-y wx:if="{{editingType === 'rule'}}">
+    <view class="form-item">
+      <text class="form-label">规则名称</text>
+      <input class="form-input" type="text" value="{{ruleForm.rule_name}}" placeholder="请输入规则名称" bindinput="onRuleNameInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">规则类型</text>
+      <picker mode="selector" range="{{ruleTypeOptions}}" value="{{ruleForm.rule_typeIndex}}" bindchange="onRuleTypeChange">
+        <view class="form-picker">{{ruleTypeOptions[ruleForm.rule_typeIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-item" wx:if="{{ruleForm.rule_type === 1}}">
+      <text class="form-label">每元积分</text>
+      <input class="form-input" type="digit" value="{{ruleForm.points_per_yuan}}" placeholder="如1表示每消费1元送1积分" bindinput="onRulePointsPerYuanInput"/>
+    </view>
+    <view class="form-item" wx:if="{{ruleForm.rule_type === 2 || ruleForm.rule_type === 3}}">
+      <text class="form-label">固定积分</text>
+      <input class="form-input" type="number" value="{{ruleForm.fixed_points}}" placeholder="请输入固定积分数" bindinput="onRuleFixedPointsInput"/>
+    </view>
+    <view class="form-item">
+      <text class="form-label">描述</text>
+      <textarea class="form-textarea" value="{{ruleForm.description}}" placeholder="可选，规则说明" bindinput="onRuleDescInput" maxlength="200"/>
+    </view>
+    <view class="form-item row-item">
+      <text class="form-label">状态</text>
+      <switch checked="{{ruleForm.status === 1}}" bindchange="onRuleStatusChange" color="#1a1a1a"/>
+    </view>
+  </scroll-view>
+
+  <view class="sheet-footer">
+    <view class="btn-cancel {{submitting ? 'disabled' : ''}}" bindtap="onCloseForm">取消</view>
+    <view class="btn-save {{submitting ? 'disabled' : ''}}" bindtap="onSubmitForm">{{submitting ? '提交中...' : '保存'}}</view>
+  </view>
+</view>

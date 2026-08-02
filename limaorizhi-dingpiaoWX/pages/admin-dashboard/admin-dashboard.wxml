@@ -1,0 +1,93 @@
+<!--统计看板-->
+<navigation-bar title="统计看板" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
+
+<scroll-view class="scrollarea" scroll-y enable-back-to-top refresher-enabled bindrefresherrefresh="onPullDownRefresh" refresher-triggered="{{loading}}">
+
+  <view class="page-content" wx:if="{{stats}}">
+
+    <!-- 今日核心指标 -->
+    <view class="card-grid">
+      <view class="stat-card">
+        <text class="stat-value">{{stats.today_orders}}</text>
+        <text class="stat-label">今日订单</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-value">¥{{stats.today_revenue}}</text>
+        <text class="stat-label">今日营收</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-value">{{stats.today_users}}</text>
+        <text class="stat-label">今日新增用户</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-value">{{stats.seat_occupancy}}%</text>
+        <text class="stat-label">今日上座率</text>
+      </view>
+    </view>
+
+    <!-- 次要指标 -->
+    <view class="sub-row">
+      <view class="sub-item"><text class="sub-num">{{stats.week_orders}}</text><text class="sub-lab">本周订单</text></view>
+      <view class="sub-item"><text class="sub-num">¥{{stats.week_revenue}}</text><text class="sub-lab">本周营收</text></view>
+      <view class="sub-item"><text class="sub-num">{{stats.active_trips}}</text><text class="sub-lab">可售班次</text></view>
+      <view class="sub-item"><text class="sub-num">{{stats.refund_rate}}%</text><text class="sub-lab">退票率</text></view>
+    </view>
+
+    <!-- 累计 -->
+    <view class="total-bar">
+      <text class="total-item">总用户 {{stats.total_users}}</text>
+      <text class="total-divide">|</text>
+      <text class="total-item">总订单 {{stats.total_orders}}</text>
+      <text class="total-divide">|</text>
+      <text class="total-item">总营收 ¥{{stats.total_revenue}}</text>
+    </view>
+
+    <!-- 近14天订单趋势 -->
+    <view class="section">
+      <view class="section-head"><text class="section-title">近14天订单趋势</text></view>
+      <view class="trend-chart">
+        <view class="trend-bar-wrap" wx:for="{{trend}}" wx:key="date">
+          <view class="trend-bar" style="height: {{item.orders / trendMax * 100}}%"></view>
+          <text class="trend-date">{{item.date}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 热门线路 -->
+    <view class="section">
+      <view class="section-head"><text class="section-title">热门线路 Top10</text></view>
+      <view class="rank-list">
+        <view class="rank-item" wx:for="{{routeRank}}" wx:key="name">
+          <text class="rank-no">{{index + 1}}</text>
+          <text class="rank-name">{{item.name}}</text>
+          <text class="rank-count">{{item.count}}单 / ¥{{item.revenue}}</text>
+        </view>
+        <view class="empty" wx:if="{{routeRank.length === 0}}">暂无数据</view>
+      </view>
+    </view>
+
+    <!-- 最近订单 -->
+    <view class="section">
+      <view class="section-head"><text class="section-title">最近订单</text></view>
+      <view class="order-list">
+        <view class="order-item" wx:for="{{recentOrders}}" wx:key="order_no">
+          <view class="order-top">
+            <text class="order-route">{{item.from}} → {{item.to}}</text>
+            <text class="order-status status-{{item.statusCls}}">{{item.status}}</text>
+          </view>
+          <view class="order-bottom">
+            <text class="order-type">{{item.type}} · {{item.order_no}}</text>
+            <text class="order-price">¥{{item.price}}</text>
+          </view>
+        </view>
+        <view class="empty" wx:if="{{recentOrders.length === 0}}">暂无订单</view>
+      </view>
+    </view>
+
+    <view class="footer-tip">数据更新可能有延迟，下拉刷新</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{!stats && loading}}">加载中...</view>
+  <view class="loading" wx:if="{{!stats && !loading}}">加载失败，下拉重试</view>
+</scroll-view>

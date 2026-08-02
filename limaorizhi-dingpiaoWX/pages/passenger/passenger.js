@@ -12,6 +12,9 @@ Page({
   onLoad(options) {
     if (options.selectMode === '1') {
       this.setData({ selectMode: true })
+      // 读取已选乘客 id 列表，用于回显勾选状态
+      const preselectIds = wx.getStorageSync('trip_preselect_ids') || []
+      this.setData({ selectedIds: preselectIds.map(String) })
     }
   },
 
@@ -92,6 +95,8 @@ Page({
       .filter(p => p.checked)
       .map(p => ({ id: p.id, name: p.name, id_card_no: p.id_card_no }))
     wx.setStorageSync('trip_selected_passengers', selected)
+    // 清除预选 id 缓存，避免下次误用
+    wx.removeStorageSync('trip_preselect_ids')
     wx.navigateBack()
   }
 })

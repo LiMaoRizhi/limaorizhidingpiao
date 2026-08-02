@@ -1,4 +1,4 @@
-﻿-- limaorizhi-server 数据库脚本  狸猫日志  联系微信：lihao68681818
+-- limaorizhi-server 数据库脚本  狸猫日志  联系微信：lihao68681818
 -- 跟GORM AutoMigrate生成的表结构一样 不想等程序启动自动迁移的话手动跑这个
 -- 身份证号字段AES加密 GORM Hook自动加解密 不用管
 
@@ -167,6 +167,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `departure_time` VARCHAR(8) NOT NULL,
   `passenger_count` INT DEFAULT 1,
   `total_price` DECIMAL(10,2) NOT NULL,
+  `insurance_fee` DECIMAL(10,2) DEFAULT 0 COMMENT '保险费小计（单价×乘客数，0=未购买）',
+  `insurance_provider_id` BIGINT UNSIGNED DEFAULT 0 COMMENT '出单保险公司ID（0=未配置或未购买）',
+  `insurance_policy_no` VARCHAR(64) DEFAULT '' COMMENT '保单号（保险公司出单后回填，空=未出单）',
   `status` TINYINT DEFAULT 0 COMMENT '0=待支付 1=待出行 2=已完成 3=已退款 4=已取消 5=已取件',
   `contact_name` VARCHAR(64) DEFAULT '',
   `contact_phone` VARCHAR(20) DEFAULT '',
@@ -284,6 +287,24 @@ CREATE TABLE IF NOT EXISTS `system_configs` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_system_configs_config_key` (`config_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置';
+
+-- 保险公司配置表（通用保险对接框架，支持多家配置，同时间仅一家启用）
+CREATE TABLE IF NOT EXISTS `insurance_providers` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(64) NOT NULL COMMENT '保险公司名称',
+  `api_url` VARCHAR(512) NOT NULL COMMENT '出单API地址(POST JSON)',
+  `app_id` VARCHAR(64) NOT NULL COMMENT '商户号/应用ID',
+  `app_secret` VARCHAR(255) NOT NULL COMMENT '商户密钥(签名用,不返回明文)',
+  `product_code` VARCHAR(64) DEFAULT '' COMMENT '保险产品代码',
+  `fee` DECIMAL(8,2) DEFAULT 0 COMMENT '保险费单价(元/人)',
+  `is_active` TINYINT(1) DEFAULT 0 COMMENT '是否当前启用(同时间仅一家=1)',
+  `required` TINYINT(1) DEFAULT 0 COMMENT '是否强制购买',
+  `remark` VARCHAR(255) DEFAULT '' COMMENT '备注',
+  `created_at` DATETIME,
+  `updated_at` DATETIME,
+  PRIMARY KEY (`id`),
+  KEY `idx_insurance_provider_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='保险公司配置';
 
 -- 操作日志表
 CREATE TABLE IF NOT EXISTS `operation_logs` (

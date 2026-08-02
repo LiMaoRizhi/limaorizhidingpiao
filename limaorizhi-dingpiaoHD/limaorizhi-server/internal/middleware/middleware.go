@@ -185,6 +185,52 @@ func WxUserAuth(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// WxAdminAuth 小程序管理员鉴权中间件
+// 需在 WxUserAuth 之后使用（依赖其写入的 user_id）。
+// 机制：用 wx 用户的 user_id 查其手机号 → 匹配启用状态的管理员账号 → 注入 admin_id/admin_name/admin_role。
+// 注入后与 JWTAuth 写入的 context 字段完全一致，因此现有 admin handler 与 RequireSuperAdmin 可零改动复用。
+//
+// 与网页后台的关系：纯增量。/admin/* 仍只认 admin_secret 的 JWT；/api/wx/admin/* 认 wx token + 本中间件。
+// 两者互不影响：网页后台登出（置 admin_users.token_invalid_before）不会影响小程序管理员访问，
+// 因为小程序管理员走的是 wx 用户会话；要彻底收回某管理员的小程序权限，将其 admin_users.status 置 0 即可
+// （buildUserResponse 的 is_admin 与本中间件都会拒绝）。
+func WxAdminAuth(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetUint("user_id")
+		if userID == 0 {
+			response.Fail(c, response.CodeUnauthorized)
+			c.Abort()
+			return
+		}
+		// 单次 JOIN 查询：user_id → users.phone → admin_users(status=1)
+		var result struct {
+			AdminID  uint
+			Username string
+			RealName string
+			Role     int8
+		}
+		err := db.Table("users u").
+			Select("a.id as admin_id, a.username, a.real_name, a.role").
+			Joins("JOIN admin_users a ON a.phone = u.phone AND a.status = 1").
+			Where("u.id = ?", userID).
+			Take(&result).Error
+		if err != nil || result.AdminID == 0 {
+			response.FailMsg(c, response.CodeForbidden, "需要管理员权限")
+			c.Abort()
+			return
+		}
+		c.Set("admin_id", result.AdminID)
+		// admin_name 优先用 real_name，为空则用 username，与网页后台日志展示习惯一致
+		name := result.RealName
+		if name == "" {
+			name = result.Username
+		}
+		c.Set("admin_name", name)
+		c.Set("admin_role", result.Role)
+		c.Next()
+	}
+}
+
 // defaultAllowedOrigins 默认CORS白名单（开发环境）
 var defaultAllowedOrigins = map[string]bool{
 	"http://localhost:3000": true,

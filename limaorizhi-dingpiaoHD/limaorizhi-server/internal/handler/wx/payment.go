@@ -33,10 +33,10 @@ type wxPayConfig struct {
 	RefundNotifyURL string
 
 	// v3 必填
-	APIv3Key         string
-	MchSerialNo      string
+	APIv3Key          string
+	MchSerialNo       string
 	MchPrivateKeyPath string
-	MchCertPEMPath   string // 退款等敏感接口 mTLS 用
+	MchCertPEMPath    string // 退款等敏感接口 mTLS 用
 
 	// 微信支付公钥模式（可选）
 	WxPayPublicKeyPath string
@@ -104,7 +104,7 @@ func getV3Client() (*v3.V3Client, error) {
 			MchID:              cfg.MchID,
 			APIv3Key:           cfg.APIv3Key,
 			MchSerialNo:        cfg.MchSerialNo,
-			PrivateKeyPath:    cfg.MchPrivateKeyPath,
+			PrivateKeyPath:     cfg.MchPrivateKeyPath,
 			CertPEMPath:        cfg.MchCertPEMPath,
 			NotifyURL:          cfg.NotifyURL,
 			RefundNotifyURL:    cfg.RefundNotifyURL,
@@ -267,7 +267,7 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 					refundReason = "支付金额不匹配，系统自动退款"
 					preStatus = int8(model.OrderStatusPending)
 				}
-			
+
 				// 事务+行锁：检查已有退款记录 + 创建/重置退款记录，防止并发回调创建重复记录
 				var existingRefund model.Refund
 				var newRefund model.Refund
@@ -329,7 +329,7 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 					c.JSON(http.StatusInternalServerError, v3.NotifyFailResponse("退款处理失败，等待重试"))
 					return
 				}
-			
+
 				// 确定用于 API 调用的退款记录
 				var refundForAPI model.Refund
 				if existingRefund.ID != 0 {
@@ -337,7 +337,7 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 				} else if hasNewRefund {
 					refundForAPI = newRefund
 				}
-			
+
 				// 事务外调用微信退款 API（避免事务持有期间阻塞在外部调用上）
 				if refundForAPI.ID != 0 && refundForAPI.Status == model.RefundStatusProcessing {
 					if isWxRefundConfigured() {
@@ -395,6 +395,65 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 				log.Printf("[ERROR] PayNotify: 异步发放积分失败 订单号:%s err:%v\n", notify.OutTradeNo, err)
 			}
 		}()
+
+		// 异步调起保险公司出单API获取真实保单号并回填到订单
+		// 仅当订单含保险费(insurance_fee>0)且当前启用了保险公司配置时触发；
+		// 失败仅记日志 + OperationLog 告警，不影响支付流程（支付已成功）。
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("[PANIC] PayNotify: 异步保险出单panic 订单号:%s: %v\n", notify.OutTradeNo, r)
+				}
+			}()
+			if paidOrder.InsuranceFee <= 0 {
+				return
+			}
+			provider, err := service.GetActiveProvider(h.DB)
+			if err != nil {
+				log.Printf("[ERROR] PayNotify: 查询启用保险公司失败 订单号:%s err:%v\n", notify.OutTradeNo, err)
+				return
+			}
+			if provider == nil {
+				// 未配置保险公司，保单号留空（保留旧system_configs兜底模式）
+				return
+			}
+			// paidOrder 只有事务内更新的基本字段，需重新查乘客（含解密身份证号）
+			var passengers []model.OrderPassenger
+			if err := h.DB.Where("order_id = ?", paidOrder.ID).Order("id ASC").Find(&passengers).Error; err != nil {
+				log.Printf("[ERROR] PayNotify: 查询订单乘客失败 订单号:%s err:%v\n", notify.OutTradeNo, err)
+				return
+			}
+			// 再次取最新订单（避免闭包内字段过期）
+			var order model.Order
+			if err := h.DB.First(&order, paidOrder.ID).Error; err != nil {
+				log.Printf("[ERROR] PayNotify: 查询订单失败 订单号:%s err:%v\n", notify.OutTradeNo, err)
+				return
+			}
+			policyNo, err := service.IssuePolicy(h.DB, order, passengers, provider)
+			if err != nil {
+				// IssuePolicy 内部已写告警日志
+				log.Printf("[WARN] PayNotify: 保险公司出单最终失败 订单号:%s 提供商:%s err:%v\n",
+					notify.OutTradeNo, provider.Name, err)
+				return
+			}
+			// 条件更新：仅当保单号为空时写入，防止重复出单覆盖已有保单号
+			res := h.DB.Model(&model.Order{}).
+				Where("id = ? AND insurance_policy_no = ?", order.ID, "").
+				Updates(map[string]interface{}{
+					"insurance_policy_no":   policyNo,
+					"insurance_provider_id": provider.ID,
+				})
+			if res.Error != nil {
+				log.Printf("[ERROR] PayNotify: 写入保单号失败 订单号:%s err:%v\n", notify.OutTradeNo, res.Error)
+				return
+			}
+			if res.RowsAffected == 0 {
+				log.Printf("[INFO] PayNotify: 保单号已存在，跳过覆盖 订单号:%s\n", notify.OutTradeNo)
+				return
+			}
+			log.Printf("[INFO] PayNotify: 保险出单成功 订单号:%s 提供商:%s 保单号:%s\n",
+				notify.OutTradeNo, provider.Name, policyNo)
+		}()
 	}
 
 	// 订阅消息：支付成功通知（异步发送，不阻塞回调）
@@ -417,8 +476,8 @@ func createWxRefund(cfg wxPayConfig, order model.Order, refundNo string, transac
 		return "", fmt.Errorf("退款接口要求 mTLS 商户证书，请配置 WECHAT_MCH_CERT_PEM_PATH（apiclient_cert.pem 路径）")
 	}
 
-	totalFee := int(money.ToFen(order.TotalPrice))       // 订单原金额（分）
-	refundFee := int(money.ToFen(refundAmount))          // 实际退款金额（分，已扣手续费）
+	totalFee := int(money.ToFen(order.TotalPrice)) // 订单原金额（分）
+	refundFee := int(money.ToFen(refundAmount))    // 实际退款金额（分，已扣手续费）
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -512,10 +571,10 @@ func (h *UserHandler) RefundNotify(c *gin.Context) {
 				}
 				refundUpdatedToSuccess = true
 				log.Printf("[WARN] 退款回调修正：退款记录原为失败状态，微信回调确认退款成功 退款单号:%s\n", refund.RefundNo)
-				
+
 				// 同步更新支付记录状态为已退款
 				service.UpdatePaymentStatusRefunded(tx, refund.OrderID)
-				
+
 				// RollbackRefundFailure 已将订单回滚为 PreStatus（1=待出行/2=已完成）
 				// 退款实际成功后需重新将订单标记为已退款
 				var order model.Order
@@ -600,4 +659,3 @@ func (h *UserHandler) RefundNotify(c *gin.Context) {
 
 	c.JSON(http.StatusOK, v3.NotifySuccessResponse())
 }
-

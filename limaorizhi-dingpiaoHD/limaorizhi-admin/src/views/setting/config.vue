@@ -60,7 +60,6 @@
           <el-input-number v-model="form.refund_fee_rate" :min="0" :max="100" :precision="1" />
           <div class="field-hint">退票时扣除的手续费比例，0 表示全额退款</div>
         </el-form-item>
-
         <el-divider content-position="left">首页公告</el-divider>
         <el-form-item label="公告内容">
           <el-input v-model="form.notice" type="textarea" :rows="4" placeholder="首页滚动公告，留空则不显示" />

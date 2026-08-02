@@ -41,7 +41,9 @@ Page({
     logoutPosition: 'mine_bottom',
     phoneMasked: true,
     maskedPhone: '',
-    isDriver: false
+    isDriver: false,
+    isAdmin: false,     // 是否为管理员（手机号匹配 admin_users），控制管理后台入口可见性
+    adminRole: 0        // 1=超级管理员 2=普通管理员，管理页据此隐藏超管专属功能
   },
 
   onShow() {
@@ -90,6 +92,7 @@ Page({
       // 合并功能菜单：按装修顺序+显隐
       let newMenuList = menuLayout.filter(c => c.visible).map(c => menuMap[c.type]).filter(Boolean)
       newMenuList = this.filterMenuByDriver(newMenuList)
+      newMenuList = this.filterMenuByAdmin(newMenuList)
       if (newOrderList.length > 0) this.setData({ orderList: newOrderList })
       if (newMenuList.length > 0) this.setData({ menuList: newMenuList })
     }).catch(() => {})
@@ -108,9 +111,25 @@ Page({
     return list
   },
 
-  // 立即根据 isDriver 更新当前菜单
+  // 管理后台入口仅管理员可见：isAdmin=true 追加到末尾，isAdmin=false 移除
+  // 与司机核销同套路，追加到末尾保持用户菜单不被打扰
+  filterMenuByAdmin(menuList) {
+    let list = [...menuList]
+    if (this.data.isAdmin) {
+      if (!list.find(item => item.action === 'admin')) {
+        list.push({ icon: "/images/icons/admin-panel.svg", name: "管理后台", action: "admin" })
+      }
+    } else {
+      list = list.filter(item => item.action !== 'admin')
+    }
+    return list
+  },
+
+  // 立即根据 isDriver / isAdmin 更新当前菜单（合并两种角色过滤）
   applyDriverMenu() {
-    this.setData({ menuList: this.filterMenuByDriver(this.data.menuList) })
+    let list = this.filterMenuByDriver(this.data.menuList)
+    list = this.filterMenuByAdmin(list)
+    this.setData({ menuList: list })
   },
 
   // 检查登录状态
@@ -127,6 +146,8 @@ Page({
           isLogin: true
         },
         isDriver: !!userInfo.is_driver || !!wx.getStorageSync('driver_token'),
+        isAdmin: !!userInfo.is_admin,
+        adminRole: userInfo.admin_role || 0,
         phoneMasked: true,
         maskedPhone: maskPhone(phone)
       })
@@ -142,6 +163,8 @@ Page({
           isLogin: false
         },
         isDriver: !!wx.getStorageSync('driver_token'),
+        isAdmin: false,
+        adminRole: 0,
         phoneMasked: true,
         maskedPhone: '',
         orderList: this.data.orderList.map(item => ({ ...item, count: 0 }))
@@ -166,6 +189,8 @@ Page({
           isLogin: true
         },
         isDriver: !!user.is_driver || !!wx.getStorageSync('driver_token'),
+        isAdmin: !!user.is_admin,
+        adminRole: user.admin_role || 0,
         phoneMasked: true,
         maskedPhone: maskPhone(phone)
       })
@@ -377,6 +402,13 @@ Page({
     const item = e.currentTarget.dataset.item
     if (item.action === 'verify') {
       wx.navigateTo({ url: '/pages/verify/verify' })
+    } else if (item.action === 'admin') {
+      // 管理后台：未登录兜底（理论上入口仅登录管理员可见，此处防御性校验）
+      if (!this.data.userInfo.isLogin) {
+        wx.navigateTo({ url: '/pages/login/login' })
+        return
+      }
+      wx.navigateTo({ url: '/pages/admin/admin' })
     } else if (item.action === 'passenger') {
       if (!this.data.userInfo.isLogin) {
         wx.navigateTo({ url: '/pages/login/login' })

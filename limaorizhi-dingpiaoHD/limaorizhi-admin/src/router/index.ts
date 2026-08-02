@@ -189,6 +189,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/setting/logs.vue'),
         meta: { title: '操作日志', requireSuperAdmin: true },
       },
+      {
+        path: 'system/insurance-providers',
+        name: 'InsuranceProviders',
+        component: () => import('@/views/setting/insurance-providers.vue'),
+        meta: { title: '保险配置', requireSuperAdmin: true },
+      },
     ],
   },
   // 兜底：未知路径重定向到首页

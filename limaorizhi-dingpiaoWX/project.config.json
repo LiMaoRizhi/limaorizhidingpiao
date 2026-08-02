@@ -35,15 +35,28 @@
     "compileType": "miniprogram",
     "disableUseStrict": false,
     "useCompilerPlugins": false,
-    "minifyWXSS": true
+    "minifyWXSS": true,
+    "compileWorklet": false,
+    "packNpmRelationList": [],
+    "minifyWXML": true,
+    "localPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.5",
-  "appid": "",
+  "appid": "wx3bcb1011d42e6e83",
   "projectname": "limaorizhi-dingpiaoWX",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }
