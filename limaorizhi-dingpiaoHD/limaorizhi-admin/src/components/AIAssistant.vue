@@ -372,7 +372,6 @@ const onSwitchModel = async (modelId: string) => {
   showModelDropdown.value = false
   if (modelId === currentModelId.value) return
 
-  // 检查是否为图片生成模型
   let modelIcon = ''
   let modelName = ''
   for (const p of providers.value) {
@@ -503,7 +502,7 @@ const toggleTheme = (dark: boolean) => {
 }
 
 
-// 检查是否启用
+// 挂载时读取 AI 开关配置
 onMounted(async () => {
   document.addEventListener('click', handleDocumentClick)
   loadMessages()
@@ -565,7 +564,7 @@ const clearMessages = () => {
   localStorage.removeItem(STORAGE_KEY)
 }
 
-// 删除对话：点击变红提示确认后再清空
+// 删对话：点一下变红提示确认再清
 const handleClearMessages = async () => {
   try {
     await ElMessageBox.confirm('确定要清空所有对话记录吗？', '清空对话', {
@@ -624,7 +623,7 @@ const toggleSidebar = () => {
   showSidebar.value = !showSidebar.value
 }
 
-// 保存当前对话到历史记录（已加载的对话则更新，新对话则创建）
+// 存对话进历史（加载过的就更新，新的就新建）
 const saveCurrentConversation = () => {
   if (messages.value.length === 0) return
   // 已有当前对话：更新现有对话
@@ -705,7 +704,7 @@ const loadConversation = (id: string) => {
   }
 }
 
-// 删除侧边栏中的历史对话
+// 删侧边栏历史对话
 const deleteConversation = async (id: string) => {
   try {
     await ElMessageBox.confirm('确定要删除这条对话记录吗？', '删除对话', {
@@ -974,7 +973,7 @@ const sendMessage = async () => {
       .slice(-MAX_CHAT_HISTORY)
     const chatMessages = historyMsgs.map((m, idx, arr) => {
       const hasImages = m.images && m.images.length > 0
-      // 判断是否在最近N条消息内（含图片的消息才需要判断）
+      // 看是不是在最近N条里（带图的才用判断）
       const isRecent = idx >= arr.length - IMAGE_KEEP_COUNT
       if (hasImages && isRecent) {
         // 最近的消息：发送完整多模态内容（含base64图片）
@@ -1005,7 +1004,6 @@ const sendMessage = async () => {
       throw new Error(`HTTP ${response.status}`)
     }
 
-    // 读取 SSE 流
     reader = response.body?.getReader()
     if (!reader) throw new Error('无法读取响应流')
 
@@ -1075,7 +1073,7 @@ const sendMessage = async () => {
       }
     }
 
-    // 处理 buffer 中剩余数据
+    // 流结束，buffer 里可能还剩最后一条 data 没消费
     if (buffer.startsWith('data:')) {
       try {
         const dataStr = buffer.slice(5).trim()
@@ -2442,19 +2440,19 @@ const downloadImage = (src: string) => {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
 }
 .ai-dark .ai-send-icon-btn {
-  background: #e0e0e0;
-  color: #1a1a1a;
+  background: #1a1a1a;
+  color: #e0e0e0;
 }
 .ai-dark .ai-send-icon-btn:hover:not(.is-disabled):not(.is-stop) {
-  background: #f0f0f0;
+  background: #2a2a2a;
 }
 .ai-dark .ai-send-icon-btn.is-disabled {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
 }
 .ai-dark .ai-send-icon-btn.is-stop {
-  background: #252525;
-  color: #e0e0e0;
+  background: #e0e0e0;
+  color: #1a1a1a;
   border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -2663,10 +2661,9 @@ const downloadImage = (src: string) => {
   color: #e0e0e0 !important;
 }
 
-/* 浅色背景上的元素需要深色文字（选中项、用户气泡、发送按钮等白底元素） */
+/* 浅色背景上的元素需要深色文字（选中项、用户气泡等白底元素） */
 .ai-dark .ai-msg-user .ai-msg-bubble,
 .ai-dark .ai-msg-user .ai-msg-bubble *,
-.ai-dark .ai-send-icon-btn:not(.is-disabled):not(.is-stop),
 .ai-dark .ai-mode-btn.active,
 .ai-dark .ai-model-item.active,
 .ai-dark .ai-model-item.active *,

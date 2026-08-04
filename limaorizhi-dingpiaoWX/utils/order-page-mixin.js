@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('./log')
 const { request } = require('./request')
 const { formatOrderList, filterOrdersByTab } = require('./order-helper')
@@ -30,7 +29,6 @@ module.exports = {
     deleteTipExtra: ''
   },
 
-  // 检查登录状态并加载订单
   checkLoginAndLoad() {
     this.loadTabsLayout()
     const token = wx.getStorageSync('user_token')
@@ -42,7 +40,7 @@ module.exports = {
     }
   },
 
-  // 加载订单页筛选标签布局（装修配置）
+  // 订单页筛选标签布局（装修配置里配的）
   loadTabsLayout() {
     request({ url: '/api/design/page-layout', method: 'GET', data: { page: 'order_tabs' } }).then(res => {
       const layout = res.data || []
@@ -65,7 +63,6 @@ module.exports = {
     }).catch(() => {})
   },
 
-  // 加载订单列表（支持分页）
   loadOrders(append) {
     if (append && (this.data.loadingMore || !this.data.hasMore)) return
     // 防止非append（刷新）重复触发竞态：旧请求返回覆盖新请求结果
@@ -98,7 +95,7 @@ module.exports = {
     })
   },
 
-  // 上拉加载更多
+  // 滑到底了，再拉一页
   onReachBottom() {
     this.loadOrders(true)
   },
@@ -129,37 +126,76 @@ module.exports = {
     }
   },
 
-  // 支付订单
+  // 付钱
   payOrder(id) {
     startPayment(id, {
       onPaid: () => {
-        // 延迟刷新订单，确保后端已处理支付回调，避免竞态条件导致订单状态不一致
-        this._payRefreshTimer = setTimeout(() => { this.loadOrders() }, 1000)
+        // 支付成功后不能马上刷新：微信支付回调要过几秒才到后端，
+        // 立刻刷新列表大概率还是"待支付"，用户一看又慌了再点支付还可能重复扣款。
+        // 所以轮询订单详情，等后端确认已支付（status=1）再刷新列表。
+        this._payPollTimes = 0
+        this._pollOrderPaid(id)
       }
+    })
+  },
+
+  // 轮询订单状态：支付成功后每1秒查一次详情，确认已支付就停（最多8次）
+  _pollOrderPaid(id) {
+    var self = this
+    if (self._payPollTimes >= 8) {
+      // 8秒还没确认就最后刷一次列表兜底，用户返回重进也会刷新
+      self.loadOrders()
+      return
+    }
+    self._payPollTimes++
+    request({ url: '/api/wx/orders/' + id, method: 'GET' }).then(function (res) {
+      if (res.data && res.data.order && res.data.order.status === 1) {
+        self.loadOrders() // 后端确认已支付，刷新列表
+      } else {
+        self._payPollTimer = setTimeout(function () { self._pollOrderPaid(id) }, 1000)
+      }
+    }).catch(function () {
+      self.loadOrders()
     })
   },
 
   onUnload() {
     clearTimeout(this._payRefreshTimer)
+    clearTimeout(this._payPollTimer)
   },
 
-  // 次要操作：取消订单 / 申请退票退款
+  // 次要操作：取消订单 / 申请退票退款 / 改签
   onSecondaryAction(e) {
     const { id, type, cargo } = e.currentTarget.dataset
+    console.log('[订单] onSecondaryAction', type, id)
     if (type === 'cancel') {
       this.cancelOrder(id)
     } else if (type === 'refund') {
       this.refundOrder(id, cargo === 'true' || cargo === true)
+    } else if (type === 'change') {
+      this.goChangeTicket(id)
     }
   },
 
-  // 取消订单（待支付状态）
+  // 改签：跳转改签选班次页
+  goChangeTicket(id) {
+    console.log('[订单] goChangeTicket', id)
+    wx.navigateTo({
+      url: `/pages/change-ticket/change-ticket?id=${id}`,
+      fail: (err) => {
+        console.error('[订单] 跳转改签页失败', err)
+        wx.showToast({ title: '改签页打开失败', icon: 'none' })
+      }
+    })
+  },
+
+  // 退单（还没付钱的）
   cancelOrder(id) {
     doCancelOrder(id, () => this.loadOrders())
   },
 
-  // 申请退票/退款（待出行/待运输状态）
-  // 从 orderList 中查找订单金额，传递给退票弹窗展示手续费明细
+  // 退票/退款（待出行/待运输状态）
+  // 先从 orderList 里把订单金额找出来，退票弹窗要展示手续费明细
   refundOrder(id, isCargo) {
     var orderInfo = null
     var found = this.data.orderList.find(function (o) { return o.id == id })
@@ -179,7 +215,7 @@ module.exports = {
     this.setData({ showDeleteModal: true, deleteTargetId: id, deleteTipExtra: extra })
   },
 
-  // 确认删除订单
+  // 确认删单
   confirmDeleteOrder() {
     doHideOrder(this.data.deleteTargetId, () => {
       this.setData({ showDeleteModal: false })
@@ -187,12 +223,12 @@ module.exports = {
     })
   },
 
-  // 取消删除
+  // 不删了
   cancelDeleteOrder() {
     this.setData({ showDeleteModal: false })
   },
 
-  // 跳转登录
+  // 去登录
   goLogin() {
     wx.navigateTo({ url: '/pages/login/login' })
   }

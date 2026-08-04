@@ -148,7 +148,7 @@ const detailLoading = ref(false)
 const query = reactive({ keyword: '', status: '' as string | number, page: 1, page_size: 20 })
 const orderStatusText = (s: number, t?: number) => {
   if (t === 2) return ({ 0: '待支付', 1: '待运输', 2: '运输中', 3: '已到达', 4: '已取消', 5: '已取件' } as any)[s] || '未知'
-  return ({ 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消' } as any)[s] || '未知'
+  return ({ 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消', 5: '已核销' } as any)[s] || '未知'
 }
 const orderStatusType = (s: number) => ({ 0: 'warning', 1: 'success', 2: 'info', 3: 'danger', 4: 'info', 5: 'info' } as any)[s] || 'info'
 const handleSearch = () => { query.page = 1; loadData() }

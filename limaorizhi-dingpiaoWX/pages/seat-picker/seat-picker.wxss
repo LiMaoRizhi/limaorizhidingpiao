@@ -1,0 +1,366 @@
+/* 选座页面 - 大巴座位图 单网格布局 */
+
+.page-content {
+  min-height: 100vh;
+  background: #f5f6f8;
+  display: flex;
+  flex-direction: column;
+  /* 给固定底栏留出空间 */
+  padding-bottom: 150rpx;
+}
+
+/* ========== 统计栏 ========== */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  padding: 20rpx 32rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #e8e8e8;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.stat-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 4rpx;
+}
+
+.free-dot { background: #fff; border: 2rpx solid #303133; }
+.occupied-dot { background: #c0c4cc; }
+.selected-dot { background: #409eff; }
+
+/* ========== 座位图容器 ========== */
+.seat-map-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 16rpx;
+  border-radius: 20rpx;
+  background: #fff;
+  box-shadow: 0 2rpx 16rpx rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+/* 车头 */
+.bus-front {
+  text-align: center;
+  padding: 16rpx 0 10rpx;
+  background: #fafafa;
+  border-bottom: 1rpx solid #eee;
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 车尾 */
+.bus-back {
+  text-align: center;
+  padding: 10rpx 0 16rpx;
+  background: #fafafa;
+  border-top: 1rpx solid #eee;
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 滚动区 */
+.seat-scroll {
+  flex: 1;
+}
+
+/* ========== 大巴车身：窗标签 + 单网格 + 窗标签 ========== */
+.bus-body {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  padding: 20rpx 8rpx;
+  background: #fafafa;
+  min-height: 400rpx;
+}
+
+/* 左右窗标签 */
+.window-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32rpx;
+  flex-shrink: 0;
+  font-size: 18rpx;
+  color: #bbb;
+  writing-mode: vertical-lr;
+  letter-spacing: 4rpx;
+}
+
+/* ========== 座位网格（CSS Grid） ========== */
+.seat-grid {
+  flex: 1;
+  display: grid;
+  gap: 8rpx;
+  align-content: start;
+  padding: 0 4rpx;
+}
+
+/* ========== 座位格子 ========== */
+.seat-cell {
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 600;
+  min-width: 56rpx;
+  min-height: 72rpx;
+  transition: all 0.15s ease;
+}
+
+/* 空闲座位：白底黑线，点击后变蓝 */
+.cell-free {
+  background: #fff;
+  color: #303133;
+  border: 2rpx solid #303133;
+}
+.cell-free:active {
+  transform: scale(0.92);
+  border-color: #409eff;
+  color: #409eff;
+}
+
+/* 已选：变蓝 */
+.cell-selected {
+  background: #409eff;
+  color: #fff;
+  border: 2rpx solid #337ecc;
+  box-shadow: 0 0 8rpx rgba(64,158,255,0.3);
+}
+
+/* 已占 */
+.cell-occupied {
+  background: #e8e8e8;
+  color: #bbb;
+  border: 2rpx solid #ddd;
+}
+
+/* 驾驶座 */
+.cell-driver {
+  background: #909399;
+  color: #fff;
+  font-size: 18rpx;
+  border: 2rpx solid #787b80;
+}
+
+/* 过道：窄条居中对齐、灰色背景、文字竖排 */
+.cell-aisle {
+  background: #eef0f2;
+  border: none;
+  border-radius: 4rpx;
+  font-size: 18rpx;
+  color: #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36rpx;
+  margin: 0 auto;
+}
+
+.aisle-label {
+  writing-mode: vertical-lr;
+  letter-spacing: 4rpx;
+  font-size: 16rpx;
+  color: #c0c4cc;
+}
+
+/* 空白占位 */
+.cell-empty {
+  background: transparent;
+  border: none;
+  color: transparent;
+}
+
+/* ========== 加载/错误 ========== */
+.loading-box, .error-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 28rpx;
+  gap: 16rpx;
+}
+
+/* ========== 无座站票选项（黑白配色卡片） ========== */
+.standing-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20rpx 24rpx 0;
+  padding: 24rpx;
+  background: #fff;
+  border: 1rpx solid #1a1a1a;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+.standing-row-on {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.18);
+}
+.standing-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 0;
+  margin-right: 16rpx;
+}
+.standing-row-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+.standing-row-badge {
+  font-size: 20rpx;
+  color: #fff;
+  background: #1a1a1a;
+  border-radius: 6rpx;
+  padding: 4rpx 10rpx;
+  line-height: 1.4;
+}
+.standing-row-on .standing-row-badge {
+  color: #1a1a1a;
+  background: #fff;
+}
+.standing-row-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.standing-row-on .standing-row-title {
+  color: #fff;
+}
+.standing-row-price {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.standing-row-on .standing-row-price {
+  color: #fff;
+}
+.standing-row-unit {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #888;
+}
+.standing-row-on .standing-row-unit {
+  color: rgba(255, 255, 255, 0.7);
+}
+.standing-row-sub {
+  font-size: 22rpx;
+  color: #888;
+  line-height: 1.4;
+}
+.standing-row-on .standing-row-sub {
+  color: rgba(255, 255, 255, 0.7);
+}
+.standing-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+.standing-row-check-text {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.standing-row-on .standing-row-check-text {
+  color: #fff;
+}
+.standing-radio {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 3rpx solid #1a1a1a;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+.standing-radio.on {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+}
+.standing-radio-check {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+.standing-note {
+  margin: 20rpx 24rpx;
+  padding: 20rpx 24rpx;
+  font-size: 24rpx;
+  color: #555;
+  line-height: 1.6;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+/* ========== 底部操作栏（固定在屏幕底部，始终可见） ========== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 32rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1rpx solid #eee;
+  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.08);
+  gap: 16rpx;
+  z-index: 100;
+}
+
+.skip-btn {
+  font-size: 26rpx;
+  color: #909399;
+  padding: 12rpx 20rpx;
+  white-space: nowrap;
+}
+
+.confirm-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 76rpx;
+  background: #fff;
+  color: #303133;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 40rpx;
+  border: 2rpx solid #303133;
+  text-align: center;
+  margin: 0;
+}
+
+.confirm-btn::after {
+  border: none;
+}
+
+/* 勾选座位后按钮变蓝 */
+.confirm-btn-active {
+  background: #409eff;
+  color: #fff;
+  border-color: #337ecc;
+  box-shadow: 0 4rpx 16rpx rgba(64,158,255,0.35);
+}

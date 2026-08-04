@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request, upload } = require('../../utils/request')
 const { normalizeUrl, maskPhone } = require('../../utils/format')
@@ -22,18 +21,18 @@ Page({
       refunded: 0
     },
     orderList: [
-      { icon: "/images/icons/pending-pay.svg", name: "待付款", count: 0, status: '0', cls: "pay" },
-      { icon: "/images/icons/pending-travel.svg", name: "待出行", count: 0, status: '1', cls: "travel" },
-      { icon: "/images/icons/completed.svg", name: "已完成", count: 0, status: '2', cls: "done" },
-      { icon: "/images/icons/refund.svg", name: "退款", count: 0, status: '3', cls: "refund" }
+      { icon: "/images/icons/pending-pay.svg", name: "待付款", count: 0, status: '0', cls: "pay", scale: 0.75 },
+      { icon: "/images/icons/pending-travel.svg", name: "待出行", count: 0, status: '1', cls: "travel", scale: 0.74 },
+      { icon: "/images/icons/completed.svg", name: "已完成", count: 0, status: '2', cls: "done", scale: 0.80 },
+      { icon: "/images/icons/refund.svg", name: "退款", count: 0, status: '3', cls: "refund", scale: 0.81 }
     ],
     menuList: [
-      { icon: "/images/icons/passenger-info.svg", name: "乘客实名", action: "passenger" },
-      { icon: "/images/icons/surprise-gift.svg", name: "惊喜礼包", action: "gift" },
-      { icon: "/images/icons/trip-track.svg", name: "历史脚步", action: "orders" },
-      { icon: "/images/icons/cargo.svg", name: "货物托运", action: "cargo" },
-      { icon: "/images/icons/wechat-service.svg", name: "微信客服", openType: "contact" },
-      { icon: "/images/icons/phone-hotline.svg", name: "电话热线", action: "phone" }
+      { icon: "/images/icons/passenger-info.svg", name: "乘客实名", action: "passenger", scale: 0.88 },
+      { icon: "/images/icons/surprise-gift.svg", name: "惊喜礼包", action: "gift", scale: 1.01 },
+      { icon: "/images/icons/trip-track.svg", name: "历史脚步", action: "orders", scale: 1.01 },
+      { icon: "/images/icons/cargo.svg", name: "货物托运", action: "cargo", scale: 0.99 },
+      { icon: "/images/icons/wechat-service.svg", name: "微信客服", openType: "contact", scale: 1.12 },
+      { icon: "/images/icons/phone-hotline.svg", name: "电话热线", action: "phone", scale: 1.19 }
       // 司机核销入口仅司机可见，由 filterMenuByDriver 根据 isDriver 动态控制
     ],
     config: {},
@@ -68,19 +67,19 @@ Page({
       const gridLayout = gridRes.data || []
       const menuLayout = menuRes.data || []
       const orderGridMap = {
-        pending_pay: { icon: "/images/icons/pending-pay.svg", name: "待付款", status: '0', cls: "pay" },
-        pending_travel: { icon: "/images/icons/pending-travel.svg", name: "待出行", status: '1', cls: "travel" },
-        completed: { icon: "/images/icons/completed.svg", name: "已完成", status: '2', cls: "done" },
-        refund: { icon: "/images/icons/refund.svg", name: "退款", status: '3', cls: "refund" }
+        pending_pay: { icon: "/images/icons/pending-pay.svg", name: "待付款", status: '0', cls: "pay", scale: 0.75 },
+        pending_travel: { icon: "/images/icons/pending-travel.svg", name: "待出行", status: '1', cls: "travel", scale: 0.74 },
+        completed: { icon: "/images/icons/completed.svg", name: "已完成", status: '2', cls: "done", scale: 0.80 },
+        refund: { icon: "/images/icons/refund.svg", name: "退款", status: '3', cls: "refund", scale: 0.81 }
       }
       const menuMap = {
-        passenger: { icon: "/images/icons/passenger-info.svg", name: "乘客实名", action: "passenger" },
-        gift: { icon: "/images/icons/surprise-gift.svg", name: "惊喜礼包", action: "gift" },
-        orders: { icon: "/images/icons/trip-track.svg", name: "历史脚步", action: "orders" },
-        cargo: { icon: "/images/icons/cargo.svg", name: "货物托运", action: "cargo" },
-        wechat_service: { icon: "/images/icons/wechat-service.svg", name: "微信客服", openType: "contact" },
-        phone: { icon: "/images/icons/phone-hotline.svg", name: "电话热线", action: "phone" },
-        verify: { icon: "/images/icons/verify.svg", name: "司机核销", action: "verify" }
+        passenger: { icon: "/images/icons/passenger-info.svg", name: "乘客实名", action: "passenger", scale: 0.88 },
+        gift: { icon: "/images/icons/surprise-gift.svg", name: "惊喜礼包", action: "gift", scale: 1.01 },
+        orders: { icon: "/images/icons/trip-track.svg", name: "历史脚步", action: "orders", scale: 1.01 },
+        cargo: { icon: "/images/icons/cargo.svg", name: "货物托运", action: "cargo", scale: 0.99 },
+        wechat_service: { icon: "/images/icons/wechat-service.svg", name: "微信客服", openType: "contact", scale: 1.12 },
+        phone: { icon: "/images/icons/phone-hotline.svg", name: "电话热线", action: "phone", scale: 1.19 },
+        verify: { icon: "/images/icons/verify.svg", name: "司机核销", action: "verify", scale: 0.81 }
       }
       // 合并订单分类：按装修顺序+显隐，保留已有 count
       const newOrderList = gridLayout.filter(c => c.visible).map(c => {
@@ -103,7 +102,7 @@ Page({
     let list = [...menuList]
     if (this.data.isDriver) {
       if (!list.find(item => item.action === 'verify')) {
-        list.push({ icon: "/images/icons/verify.svg", name: "司机核销", action: "verify" })
+        list.push({ icon: "/images/icons/verify.svg", name: "司机核销", action: "verify", scale: 0.81 })
       }
     } else {
       list = list.filter(item => item.action !== 'verify')
@@ -117,7 +116,7 @@ Page({
     let list = [...menuList]
     if (this.data.isAdmin) {
       if (!list.find(item => item.action === 'admin')) {
-        list.push({ icon: "/images/icons/admin-panel.svg", name: "管理后台", action: "admin" })
+        list.push({ icon: "/images/icons/admin-panel.svg", name: "管理后台", action: "admin", scale: 0.72 })
       }
     } else {
       list = list.filter(item => item.action !== 'admin')
@@ -175,7 +174,7 @@ Page({
     }
   },
 
-  // 加载用户信息
+  // 拉用户信息
   loadUserInfo() {
     request({ url: '/api/wx/user', method: 'GET' }).then(res => {
       const user = res.data
@@ -199,12 +198,12 @@ Page({
     }).catch((e) => { log.error('加载用户信息失败', e) })
   },
 
-  // 切换手机号脱敏/明文
+  // 手机号脱敏/明文切着看
   togglePhoneMask() {
     this.setData({ phoneMasked: !this.data.phoneMasked })
   },
 
-  // 加载订单统计
+  // 拉订单统计
   loadOrderStats() {
     request({ url: '/api/wx/orders/stats', method: 'GET' }).then(res => {
       const stats = res.data
@@ -463,7 +462,6 @@ Page({
     }
   },
 
-  // 分享到朋友圈
   onShareTimeline() {
     return {
       title: '狸猫日志售票 · 在线订票便捷出行'

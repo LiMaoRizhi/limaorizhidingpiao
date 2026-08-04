@@ -1,15 +1,12 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 
 // 从配置文件读取 BASE_URL，支持多环境切换
 const { baseURL: BASE_URL } = require('../config.js')
 const log = require('./log')
 
-// 获取用户token
 function getUserToken() {
   return wx.getStorageSync('user_token') || ''
 }
 
-// 获取司机token
 function getDriverToken() {
   return wx.getStorageSync('driver_token') || ''
 }
@@ -78,7 +75,7 @@ function request(options) {
       url: BASE_URL + options.url,
       method: options.method || 'GET',
       data: options.data || {},
-      timeout: 15000,
+      timeout: options.timeout || 15000,
       header: {
         'Content-Type': 'application/json',
         'Authorization': token ? 'Bearer ' + token : '',
@@ -196,7 +193,7 @@ function driverRequest(options) {
   })
 }
 
-// 检查用户是否登录
+// 看看登录木有
 function checkLogin() {
   const token = getUserToken()
   if (!token) {

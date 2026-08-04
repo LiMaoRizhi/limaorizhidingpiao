@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"limaorizhi-server/internal/model"
 
 	"gorm.io/gorm"
 )
 
-// buildContext 按用户问题关键词从数据库拉相关数据拼成上下文喂给AI
+// buildContext 按用户问的啥关键词,从库里拉对应的真实数据拼成上下文喂给AI,免得它瞎编
 func (h *AIHandler) buildContext(userMessage string) string {
 	msg := strings.ToLower(userMessage)
 	var parts []string
@@ -40,7 +41,18 @@ func (h *AIHandler) buildContext(userMessage string) string {
 		parts = append(parts, h.userStatsCtx())
 	}
 	if hasAny(msg, "订单", "售票", "收入", "销量", "销售", "金额", "营业额") {
-		parts = append(parts, h.orderStatsCtx())
+		// 时间维度:问"今天/昨天/近7天"就按时间段筛,不然全量给,省得AI拿全量数据胡诌"今天"的
+		days := 0
+		if hasAny(msg, "今天", "今日") {
+			days = 1
+		} else if hasAny(msg, "昨天", "昨日") {
+			days = 2
+		} else if hasAny(msg, "近7天", "近一周", "一周", "7天") {
+			days = 7
+		} else if hasAny(msg, "近30天", "近一月", "一个月", "30天") {
+			days = 30
+		}
+		parts = append(parts, h.orderStatsCtx(days))
 	}
 	if hasAny(msg, "优惠券", "券", "营销", "满减", "折扣") {
 		parts = append(parts, h.couponCtx())
@@ -53,13 +65,13 @@ func (h *AIHandler) buildContext(userMessage string) string {
 		return ""
 	}
 	result := "以下是从数据库拉取的当前系统真实数据，请基于这些数据回答：\n\n" + strings.Join(parts, "\n\n")
-	// 上下文太长超token还费钱 按rune（Unicode字符）截断
-	// 不用len()判断字节数 中文每字3字节 15000 runes ≈ 5000汉字 够覆盖20条线路×5站点的完整定价数据
-	// 现代模型上下文窗口128K+，15000 runes足够安全
+	// 上下文太长超token还费钱,按rune(Unicode字符)截断
+	// 不能用len()数字节:中文一个字3字节,15000 runes ≈ 5000字,够塞20条线路×5站点的完整票价
+	// 现在模型窗口都128K+,15000 runes稳当
 	const maxContextRunes = 15000
 	runes := []rune(result)
 	if len(runes) > maxContextRunes {
-		// 智能截断：在最后一个完整行处截断，避免截断到某条线路/站点数据的中间
+		// 截断时找最后一个换行下刀,别把哪条线路/站点的数据砍成两截
 		truncated := string(runes[:maxContextRunes])
 		if lastNL := strings.LastIndex(truncated, "\n"); lastNL > maxContextRunes/2 {
 			result = truncated[:lastNL] + "\n...(数据过多，已截断)"
@@ -70,7 +82,7 @@ func (h *AIHandler) buildContext(userMessage string) string {
 	return result
 }
 
-// maskPhone 手机号脱敏 前3后4中间打* 别让AI把手机号吐出来
+// maskPhone 手机号脱敏:前3后4中间打*,可不能叫AI把手机号秃噜出来
 func maskPhone(phone string) string {
 	if len(phone) <= 7 {
 		return phone
@@ -78,7 +90,7 @@ func maskPhone(phone string) string {
 	return phone[:3] + strings.Repeat("*", len(phone)-7) + phone[len(phone)-4:]
 }
 
-// hasAny 看s里有没有任意一个关键词
+// hasAny 看看s里沾不沾任意一个关键词
 func hasAny(s string, keywords ...string) bool {
 	for _, kw := range keywords {
 		if strings.Contains(s, kw) {
@@ -88,7 +100,7 @@ func hasAny(s string, keywords ...string) bool {
 	return false
 }
 
-// plainText 从content提纯文本 兼容string和多模态数组
+// plainText 把content里的纯文本抠出来,字符串和多模态数组都得能接
 func plainText(content interface{}) string {
 	switch v := content.(type) {
 	case string:
@@ -193,7 +205,7 @@ func (h *AIHandler) tripCtx() string {
 }
 
 func (h *AIHandler) systemConfigCtx() string {
-	// 白名单模式 只注入非敏感配置 客服电话售后微信那些不能让AI吐出来
+	// 白名单模式:只塞不敏感配置,客服电话、售后微信这些不能让AI往外吐
 	safeConfigKeys := []string{
 		"order_expire_minutes", "refund_before_departure_hours", "refund_fee_rate",
 		"cargo_price_per_km", "cargo_min_fee", "cargo_free_weight",
@@ -215,7 +227,7 @@ func (h *AIHandler) systemConfigCtx() string {
 	return sb.String()
 }
 
-// batchConfig 批量读配置 没有的填空字符串
+// batchConfig 批量查配置,查不着的补空串
 func (h *AIHandler) batchConfig(keys []string) map[string]string {
 	result := make(map[string]string)
 	var configs []model.SystemConfig
@@ -231,7 +243,7 @@ func (h *AIHandler) batchConfig(keys []string) map[string]string {
 	return result
 }
 
-// driverCtx 司机列表上下文
+// driverCtx 在职司机名单
 func (h *AIHandler) driverCtx() string {
 	var drivers []model.Driver
 	h.DB.Where("status = 1").Limit(20).Find(&drivers)
@@ -246,7 +258,7 @@ func (h *AIHandler) driverCtx() string {
 	return sb.String()
 }
 
-// vehicleCtx 车辆列表上下文
+// vehicleCtx 可用车辆名单
 func (h *AIHandler) vehicleCtx() string {
 	var vehicles []model.Vehicle
 	h.DB.Where("status = 1").Limit(20).Find(&vehicles)
@@ -261,7 +273,7 @@ func (h *AIHandler) vehicleCtx() string {
 	return sb.String()
 }
 
-// userStatsCtx 用户统计上下文
+// userStatsCtx 用户数统计
 func (h *AIHandler) userStatsCtx() string {
 	var totalUsers, activeUsers, bannedUsers int64
 	h.DB.Model(&model.User{}).Count(&totalUsers)
@@ -270,24 +282,45 @@ func (h *AIHandler) userStatsCtx() string {
 	return fmt.Sprintf("【用户统计】\n总用户数: %d | 正常用户: %d | 封禁用户: %d", totalUsers, activeUsers, bannedUsers)
 }
 
-// orderStatsCtx 订单统计 按状态聚合算一下售票总额
-func (h *AIHandler) orderStatsCtx() string {
+// orderStatsCtx 订单统计:按状态归堆,算算一共卖了多少票钱
+// days: 0=全量 1=今天 2=昨天 7=近7天(含今天) 30=近30天(含今天)
+func (h *AIHandler) orderStatsCtx(days int) string {
+	label := "全部"
+	query := h.DB.Model(&model.Order{})
+	if days > 0 {
+		now := time.Now()
+		var since time.Time
+		switch days {
+		case 1:
+			since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			label = "今日"
+		case 2:
+			since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
+			label = "昨日"
+		case 7:
+			since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -6)
+			label = "近7天"
+		case 30:
+			since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -29)
+			label = "近30天"
+		}
+		query = query.Where("created_at >= ?", since)
+	}
 	type stats struct {
 		Status  int8
 		Count   int64
 		Revenue float64
 	}
 	var results []stats
-	h.DB.Model(&model.Order{}).
-		Select("status, count(*) as count, coalesce(sum(total_price), 0) as revenue").
+	query.Select("status, count(*) as count, coalesce(sum(total_price), 0) as revenue").
 		Group("status").
 		Find(&results)
 	if len(results) == 0 {
-		return "【订单统计】当前无订单数据"
+		return "【" + label + "订单统计】当前无订单数据"
 	}
 	statusNames := map[int8]string{0: "待支付", 1: "待出行", 2: "已完成", 3: "已退票", 4: "已取消"}
 	var sb strings.Builder
-	sb.WriteString("【订单统计】")
+	sb.WriteString("【" + label + "订单统计】")
 	var totalRevenue float64
 	var totalCount int64
 	for _, r := range results {
@@ -296,7 +329,7 @@ func (h *AIHandler) orderStatsCtx() string {
 			name = "状态" + strconv.Itoa(int(r.Status))
 		}
 		sb.WriteString(fmt.Sprintf("\n%s: %d笔 | 金额: %.2f元", name, r.Count, r.Revenue))
-		// 已支付的算售票总额
+		// 待支付和已完成的算售票总额,退票取消的钱不掺和
 		if r.Status == 1 || r.Status == 2 {
 			totalRevenue += r.Revenue
 		}
@@ -306,7 +339,7 @@ func (h *AIHandler) orderStatsCtx() string {
 	return sb.String()
 }
 
-// couponCtx 优惠券上下文
+// couponCtx 启用中的优惠券
 func (h *AIHandler) couponCtx() string {
 	var coupons []model.Coupon
 	h.DB.Where("status = 1").Limit(20).Find(&coupons)
@@ -335,7 +368,7 @@ func (h *AIHandler) couponCtx() string {
 	return sb.String()
 }
 
-// pointRuleCtx 积分规则上下文
+// pointRuleCtx 启用中的积分规则
 func (h *AIHandler) pointRuleCtx() string {
 	var rules []model.PointRule
 	h.DB.Where("status = 1").Limit(10).Find(&rules)

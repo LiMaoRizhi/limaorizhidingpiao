@@ -5,9 +5,9 @@
   <!-- 顶部筛选条 -->
   <view class="filter-bar">
     <view class="search-row">
-      <view class="search-box">
+      <view class="search-box {{inputFocused === 'search' ? 'focused' : ''}}">
         <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
-        <input class="search-input" type="text" placeholder="昵称 / 手机号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <input class="search-input" type="text" placeholder="昵称 / 手机号" value="{{keyword}}" data-field="search" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
         <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
       </view>
     </view>

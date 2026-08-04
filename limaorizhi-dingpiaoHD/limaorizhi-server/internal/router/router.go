@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package router
 
 import (
@@ -232,10 +231,10 @@ func Setup(db *gorm.DB) *gin.Engine {
 
 		// AI 数字员工
 		adminGroup.POST("/ai/chat", middleware.RateLimit(), aiHandler.Chat)
-		adminGroup.GET("/ai/config", aiHandler.GetConfig)
+		adminGroup.GET("/ai/config", middleware.RequireSuperAdmin(), aiHandler.GetConfig)
 		adminGroup.PUT("/ai/config", middleware.RequireSuperAdmin(), aiHandler.UpdateConfig)
 		adminGroup.GET("/ai/models", aiHandler.GetModels)
-		adminGroup.PUT("/ai/model", aiHandler.SwitchModel)
+		adminGroup.PUT("/ai/model", middleware.RequireSuperAdmin(), aiHandler.SwitchModel)
 		adminGroup.POST("/ai/image", middleware.RateLimit(), aiHandler.GenerateImage)
 
 		// 保险公司配置（通用保险对接框架，仅超级管理员可操作）
@@ -292,11 +291,13 @@ func Setup(db *gorm.DB) *gin.Engine {
 			wxUser.GET("/orders/stats", wxUserHandler.OrderStats)
 			wxUser.GET("/orders/:id", wxUserHandler.OrderDetail)
 			wxUser.GET("/trips/:id/location", wxUserHandler.TripLocation)
+			wxUser.GET("/trips/:id/seats", middleware.RateLimit(), wxUserHandler.TripSeatMap)
 			wxUser.GET("/order/:order_no", qrcodeHandler.OrderInfo)
 			wxUser.GET("/qrcode/:order_no", qrcodeHandler.Generate)
 			wxUser.POST("/orders/:id/pay", wxUserHandler.PayOrder)
 			wxUser.POST("/orders/:id/cancel", wxUserHandler.CancelOrder)
 			wxUser.POST("/orders/:id/refund", wxUserHandler.RefundOrder)
+			wxUser.POST("/orders/:id/change", wxUserHandler.ChangeOrder) // 改签（同线路换班次）
 			wxUser.POST("/orders/:id/hide", wxUserHandler.HideOrder) // 用户隐藏/删除订单（软删除）
 			wxUser.GET("/passengers", wxUserHandler.PassengerList)
 			wxUser.POST("/passengers", wxUserHandler.PassengerCreate)
@@ -411,10 +412,11 @@ func Setup(db *gorm.DB) *gin.Engine {
 			wxAdmin.GET("/trips/active", trackHandler.ActiveTrips)
 			wxAdmin.GET("/trips/:id/track", trackHandler.TripTrack)
 
-			// 数字员工（AI 聊天，加限流防滥用）
+			// 数字员工（AI 聊天，加限流防滥用；切换模型为全局写操作，仅超管）
 			wxAdmin.POST("/ai/chat", middleware.RateLimit(), aiHandler.Chat)
 			wxAdmin.GET("/ai/models", aiHandler.GetModels)
-			wxAdmin.PUT("/ai/model", aiHandler.SwitchModel)
+			wxAdmin.PUT("/ai/model", middleware.RequireSuperAdmin(), aiHandler.SwitchModel)
+			wxAdmin.POST("/ai/image", middleware.RateLimit(), aiHandler.GenerateImage)
 
 			// 保险公司配置（只读列表，写操作需超管，与网页后台权限一致）
 			wxAdmin.GET("/insurance-providers", middleware.RequireSuperAdmin(), insuranceProviderHandler.List)

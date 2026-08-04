@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 // 微信支付 v3 平台证书自动加载（Redis + 内存双级缓存）
 package v3
 

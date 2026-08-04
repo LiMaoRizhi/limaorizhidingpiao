@@ -1,13 +1,13 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package model
 
 // 订单状态
 const (
 	OrderStatusPending   = 0 // 待支付
-	OrderStatusPaid      = 1 // 已支付
-	OrderStatusCompleted = 2 // 已完成
+	OrderStatusPaid      = 1 // 已支付（待出行）
+	OrderStatusCompleted = 2 // 已完成（到站/班次结束）
 	OrderStatusRefunded  = 3 // 已退款
 	OrderStatusCancelled = 4 // 已取消
+	OrderStatusPickedUp  = 5 // 已核销（乘客已上车，未到站，座位仍占用）
 )
 
 // 班次状态

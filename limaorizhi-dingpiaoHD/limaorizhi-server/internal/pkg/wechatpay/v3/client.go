@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 // 微信支付 APIv3 客户端
 // 不用第三方SDK，搁标准库里自己怼的，省得引一堆依赖。签名验签解密全搁这一块弄。
 package v3
@@ -21,6 +20,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -34,6 +34,9 @@ const (
 	pathJSAPIPay = "/v3/pay/transactions/jsapi"
 	pathRefund   = "/v3/refund/domestic/refunds"
 	pathCertList = "/v3/certificates"
+	// 查单：GET /v3/pay/transactions/out-trade-no/{out_trade_no}?mchid=xxx
+	// 支付回调万一没送达，靠这个主动查微信确认订单到底付没付，防"钱扣了订单还待支付"
+	pathQueryOrder = "/v3/pay/transactions/out-trade-no"
 )
 
 // Config 配置项，从 config.WechatConfig 注入
@@ -90,7 +93,7 @@ func NewV3Client(cfg Config) (*V3Client, error) {
 		return nil, errors.New("商户私钥路径不能为空")
 	}
 
-	// 加载商户私钥（apiclient_key.pem，PKCS#8 格式，少数情况为 PKCS#1）
+	// 读商户私钥（apiclient_key.pem，一般是PKCS#8，个别是PKCS#1）
 	keyData, err := os.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("读取商户私钥文件失败: %w", err)
@@ -300,6 +303,11 @@ func (c *V3Client) verifyResponse(ctx context.Context, resp *http.Response, resp
 	return nil
 }
 
+// GetRequest 简单 GET 请求（不带 mTLS）
+func (c *V3Client) GetRequest(ctx context.Context, path string) ([]byte, error) {
+	return c.doRequest(ctx, "GET", path, nil, false)
+}
+
 // PostRequest 简单 POST 请求（不带 mTLS）
 func (c *V3Client) PostRequest(ctx context.Context, path string, body []byte) ([]byte, error) {
 	return c.doRequest(ctx, "POST", path, body, false)
@@ -365,6 +373,35 @@ func (c *V3Client) CreateJSAPIPay(ctx context.Context, orderNo string, totalFee 
 		return "", errors.New("微信 v3 下单返回 prepay_id 为空")
 	}
 	return resp.PrepayID, nil
+}
+
+// QueryOrderResult 查单结果（只要这几个字段，够用就行）
+type QueryOrderResult struct {
+	TradeState    string `json:"trade_state"`     // SUCCESS/REFUND/NOTPAY/CLOSED/REVOKED/PAYERROR...
+	TransactionID string `json:"transaction_id"`  // 微信支付单号
+	OutTradeNo    string `json:"out_trade_no"`
+	Amount        struct {
+		Total    int    `json:"total"`    // 实付金额（分）
+		PayerTotal int   `json:"payer_total"` // 用户实付（分），跟total差不多
+		Currency string `json:"currency"`
+	} `json:"amount"`
+}
+
+// QueryOrder 主动查单（支付回调的兜底）
+// 支付成功后微信会异步回调 notify_url，但网络抖一下可能没送到，
+// 用户端"钱已扣、订单还待支付"就是这么来的。调这个接口直接问微信"这单到底付没付"。
+// 返回的 TradeState 为 "SUCCESS" 即已支付。
+func (c *V3Client) QueryOrder(ctx context.Context, outTradeNo string) (*QueryOrderResult, error) {
+	path := fmt.Sprintf("%s/%s?mchid=%s", pathQueryOrder, url.PathEscape(outTradeNo), c.cfg.MchID)
+	respBody, err := c.GetRequest(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	var result QueryOrderResult
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("解析查单响应失败: %w", err)
+	}
+	return &result, nil
 }
 
 // BuildJSAPIPayParams 拼小程序wx.requestPayment的调起参数
@@ -450,4 +487,21 @@ func (c *V3Client) CreateRefund(ctx context.Context, outTradeNo string, totalFee
 		return nil, fmt.Errorf("解析退款响应失败: %w", err)
 	}
 	return &resp, nil
+}
+
+// QueryRefund 主动查退款状态（退款回调没送达时的兜底）
+// 背景：退款回调（refund/notify）可能没送达，微信侧其实已经退款成功，
+// 但本地退款记录卡"处理中"，用户看不到钱到账。调这个接口直接问微信"这笔退款到底退没退"。
+// 返回 Status 为 "SUCCESS" 即已退款到账，PROCESSING 表示微信还在处理。
+func (c *V3Client) QueryRefund(ctx context.Context, outRefundNo string) (*RefundResponse, error) {
+	path := fmt.Sprintf("%s/%s?mchid=%s", pathRefund, url.PathEscape(outRefundNo), c.cfg.MchID)
+	respBody, err := c.GetRequest(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	var result RefundResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("解析退款查询响应失败: %w", err)
+	}
+	return &result, nil
 }

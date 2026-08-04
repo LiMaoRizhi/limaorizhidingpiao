@@ -385,7 +385,7 @@ const handleSave = async () => {
   if (editing.stations[0].price !== 0) {
     ElMessage.warning('起点站累计票价必须为0'); return
   }
-  // 检查累计票价单调递增
+  // 票价得一路涨上去，不能回头
   for (let i = 1; i < editing.stations.length; i++) {
     if (editing.stations[i].price < editing.stations[i - 1].price) {
       ElMessage.warning(`第${i + 1}站累计票价不应低于前一站（当前${editing.stations[i].price} < ${editing.stations[i - 1].price}）`)

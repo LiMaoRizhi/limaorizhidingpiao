@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request, BASE_URL } = require('../../utils/request')
 const stationPickerMixin = require('../../utils/station-picker-mixin')
@@ -9,7 +8,6 @@ Page({
   data: {
     // 装修布局：[{type:'banner',visible:true},...]，仅含 visible=true 的组件
     layoutList: [],
-    // 各组件数据
     bannerList: [],
     couponList: [],
     noticeText: '',
@@ -59,10 +57,12 @@ Page({
       this._firstLoad = false
       return
     }
-    // 后续 onShow：自动刷新班次列表 + 优惠券领取状态
-    // 用户从订单页/我的切回首页时，能实时看到后端新上架的班次
+    // 后续 onShow：自动刷新班次列表 + 站点列表 + 优惠券领取状态
+    // 用户从订单页/我的切回首页时，能实时看到后端新上架的班次/新增的站点
     // 6月18号加的，之前每次切回首页都重新请求一遍，流量浪费严重
+    // 站点列表也需刷新：否则后端新增站点后，不杀掉小程序重进就永远看不到
     this.loadTrips()
+    this.loadStations()
     if (this.data.layoutList.some(c => c.type === 'coupon')) {
       this.loadCoupons()
     }
@@ -82,18 +82,14 @@ Page({
     }
   },
 
-  // 点击刷新按钮：水波纹效果 + 重新加载班次
+  // 点击刷新按钮：水波纹效果 + 重新加载
   handleRefresh(e) {
     wx.vibrateShort({ type: 'light' })
-    // 创建水波纹
     const ripple = { x: 30, y: 15 }
     this.setData({ ripples: [...this.data.ripples, ripple] })
-    // 动画结束后清理
     this._rippleTimer = setTimeout(() => { this.setData({ ripples: [] }) }, 800)
-    // 显示水波纹提示
     this.setData({ showRefreshToast: true })
     this._toastTimer = setTimeout(() => { this.setData({ showRefreshToast: false }) }, 1500)
-    // 刷新数据
     this.loadTrips()
     if (this.data.layoutList.some(c => c.type === 'coupon')) {
       this.loadCoupons()
@@ -105,12 +101,11 @@ Page({
     clearTimeout(this._toastTimer)
   },
 
-  // 加载首页装修布局
+  // 拉首页装修布局
   loadLayout() {
     request({ url: '/api/homepage/layout', method: 'GET' }).then(res => {
       const list = res.data || []
       this.setData({ layoutList: list })
-      // 根据布局配置按需加载数据
       const hasBanner = list.some(c => c.type === 'banner')
       const hasCoupon = list.some(c => c.type === 'coupon')
       const hasNotice = list.some(c => c.type === 'notice')
@@ -135,7 +130,7 @@ Page({
     })
   },
 
-  // 加载公告内容
+  // 拉公告
   loadNotice() {
     request({ url: '/api/wx/config', method: 'GET' }).then(res => {
       const notice = (res.data && res.data.notice) || ''
@@ -143,7 +138,7 @@ Page({
     }).catch((e) => { log.error('加载公告失败', e) })
   },
 
-  // 加载轮播图
+  // 拉轮播图
   loadBanners() {
     request({ url: '/api/banners', method: 'GET' }).then(res => {
       const banners = (res.data || []).map(item => ({
@@ -157,7 +152,7 @@ Page({
     }).catch((e) => { log.error('加载轮播图失败', e) })
   },
 
-  // 加载首页优惠券
+  // 拉首页优惠券
   loadCoupons() {
     const token = wx.getStorageSync('user_token')
     // 已登录用户调用认证接口（返回 claimed 标记），未登录用公开接口
@@ -206,7 +201,6 @@ Page({
       data: { coupon_id: coupon.id }
     }).then(() => {
       wx.showToast({ title: '领取成功', icon: 'success' })
-      // 更新本地状态
       const list = this.data.couponList.map(c =>
         c.id === coupon.id ? { ...c, claimed: true } : c
       )
@@ -216,7 +210,6 @@ Page({
     })
   },
 
-  // 加载站点
   loadStations() {
     request({ url: '/api/wx/stations', method: 'GET' }).then(res => {
       const stations = res.data || []
@@ -224,13 +217,13 @@ Page({
     }).catch((e) => { log.error('加载站点失败', e) })
   },
 
-  // 格式化车次数据
+  // 车次数据格式化一下
   formatTrip(item) {
     const fromName = item.route && item.route.from_station ? item.route.from_station.name : ''
     const toName = item.route && item.route.to_station ? item.route.to_station.name : ''
     const durationMin = item.route ? item.route.duration_minutes : 0
     const durationStr = durationMin >= 60 ? `约${Math.floor(durationMin/60)}小时${durationMin%60 > 0 ? durationMin%60 + '分钟' : ''}` : `约${durationMin}分钟`
-    // 充足时显示发车时间（替代“有票”），紧张时显示余票，无票时留空（底部“售罄”按钮体现）
+    // 充足时显示发车时间，紧张时显示余票，无票留空（底部"售罄"按钮体现）
     const seatsText = item.available_seats === 0 ? '' : item.available_seats <= 5 ? `余${item.available_seats}座` : (item.departure_time + ' 发车')
     // 跨天到达时间展示（如“次日08:00”）
     const arrivalText = formatArrivalTime(item.arrival_time, item.arrival_day_offset)
@@ -241,13 +234,11 @@ Page({
     } else if (item.available_seats <= 5) {
       seatsStatus = 'tight'
     }
-    // 站点序列
     const rss = (item.route && item.route.route_stations) ? item.route.route_stations : []
     const stationCount = rss.length
     // 票价：有站点序列时一律用区间价，无站点时回退到 base_price
     const { selectedFromStation, selectedToStation } = this.data
     let priceText = (parseFloat(item.base_price) || 0).toFixed(0)
-    // 区间途经走向数据
     let viaStations = []
     let stopCountBetween = 0
     let isDirect = false
@@ -268,7 +259,7 @@ Page({
       const minFare = item.route && item.route.min_fare ? (parseFloat(item.route.min_fare) || 0) : 0
       if (minFare > 0 && fare < minFare) fare = minFare
       priceText = fare.toFixed(0)
-      // 计算区间途经站点名序列与经停数（供列表展示与直达优先排序）
+      // 计算途经站点名与经停数（供列表展示与直达优先排序）
       const fromIdx = rss.findIndex(s => s === fromRS)
       const toIdx = rss.findIndex(s => s === toRS)
       if (fromIdx >= 0 && toIdx >= 0 && fromIdx < toIdx) {
@@ -427,7 +418,6 @@ Page({
     }
   },
 
-  // 分享到朋友圈
   onShareTimeline() {
     return {
       title: '狸猫日志售票 · 在线订票便捷出行'

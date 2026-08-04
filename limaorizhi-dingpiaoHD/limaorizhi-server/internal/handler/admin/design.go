@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (

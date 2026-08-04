@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -66,6 +65,13 @@ func (h *UserHandler) Trips(c *gin.Context) {
 		trips[i].DriverID = 0
 		trips[i].Driver = nil
 		trips[i].AvailableSeats = service.RealtimeAvailableSeats(h.DB, trips[i].ID, trips[i].TotalSeats)
+		// 无座票实时已售数（配额实时统计，覆盖静态字段，保证与座位计数一致）
+		if trips[i].StandingQuota > 0 {
+			sold, _ := service.RealtimeStandingStats(h.DB, trips[i].ID, trips[i].StandingQuota)
+			trips[i].StandingSold = sold
+		} else {
+			trips[i].StandingSold = 0
+		}
 	}
 	response.OK(c, trips)
 }
@@ -85,12 +91,19 @@ func (h *UserHandler) TripDetail(c *gin.Context) {
 	trip.Driver = nil
 	// 用实时区间余票覆盖静态 available_seats，让前端看到真实余票
 	trip.AvailableSeats = service.RealtimeAvailableSeats(h.DB, trip.ID, trip.TotalSeats)
+	// 无座票实时已售数覆盖静态字段
+	if trip.StandingQuota > 0 {
+		sold, _ := service.RealtimeStandingStats(h.DB, trip.ID, trip.StandingQuota)
+		trip.StandingSold = sold
+	} else {
+		trip.StandingSold = 0
+	}
 	// 计算有效过站序号（GPS优先+手动标记取max），供班次详情页进度条展示
 	var routeStations []model.RouteStation
 	if trip.Route != nil {
 		routeStations = trip.Route.RouteStations
 	}
-	effectiveOrder := effectivePassedOrder(h.DB, trip, routeStations)
+	effectiveOrder := service.EffectivePassedOrder(h.DB, trip, routeStations)
 	response.OK(c, gin.H{
 		"trip":                   trip,
 		"effective_passed_order": effectiveOrder,
@@ -115,7 +128,7 @@ func (h *UserHandler) TripAvailableSeats(c *gin.Context) {
 		return
 	}
 
-	// 查询上下车站的 stop_order
+	// 上下车站的 stop_order
 	var fromRS, toRS model.RouteStation
 	if err := h.DB.Where("route_id = ? AND station_id = ?", trip.RouteID, fromStationID).First(&fromRS).Error; err != nil {
 		response.FailMsg(c, response.CodeParamError, "上车站不在该线路中")
@@ -136,12 +149,23 @@ func (h *UserHandler) TripAvailableSeats(c *gin.Context) {
 		return
 	}
 
+	// 无座票信息：是否开放 + 已售/可售 + 折扣后单价（供前端余座不足时引导购买无座）
+	standingSold, standingAvailable := 0, 0
+	standingAllowed := trip.AllowStanding && trip.StandingQuota > 0
+	if standingAllowed {
+		standingSold, standingAvailable = service.RealtimeStandingStats(h.DB, trip.ID, trip.StandingQuota)
+	}
+
 	response.OK(c, gin.H{
-		"trip_id":         trip.ID,
-		"total_seats":     trip.TotalSeats,
-		"available_seats": avail,
-		"from_station_id": fromStationID,
-		"to_station_id":   toStationID,
+		"trip_id":            trip.ID,
+		"total_seats":        trip.TotalSeats,
+		"available_seats":    avail,
+		"from_station_id":    fromStationID,
+		"to_station_id":      toStationID,
+		"allow_standing":     standingAllowed,
+		"standing_sold":      standingSold,
+		"standing_available": standingAvailable,
+		"standing_discount":  trip.StandingDiscount,
 	})
 }
 
@@ -159,7 +183,7 @@ func (h *UserHandler) TripLocation(c *gin.Context) {
 		return
 	}
 
-	// 校验用户是否有该班次的有效订单
+	// 看看用户有没有这班次的有效订单
 	var orderCount int64
 	h.DB.Model(&model.Order{}).Where("trip_id = ? AND user_id = ? AND status IN (?, ?, ?)", trip.ID, userToken, model.OrderStatusPending, model.OrderStatusPaid, model.OrderStatusCompleted).Count(&orderCount)
 	if orderCount == 0 {
@@ -176,9 +200,9 @@ func (h *UserHandler) TripLocation(c *gin.Context) {
 	if trip.Route != nil {
 		routeStations = trip.Route.RouteStations
 	}
-	effectiveOrder := effectivePassedOrder(h.DB, trip, routeStations)
+	effectiveOrder := service.EffectivePassedOrder(h.DB, trip, routeStations)
 
-	// 查询5分钟内的最近位置记录
+	// 最近5分钟的位置记录
 	var loc model.VehicleLocation
 	fiveMinAgo := time.Now().Add(-5 * time.Minute)
 	result := h.DB.Where("trip_id = ? AND reported_at > ?", trip.ID, fiveMinAgo).Order("reported_at DESC").First(&loc)
@@ -243,4 +267,54 @@ func (h *UserHandler) PublicConfig(c *gin.Context) {
 		}
 	}
 	response.OK(c, result)
+}
+
+// TripSeatMap 查询班次指定区间的座位图（含每个座位的占用状态）
+// GET /api/wx/trips/:id/seats?from_station_id=X&to_station_id=Y
+func (h *UserHandler) TripSeatMap(c *gin.Context) {
+	tripID := c.Param("id")
+	fromStationID := c.Query("from_station_id")
+	toStationID := c.Query("to_station_id")
+
+	if fromStationID == "" || toStationID == "" {
+		response.FailMsg(c, response.CodeParamError, "请提供上下车站ID")
+		return
+	}
+
+	var trip model.Trip
+	if err := h.DB.Preload("Route").Preload("Vehicle").Where("id = ? AND status IN (?, ?)", tripID, model.TripStatusSale, model.TripStatusDepart).First(&trip).Error; err != nil {
+		response.Fail(c, response.CodeTripNotFound)
+		return
+	}
+
+	// 上下车站的 stop_order
+	var fromRS, toRS model.RouteStation
+	if err := h.DB.Where("route_id = ? AND station_id = ?", trip.RouteID, fromStationID).First(&fromRS).Error; err != nil {
+		response.FailMsg(c, response.CodeParamError, "上车站不在该线路中")
+		return
+	}
+	if err := h.DB.Where("route_id = ? AND station_id = ?", trip.RouteID, toStationID).First(&toRS).Error; err != nil {
+		response.FailMsg(c, response.CodeParamError, "下车站不在该线路中")
+		return
+	}
+	if fromRS.StopOrder >= toRS.StopOrder {
+		response.FailMsg(c, response.CodeParamError, "上车站必须在下车站之前")
+		return
+	}
+
+	// 座位布局解析一下
+	var seatLayout string
+	if trip.Vehicle != nil {
+		seatLayout = trip.Vehicle.SeatLayout
+	}
+	layout := service.ParseSeatLayout(seatLayout, trip.TotalSeats)
+
+	// 拿座位图
+	seatMap, err := service.GetSeatMap(h.DB, trip.ID, trip.TotalSeats, fromRS.StopOrder, toRS.StopOrder, layout)
+	if err != nil {
+		response.FailMsg(c, response.CodeServerError, "查询座位图失败")
+		return
+	}
+
+	response.OK(c, seatMap)
 }

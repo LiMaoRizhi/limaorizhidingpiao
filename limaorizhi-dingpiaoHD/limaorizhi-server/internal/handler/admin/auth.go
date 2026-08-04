@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -176,7 +175,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// 登录成功，清除失败计数
 	clearLoginFail(ip, req.Username)
 
-	// 更新最后登录时间
+	// 登录时间更新一下
 	now := time.Now()
 	if err := h.DB.Model(&admin).Update("last_login_at", &now).Error; err != nil {
 		// 非关键错误，仅记录日志

@@ -82,8 +82,8 @@
     <view class="section" wx:if="{{routeStations.length > 0}}">
       <view class="interval-price-row" wx:if="{{fromStationId && toStationId}}">
         <text class="interval-price-label">区间票价</text>
-        <text class="interval-price-value">¥{{intervalPrice}}<text class="per-person">/人</text></text>
-        <text class="seats-pill interval-seats-pill {{intervalAvailableSeats === 0 ? 'seats-soldout' : intervalAvailableSeats > 0 && intervalAvailableSeats <= 5 ? 'seats-tight' : ''}}" wx:if="{{intervalSeatsText}}">{{intervalSeatsText}}</text>
+        <text class="interval-price-value {{intervalAvailableSeats === 0 ? 'price-soldout' : ''}}">¥{{intervalPrice}}<text class="per-person">/人</text></text>
+        <text class="seats-pill interval-seats-pill {{intervalAvailableSeats === 0 ? 'seats-soldout' : intervalAvailableSeats > 0 && intervalAvailableSeats <= 5 ? 'seats-tight' : ''}}" wx:if="{{intervalSeatsText}}">{{intervalAvailableSeats === 0 ? '售罄' : intervalSeatsText}}</text>
       </view>
 
       <!-- 完整站点序列 -->
@@ -96,7 +96,7 @@
           <text class="timeline-count">共{{routeStations.length}}站</text>
         </view>
         <view class="timeline-list">
-          <view class="timeline-item {{item.station_id === fromStationId ? 'is-from' : ''}} {{item.station_id === toStationId ? 'is-to' : ''}}" wx:for="{{routeStations}}" wx:key="station_id">
+          <view class="timeline-item {{item.station_id === fromStationId ? 'is-from' : ''}} {{item.station_id === toStationId ? 'is-to' : ''}} {{trip.status === 2 && item.stop_order <= effectivePassedOrder ? 'is-passed' : ''}}" wx:for="{{routeStations}}" wx:key="station_id">
             <view class="timeline-rail">
               <view class="rail-line {{index === 0 ? 'line-hidden' : ''}}"></view>
               <view class="rail-dot"></view>
@@ -107,10 +107,11 @@
                 <text class="timeline-name">{{item.station ? item.station.name : ''}}</text>
                 <view class="timeline-badge" wx:if="{{item.station_id === fromStationId}}">上车</view>
                 <view class="timeline-badge" wx:if="{{item.station_id === toStationId}}">下车</view>
+                <view class="timeline-badge passed-badge" wx:if="{{trip.status === 2 && item.stop_order <= effectivePassedOrder}}">已过</view>
               </view>
               <text class="timeline-stop">第{{item.stop_order}}站</text>
             </view>
-            <text class="timeline-price">¥{{item.price}}</text>
+            <text class="timeline-price {{trip.available_seats === 0 ? 'timeline-soldout' : ''}}">{{trip.status === 2 && item.stop_order <= effectivePassedOrder ? '已过' : (trip.available_seats === 0 ? '售罄' : '¥' + item.price)}}</text>
           </view>
         </view>
       </view>
@@ -136,8 +137,27 @@
           </view>
         </view>
       </view>
-      <!-- 添加按钮 -->
-      <view class="add-passenger-bar" bindtap="addPassenger">添加乘客信息</view>
+      <!-- 添加按钮（满员时禁用） -->
+      <view class="add-passenger-bar {{addPassengerDisabled ? 'add-disabled' : ''}}" bindtap="{{addPassengerDisabled ? '' : 'addPassenger'}}">{{addPassengerDisabled ? '已达余票上限' : '添加乘客信息'}}</view>
+      <!-- 选座入口：无座选项内嵌于选座条右侧（黑白配色），不额外占行 -->
+      <view class="pick-seat-bar {{buyStanding ? 'pick-seat-standing' : ''}} {{intervalAvailableSeats === -1 ? 'pick-seat-loading' : ''}} {{!buyStanding && intervalAvailableSeats === 0 ? 'pick-seat-soldout' : ''}}" wx:if="{{passengers.length > 0}}">
+        <view class="pick-seat-left" bindtap="{{!buyStanding && intervalAvailableSeats > 0 ? 'goPickSeat' : ''}}">
+          <block wx:if="{{buyStanding}}">
+            <text>无座站票，无需选座</text>
+          </block>
+          <block wx:elif="{{intervalAvailableSeats === -1}}">
+            <text>座位信息加载中...</text>
+          </block>
+          <block wx:elif="{{intervalAvailableSeats === 0}}">
+            <text>该区间已售罄（可选购无座站票）</text>
+          </block>
+          <block wx:else>
+            <text>选择座位 {{seatPreview ? '(' + seatPreview + ')' : '(可选，不选自动分配)'}}</text>
+            <text class="pick-seat-arrow">›</text>
+          </block>
+        </view>
+        <view class="standing-toggle {{buyStanding ? 'on' : ''}}" wx:if="{{standingAllowed}}" catchtap="toggleStanding">{{buyStanding ? '已选无座' : '无座'}} ¥{{standingPriceText}}</view>
+      </view>
     </view>
 
     <!-- 联系人信息 -->
@@ -195,29 +215,18 @@
       <view class="coupon-clear" wx:if="{{selectedCoupon}}" catchtap="clearCoupon">不使用优惠券</view>
     </view>
 
-    <!-- 乘车保险（紧凑单行，仅当配置了单价时显示） -->
-    <view class="section insurance-section" wx:if="{{insuranceFeeUnit > 0}}" catchtap="toggleInsurance">
-      <view class="insurance-check {{buyInsurance ? 'checked' : ''}} {{insuranceRequired ? 'required' : ''}}">
-        <view class="insurance-check-inner" wx:if="{{buyInsurance}}"></view>
-      </view>
-      <text class="insurance-label">乘意险 ¥{{insuranceFeeUnit}}/人</text>
-      <text class="insurance-required-tag" wx:if="{{insuranceRequired}}">必购</text>
-      <text class="insurance-spacer"></text>
-      <text class="insurance-amount" wx:if="{{buyInsurance}}">+¥{{insuranceTotal}}</text>
-    </view>
-
     <!-- 底部下单 -->
     <view class="bottom-bar {{contactFocused ? 'bottom-bar-hide' : ''}}">
       <view class="total-price">
         <text class="price-label">{{passengers.length > 0 ? '合计' : '单价'}}</text>
-        <text class="price-num">¥{{passengers.length > 0 ? finalPrice : intervalPrice}}</text>
+        <text class="price-num">¥{{passengers.length > 0 ? finalPrice : (buyStanding ? standingPriceText : intervalPrice)}}</text>
         <text class="price-origin" wx:if="{{selectedCoupon && discountAmount != '0.00'}}">¥{{originPrice}}</text>
         <text class="price-count" wx:if="{{passengers.length > 0}}">×{{passengers.length}}人</text>
       </view>
-      <button class="order-btn" loading="{{orderLoading}}" bindtap="createOrder">
+      <button class="order-btn" loading="{{orderLoading}}" bindtap="createOrder" disabled="{{soldOut}}">
         <image class="order-btn-bg" src="/images/icons/water-bg.jpg" mode="aspectFill" />
         <view class="water-flow-layer"></view>
-        <text class="order-btn-text">立即下单</text>
+        <text class="order-btn-text">{{soldOut ? '已售罄' : (buyStanding ? '购买无座' : '立即下单')}}</text>
       </button>
     </view>
 
@@ -271,14 +280,85 @@
       <input class="picker-search-input" placeholder="输入站名/拼音搜索" value="{{stationSearchValue}}" bindinput="onStationSearchInput" bindfocus="onStationSearchFocus" bindblur="onStationSearchBlur" bindconfirm="onStationSearchConfirm" adjust-position="{{false}}" always-embed="{{true}}" cursor-spacing="20" confirm-type="search" />
     </view>
     <scroll-view scroll-y class="picker-scroll" style="height:{{stationScrollHeight}};">
-      <view class="picker-item" wx:for="{{filteredRouteStations}}" wx:key="station_id" data-sid="{{item.station_id}}" bindtap="onStationSelect">
+      <view class="picker-item {{stationPickerType === 'from' && trip.status === 2 && item.stop_order <= effectivePassedOrder ? 'picker-item-passed' : ''}}" wx:for="{{filteredRouteStations}}" wx:key="station_id" data-sid="{{item.station_id}}" bindtap="onStationSelect">
         <view class="picker-info">
           <text class="picker-name">第{{item.stop_order}}站</text>
-          <text class="picker-card">{{item.station ? item.station.name : ''}}  ¥{{item.price}}</text>
+          <text class="picker-card">{{item.station ? item.station.name : ''}}  {{stationPickerType === 'from' && trip.status === 2 && item.stop_order <= effectivePassedOrder ? '已过站' : (trip.available_seats === 0 ? '售罄' : '¥' + item.price)}}</text>
         </view>
         <text class="picker-add" wx:if="{{(stationPickerType === 'from' && item.station_id === fromStationId) || (stationPickerType === 'to' && item.station_id === toStationId)}}">✓</text>
       </view>
       <view class="picker-empty" wx:if="{{filteredRouteStations.length === 0}}">未找到匹配站点</view>
     </scroll-view>
+  </view>
+</view>
+
+<!-- 下单确认弹窗（含保险灵活勾选） -->
+<view class="modal-mask" wx:if="{{showConfirmModal}}" catchtouchmove="noop">
+  <view class="confirm-modal" catchtap="noop">
+    <view class="confirm-title">确认行程信息</view>
+
+    <!-- 行程摘要 -->
+    <view class="confirm-trip">
+      <view class="confirm-row">
+        <text class="confirm-label">车次</text>
+        <text class="confirm-val">{{confirmTripSummary.tripNo}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">日期</text>
+        <text class="confirm-val">{{confirmTripSummary.dateTime}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">上车</text>
+        <text class="confirm-val">{{confirmTripSummary.fromInfo}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">下车</text>
+        <text class="confirm-val">{{confirmTripSummary.toInfo}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">行程</text>
+        <text class="confirm-val">{{confirmTripSummary.directLabel}} · {{confirmPassengerCount}}人</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">座位</text>
+        <view class="confirm-seat-val">
+          <text class="confirm-standing-badge" wx:if="{{confirmStanding}}">无座</text>
+          <text class="confirm-val">{{confirmTripSummary.seatInfo}}</text>
+          <text class="confirm-pick-seat-link" wx:if="{{!confirmHasSeats && !confirmStanding}}" catchtap="goPickSeatFromConfirm">去选座 ›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 价格明细 -->
+    <view class="confirm-price-box">
+      <view class="confirm-price-row">
+        <text class="confirm-price-label">{{confirmStanding ? '车票（无座站票）' : '车票'}}</text>
+        <text class="confirm-price-val">¥{{confirmBasePrice}}</text>
+      </view>
+
+      <!-- 保险行（可选时显示勾选框，强制时显示固定项） -->
+      <view class="confirm-price-row confirm-insurance-row" wx:if="{{confirmInsuranceFeeUnit > 0}}" catchtap="toggleConfirmInsurance">
+        <text class="confirm-price-label">乘意险 ¥{{confirmInsuranceFeeUnit}}/人</text>
+        <view class="confirm-insurance-right">
+          <text class="confirm-insurance-required" wx:if="{{confirmInsuranceRequired}}">必购</text>
+          <view class="confirm-checkbox {{confirmBuyInsurance ? 'checked' : ''}}" wx:if="{{!confirmInsuranceRequired}}">
+            <view class="confirm-checkbox-inner" wx:if="{{confirmBuyInsurance}}"></view>
+          </view>
+          <text class="confirm-price-val">+¥{{confirmInsuranceTotal}}</text>
+        </view>
+      </view>
+
+      <view class="confirm-divider"></view>
+      <view class="confirm-price-row confirm-total-row">
+        <text class="confirm-total-label">合计</text>
+        <text class="confirm-total-price">¥{{confirmFinalPrice}}</text>
+      </view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="confirm-btns">
+      <view class="confirm-btn-cancel" bindtap="cancelConfirmOrder">再看看</view>
+      <view class="confirm-btn-ok" bindtap="confirmCreateOrder">确认下单</view>
+    </view>
   </view>
 </view>

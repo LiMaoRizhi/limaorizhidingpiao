@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 
 const { request } = require('../../utils/request')
@@ -55,7 +54,7 @@ Page({
     this.clearTimer()
   },
 
-  // 加载车辆实时位置
+  // 看车现在跑哪了
   loadLocation() {
     const { tripId } = this.data
     if (!tripId) return
@@ -79,7 +78,7 @@ Page({
       const currentPassedOrder = trip.current_passed_order || 0
       // 后端统一计算的有效过站序号（GPS优先+手动标记取max），未返回时回退到手动标记
       const effectivePassedOrder = res.data.effective_passed_order || currentPassedOrder
-      // 计算当前站名：取已过站序号对应的站点名
+      // 当前站名：取已过站的序号对应的站名
       const currentStation = effectivePassedOrder > 0 && effectivePassedOrder <= routeStations.length
         ? routeStations[effectivePassedOrder - 1]
         : null
@@ -129,7 +128,7 @@ Page({
           location: null
         })
       }
-      // 请求成功，重置退避间隔
+      // 请求成了，退避间隔归零
       this.adjustPollInterval(true)
     }).catch((e) => {
       log.error('加载车辆位置失败', e)
@@ -152,7 +151,7 @@ Page({
     })
   },
 
-  // 构建地图标记点（带自定义图标）
+  // 地图标记点（带自定义图标）
   buildMarkers(trip, location) {
     const markers = []
 
@@ -208,7 +207,7 @@ Page({
     return markers
   },
 
-  // 构建路线连线（出发站→车辆→到达站）
+  // 路线连线（出发站→车→到达站）
   buildPolyline(trip, location) {
     const points = []
     const fromStation = trip.route && trip.route.from_station

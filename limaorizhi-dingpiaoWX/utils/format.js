@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 // 纯格式化工具函数（跨页面共用，避免复制粘贴）
 
 const { BASE_URL } = require('./request')

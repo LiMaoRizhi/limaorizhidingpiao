@@ -1,0 +1,133 @@
+<!-- 选座页面 - 大巴座位图（单网格精确布局） -->
+<navigation-bar title="选择座位" back="{{true}}" background="rgba(255,255,255,0.65)"></navigation-bar>
+
+<view class="page-content">
+
+  <!-- 统计栏 -->
+  <view class="stats-bar">
+    <view class="stat-item">
+      <view class="stat-dot free-dot"></view>
+      <text>可选 {{availSeats}}座</text>
+    </view>
+    <view class="stat-item">
+      <view class="stat-dot occupied-dot"></view>
+      <text>已占 {{totalSeats - availSeats}}座</text>
+    </view>
+    <view class="stat-item">
+      <view class="stat-dot selected-dot"></view>
+      <text>已选 {{selectedSeats.length}}/{{passengerCount}}座</text>
+    </view>
+  </view>
+
+  <!-- 无座站票选项（黑白配色卡片；座位售罄也能买） -->
+  <view class="standing-row {{buyStanding ? 'standing-row-on' : ''}}" wx:if="{{standingAllowed}}" bindtap="toggleStanding">
+    <view class="standing-row-info">
+      <view class="standing-row-head">
+        <text class="standing-row-badge">无座</text>
+        <text class="standing-row-title">无座站票</text>
+        <text class="standing-row-price">¥{{standingPriceText}}<text class="standing-row-unit">/人</text></text>
+      </view>
+      <view class="standing-row-sub">{{standingAvailable === 0 ? '无座票已售罄' : '座位卖完也能买，凭票上车，有空位可自行就座'}}</view>
+    </view>
+    <view class="standing-row-right">
+      <text class="standing-row-check-text">{{buyStanding ? '已选' : '选择'}}</text>
+      <view class="standing-radio {{buyStanding ? 'on' : ''}}">
+        <text wx:if="{{buyStanding}}" class="standing-radio-check">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 座位图（无座模式下隐藏） -->
+  <view class="seat-map-container" wx:if="{{!buyStanding && seatMapLoaded && rows > 0}}">
+
+    <!-- 车头标识 -->
+    <view class="bus-front">
+      <text>▼ 车头 / 前门</text>
+    </view>
+
+    <!-- 大巴车身：单网格 -->
+    <scroll-view class="seat-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="bus-body">
+        <!-- 左侧 "窗" 标签 -->
+        <view class="window-label window-label-left">
+          <text>窗</text>
+        </view>
+
+        <!-- 座位网格 -->
+        <view class="seat-grid" style="grid-template-columns: {{colWidths}};">
+          <block wx:for="{{cells}}" wx:key="_key" wx:for-item="cell">
+            <!-- 过道格：竖条装饰 -->
+            <view
+              wx:if="{{cell.type === 'aisle'}}"
+              class="seat-cell cell-aisle"
+              style="grid-row: {{cell.row}}; grid-column: {{cell.col}};"
+            >
+              <text class="aisle-label">过道</text>
+            </view>
+
+            <!-- 驾驶座 -->
+            <view
+              wx:elif="{{cell.type === 'driver'}}"
+              class="seat-cell cell-driver"
+              style="grid-row: {{cell.row}}; grid-column: {{cell.col}};"
+            >
+              <text>司机</text>
+            </view>
+
+            <!-- 空白占位 -->
+            <view
+              wx:elif="{{cell.type === 'empty'}}"
+              class="seat-cell cell-empty"
+              style="grid-row: {{cell.row}}; grid-column: {{cell.col}};"
+            ></view>
+
+            <!-- 座位 -->
+            <view
+              wx:else
+              class="seat-cell {{seatStatus[cell.seatNo] === 'occupied' ? 'cell-occupied' : ''}} {{seatStatus[cell.seatNo] === 'selected' ? 'cell-selected' : ''}} {{seatStatus[cell.seatNo] === 'free' ? 'cell-free' : ''}}"
+              style="grid-row: {{cell.row}}; grid-column: {{cell.col}};"
+              data-seat-no="{{cell.seatNo}}"
+              bindtap="onSeatTap"
+            >
+              <text>{{cell.seatNo}}</text>
+            </view>
+          </block>
+        </view>
+
+        <!-- 右侧 "窗" 标签 -->
+        <view class="window-label window-label-right">
+          <text>窗</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 车尾标识 -->
+    <view class="bus-back">
+      <text>▲ 后排</text>
+    </view>
+
+  </view>
+
+  <!-- 加载/错误 -->
+  <view class="loading-box" wx:if="{{loading}}">
+    <text>座位图加载中...</text>
+  </view>
+  <view class="error-box" wx:if="{{!loading && !seatMapLoaded}}">
+    <text>座位图加载失败</text>
+    <button size="mini" bindtap="loadSeatMap">重试</button>
+  </view>
+
+  <!-- 无座模式提示 -->
+  <view class="standing-note" wx:if="{{buyStanding}}">无座站票：购票后不占座位，凭票上车，车上有空位时可自行就座</view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="skip-btn" bindtap="skipSelection" wx:if="{{!buyStanding}}">
+      <text>跳过（自动分配）</text>
+    </view>
+    <button class="confirm-btn {{selectedSeats.length > 0 || buyStanding ? 'confirm-btn-active' : ''}}" bindtap="confirmSelection">
+      {{buyStanding ? '确认购票（无座）' : (selectedSeats.length > 0 ? '确认选座 (' + selectedSeats.length + '座)' : '确认选座')}}
+    </button>
+  </view>
+
+</view>

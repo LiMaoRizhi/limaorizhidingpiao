@@ -1,7 +1,7 @@
 page { background: #f5f6f8; }
 
 .scrollarea { height: 100vh; }
-.page-content { padding: 0 16px 40px; }
+.page-content { padding: 12px 16px 40px; }
 
 /* 类型标签 */
 .type-badge {
@@ -38,6 +38,8 @@ page { background: #f5f6f8; }
   border-radius: 12px;
   padding: 24px 20px;
   margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .route-row {
   display: flex; flex-direction: row; align-items: center; justify-content: space-between;
@@ -70,7 +72,28 @@ page { background: #f5f6f8; }
 .qrcode-section {
   background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 12px;
   display: flex; flex-direction: column; align-items: center;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
+/* 乘车信息（二维码上方）：日期 + 座位，大字清晰，老年人友好 */
+.ride-info {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+}
+.ride-col { display: flex; flex-direction: column; }
+.ride-col-seat { align-items: flex-end; }
+.ride-label { font-size: 11px; color: #999; }
+.ride-value { font-size: 14px; color: #1a1a1a; font-weight: 600; margin-top: 2px; }
+.ride-seat { font-size: 20px; color: #1a1a1a; font-weight: 700; margin-top: 2px; }
 .qrcode-img { width: 200px; height: 200px; }
 .qrcode-tip { font-size: 13px; color: #999; margin-top: 12px; }
 .qrcode-placeholder {
@@ -95,6 +118,8 @@ page { background: #f5f6f8; }
 /* 信息卡片 */
 .info-card {
   background: #fff; border-radius: 12px; padding: 4px 20px; margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .card-title { font-size: 17px; font-weight: 600; color: #1a1a1a; padding: 16px 0 8px; }
 .info-row {
@@ -123,9 +148,12 @@ page { background: #f5f6f8; }
 }
 .passenger-row:last-child { border-bottom: none; }
 .p-info { display: flex; flex-direction: column; }
+.p-name-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .p-name { font-size: 16px; font-weight: 500; color: #333; }
+.p-standing { font-size: 11px; color: #fff; background: #1a1a1a; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
+.p-seat-tag { font-size: 11px; color: #1296db; background: #eef7fd; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
 .p-card { font-size: 13px; color: #999; margin-top: 4px; }
-.checked { font-size: 13px; color: #34c759; }
+.checked { font-size: 13px; color: #1296db; }
 
 /* 操作按钮 */
 .action-bar { display: flex; flex-direction: row; gap: 12px; margin-top: 20px; }
@@ -137,8 +165,9 @@ page { background: #f5f6f8; }
 .action-btn::after { border: none; }
 .pay-btn { background: #1a1a1a; color: #fff; }
 .cancel-btn { background: transparent; color: #666; border: 1px solid #d0d0d0; }
-.refund-btn { background: #fff; color: #ff3b30; border: 1px solid #ff3b30; }
-.track-btn { background: #007aff; color: #fff; }
+.refund-btn { background: #fff; color: #1a1a1a; border: 1px solid #1a1a1a; }
+.change-btn { background: #fff; color: #1296db; border: 1px solid #1296db; }
+.track-btn { background: #1296db; color: #fff; }
 
 /* 长按删除确认弹窗 */
 .delete-mask {
@@ -163,7 +192,7 @@ page { background: #f5f6f8; }
   text-align: center;
   font-size: 18px;
   font-weight: 600;
-  color: #ff3b30;
+  color: #1a1a1a;
   margin-top: 28px;
 }
 .delete-desc {

@@ -1,8 +1,8 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -85,6 +85,20 @@ func IsWxRefundConfigured() bool {
 	return isWxRefundConfigured()
 }
 
+// QueryRefundStatus 导出退款状态查询函数（供 service 包退款补偿对账用）
+// 返回微信侧退款状态：SUCCESS（已到账）/PROCESSING（处理中）/CLOSED/ABNORMAL
+func QueryRefundStatus(refundNo string) (string, error) {
+	client, err := getV3Client()
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.QueryRefund(context.Background(), refundNo)
+	if err != nil {
+		return "", err
+	}
+	return resp.Status, nil
+}
+
 // V3Client 单例
 
 var (
@@ -116,6 +130,148 @@ func getV3Client() (*v3.V3Client, error) {
 		}
 	})
 	return v3Client, v3ClientErr
+}
+
+// confirmOrderPaid 确认订单已支付（支付回调 + 查单兜底两处共用）
+// 干三件事：订单置已支付、写支付时间/方式、落一条支付流水。
+// 幂等：订单已经不是待支付（已被确认过）就跳过，绝不重复建流水。
+func confirmOrderPaid(tx *gorm.DB, order *model.Order, transactionID, method string) error {
+	now := time.Now()
+	jsonNow := model.JSONTime(now)
+
+	// 行锁 + 仅待支付可更新：支付回调来晚了/重复来都只会成功一次
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ? AND status = ?", order.ID, model.OrderStatusPending).
+		First(order).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil // 已经确认过支付了，幂等放行
+		}
+		return err
+	}
+
+	if err := tx.Model(order).Updates(map[string]interface{}{
+		"status":     1,
+		"pay_time":   &jsonNow,
+		"pay_method": method,
+	}).Error; err != nil {
+		return err
+	}
+
+	// 支付流水：同一订单同一微信单号只建一条，防重复通知建出重复流水
+	var payCnt int64
+	tx.Model(&model.Payment{}).Where("order_id = ? AND transaction_id = ?", order.ID, transactionID).Count(&payCnt)
+	if payCnt == 0 {
+		payment := model.Payment{
+			OrderID:       order.ID,
+			PaymentNo:     fmt.Sprintf("PAY%s%s%06d", now.Format("20060102"), now.Format("150405"), order.ID),
+			TransactionID: transactionID,
+			Amount:        order.TotalPrice,
+			Method:        method,
+			Status:        1,
+			PayTime:       &jsonNow,
+		}
+		if err := tx.Create(&payment).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// registerPaidCancelledRefund 订单已取消但微信侧已支付时登记退款（查单兜底用）
+// 背景：支付回调没送达 → 订单一直待支付 → 被超时任务自动取消，但用户钱已经在微信扣了。
+// 这种单不能装看不见，补一条支付流水 + 登记一笔退款，退款补偿任务（每5分钟）
+// 会拿 payment.TransactionID 自动调微信退款，钱必然能找回来。
+// 幂等：已有处理中/成功的退款记录就跳过，绝不重复退。
+func registerPaidCancelledRefund(db *gorm.DB, order model.Order, transactionID string, actualPaid float64) (bool, error) {
+	now := time.Now()
+	jsonNow := model.JSONTime(now)
+	created := false
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// 行锁订单，防止两个请求同时登记重复退款
+		var locked model.Order
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&locked, order.ID).Error; err != nil {
+			return err
+		}
+		// 补建支付流水（退款补偿任务取 transaction_id 就靠它，缺了永远退不了款）
+		var payCnt int64
+		tx.Model(&model.Payment{}).Where("order_id = ? AND transaction_id = ?", order.ID, transactionID).Count(&payCnt)
+		if payCnt == 0 {
+			payment := model.Payment{
+				OrderID:       order.ID,
+				PaymentNo:     fmt.Sprintf("PAY%s%s%06d", now.Format("20060102"), now.Format("150405"), order.ID),
+				TransactionID: transactionID,
+				Amount:        actualPaid,
+				Method:        "微信支付",
+				Status:        model.PaymentStatusSuccess,
+				PayTime:       &jsonNow,
+			}
+			if err := tx.Create(&payment).Error; err != nil {
+				return err
+			}
+		}
+		// 已有处理中/成功的退款 → 幂等跳过
+		var refundCnt int64
+		tx.Model(&model.Refund{}).Where("order_id = ? AND status IN (?, ?)", order.ID, model.RefundStatusProcessing, model.RefundStatusSuccess).Count(&refundCnt)
+		if refundCnt > 0 {
+			return nil
+		}
+		refund := model.Refund{
+			OrderID:   order.ID,
+			RefundNo:  sanitize.GenerateRefundNo(order.ID),
+			Amount:    actualPaid,
+			Reason:    "支付回调未送达，订单已取消，系统自动退款",
+			Status:    model.RefundStatusProcessing,
+			PreStatus: int8(model.OrderStatusCancelled),
+		}
+		if err := tx.Create(&refund).Error; err != nil {
+			return err
+		}
+		created = true
+		return nil
+	})
+	return created, err
+}
+
+// ReconcileOrderPaidState 退款前的查单对账（用户端/管理端退款共用）
+// 背景还是那个：支付回调没送达 → 订单状态是"假的"（待支付/已取消），但微信钱已扣。
+// 这种单直接走退款会被"订单状态不允许退款"挡掉，用户钱就卡死了。
+// 所以退款前先问微信这单付没付：
+//   已支付 + 待支付 → 先确认支付（订单变已支付，正常退款流程继续走）
+//   已支付 + 已取消 → 直接登记退款（补偿任务自动退钱，返回 handled=true 让调用方直接提示）
+// 返回 handled=true 表示钱已经安排退款了；false 表示订单状态可信，继续走正常流程。
+func ReconcileOrderPaidState(db *gorm.DB, order model.Order) (bool, error) {
+	client, cerr := getV3Client()
+	if cerr != nil {
+		return false, nil // 客户端没配好，不拦正常退款，交给下游逻辑
+	}
+	qr, qerr := client.QueryOrder(context.Background(), order.OrderNo)
+	if qerr != nil {
+		log.Printf("[WARN] 退款前查单失败 订单号:%s err:%v\n", order.OrderNo, qerr)
+		return false, nil // 查单失败不阻断，按现有状态走
+	}
+	if qr == nil || qr.TradeState != "SUCCESS" {
+		return false, nil // 微信侧也没付，那订单状态就是真的
+	}
+	actualPaid := money.FromFen(int64(qr.Amount.Total))
+	switch order.Status {
+	case model.OrderStatusPending:
+		// 确认支付后订单变已支付，退款流程才能继续
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			return confirmOrderPaid(tx, &order, qr.TransactionID, "微信支付")
+		}); err != nil {
+			return false, fmt.Errorf("确认支付失败: %w", err)
+		}
+		log.Printf("[INFO] 退款前对账: 订单%s微信侧已支付，已确认订单状态\n", order.OrderNo)
+		return false, nil
+	case model.OrderStatusCancelled:
+		// 已取消 + 微信已扣款：别装看不见，登记退款让补偿任务把钱退回去
+		if _, rerr := registerPaidCancelledRefund(db, order, qr.TransactionID, actualPaid); rerr != nil {
+			return false, fmt.Errorf("登记退款失败: %w", rerr)
+		}
+		log.Printf("[INFO] 退款前对账: 订单%s已取消但微信侧已支付，已登记自动退款(%.2f元)\n", order.OrderNo, actualPaid)
+		return true, nil
+	}
+	return false, nil
 }
 
 // JSAPI 下单（v3）
@@ -251,9 +407,20 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 		// 订单可能已被处理（重复通知）或已被自动取消（竞态条件）
 		// 也可能是金额不匹配导致事务失败，订单仍为 pending
 		var failedOrder model.Order
-		if findErr := h.DB.Where("order_no = ?", notify.OutTradeNo).First(&failedOrder).Error; findErr == nil {
-			// 订单已取消（定时任务自动取消）或仍为待支付（金额不匹配）时，触发自动退款
-			if failedOrder.Status == model.OrderStatusCancelled || failedOrder.Status == model.OrderStatusPending {
+		findErr := h.DB.Where("order_no = ?", notify.OutTradeNo).First(&failedOrder).Error
+		if findErr != nil {
+			// 查询失败需区分：数据库不可达→返回500让微信重试；订单不存在→返回SUCCESS停止重试
+			if errors.Is(findErr, gorm.ErrRecordNotFound) {
+				log.Printf("[WARN] PayNotify: 订单不存在，可能已被删除 订单号:%s\n", notify.OutTradeNo)
+				c.JSON(http.StatusOK, v3.NotifySuccessResponse())
+			} else {
+				log.Printf("[ERROR] PayNotify: 查询订单失败，等待微信重试 订单号:%s err:%v\n", notify.OutTradeNo, findErr)
+				c.JSON(http.StatusInternalServerError, v3.NotifyFailResponse("查询订单失败，等待重试"))
+			}
+			return
+		}
+		// 订单已取消（定时任务自动取消）或仍为待支付（金额不匹配）时，触发自动退款
+		if failedOrder.Status == model.OrderStatusCancelled || failedOrder.Status == model.OrderStatusPending {
 				order := failedOrder
 				txnID := notify.TransactionID
 				refundFailed := false
@@ -285,6 +452,24 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 						tx.Model(&lockedOrder).Where("id = ? AND status = ?", lockedOrder.ID, model.OrderStatusPending).
 							Update("status", model.OrderStatusCancelled)
 						order.Status = model.OrderStatusCancelled
+					}
+					// 补建支付记录：用户实际已支付（微信确认），必须落 Payment 记录。
+					// 否则退款补偿任务依赖 payment.TransactionID 重试退款时会查不到流水号而永远跳过，资金滞留。
+					// 幂等：仅当该订单不存在同一 transaction_id 的成功支付记录时创建。
+					var existingPay model.Payment
+					if err := tx.Where("order_id = ? AND transaction_id = ?", order.ID, txnID).First(&existingPay).Error; err != nil {
+						payment := model.Payment{
+							OrderID:       order.ID,
+							PaymentNo:     fmt.Sprintf("PAY%s%s%06d", now.Format("20060102"), now.Format("150405"), order.ID),
+							TransactionID: txnID,
+							Amount:        actualPaidAmount,
+							Method:        "微信支付",
+							Status:        model.PaymentStatusSuccess,
+							PayTime:       &jsonNow,
+						}
+						if err := tx.Create(&payment).Error; err != nil {
+							return err
+						}
 					}
 					// 检查是否已存在该订单的退款记录（行锁内检查，防并发重复创建）
 					// 包含 failed 状态：若存在已失败的退款记录，复用其 refund_no 重置为处理中，
@@ -377,7 +562,6 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 					return
 				}
 			}
-		}
 		// 退款已成功发起或已存在退款记录时返回 SUCCESS
 		c.JSON(http.StatusOK, v3.NotifySuccessResponse())
 		return
@@ -406,6 +590,17 @@ func (h *UserHandler) PayNotify(c *gin.Context) {
 				}
 			}()
 			if paidOrder.InsuranceFee <= 0 {
+				return
+			}
+			// 再查一次保单号 有了就跳过 防支付回调重试重复出单
+			var latestOrder model.Order
+			if err := h.DB.Select("insurance_policy_no").First(&latestOrder, paidOrder.ID).Error; err != nil {
+				log.Printf("[ERROR] PayNotify: 查询订单保单号失败 订单号:%s err:%v\n", notify.OutTradeNo, err)
+				return
+			}
+			if latestOrder.InsurancePolicyNo != "" {
+				log.Printf("[INFO] PayNotify: 保单号已存在，跳过出单 订单号:%s policy_no:%s\n",
+					notify.OutTradeNo, latestOrder.InsurancePolicyNo)
 				return
 			}
 			provider, err := service.GetActiveProvider(h.DB)
@@ -497,6 +692,11 @@ func createWxRefund(cfg wxPayConfig, order model.Order, refundNo string, transac
 // 返回error表示退款失败（支付记录不存在或微信退款API失败）
 // 调用方根据场景自行处理失败：回滚订单(RollbackRefundFailure) 或 标记退款记录失败
 func InitiateWxRefund(db *gorm.DB, order model.Order, refund model.Refund) error {
+	// 0元订单退款（优惠券全额抵扣那种）：本来就没收钱，微信也不支持退0元，
+	// 直接标记退款成功完事，别真去调微信退款接口给自己找麻烦。
+	if refund.Amount <= 0 {
+		return service.MarkRefundSuccess(db, refund)
+	}
 	if !isWxRefundConfigured() {
 		return service.MarkRefundSuccess(db, refund)
 	}
@@ -572,7 +772,7 @@ func (h *UserHandler) RefundNotify(c *gin.Context) {
 				refundUpdatedToSuccess = true
 				log.Printf("[WARN] 退款回调修正：退款记录原为失败状态，微信回调确认退款成功 退款单号:%s\n", refund.RefundNo)
 
-				// 同步更新支付记录状态为已退款
+				// 支付记录状态同步成已退款
 				service.UpdatePaymentStatusRefunded(tx, refund.OrderID)
 
 				// RollbackRefundFailure 已将订单回滚为 PreStatus（1=待出行/2=已完成）

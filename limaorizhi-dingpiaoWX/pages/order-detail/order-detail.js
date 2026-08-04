@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request, BASE_URL } = require('../../utils/request')
 const { formatArrivalTime, getStatusInfo } = require('../../utils/order-helper')
@@ -66,6 +65,24 @@ Page({
       const arrivalTime = order.arrival_time || (order.trip ? order.trip.arrival_time : '')
       const arrivalDayOffset = order.arrival_day_offset != null ? order.arrival_day_offset : (order.trip ? order.trip.arrival_day_offset : 0)
       const arrivalText = formatArrivalTime(arrivalTime, arrivalDayOffset)
+      // 支付流水信息（后端订单详情新增 payment 字段，展示交易单号等）
+      const paymentInfo = res.data.payment || { paid: false }
+      if (paymentInfo.pay_time) {
+        paymentInfo.pay_time_text = formatDateTime(paymentInfo.pay_time)
+      }
+      // 乘车座位文本（在二维码旁大字展示，方便老年人一眼看清）
+      // 有座：3号座 / 3、4号座；全无座：无座；混合：3号座（含无座）
+      const seatTypes = passengers.map(p => p.seat_type)
+      const hasSeat = seatTypes.includes(0) && passengers.some(p => p.seat_type === 0 && p.seat_no)
+      const allStanding = passengers.length > 0 && seatTypes.every(t => t === 1)
+      let seatText = ''
+      if (allStanding) {
+        seatText = '无座'
+      } else if (hasSeat) {
+        const seatNos = passengers.filter(p => p.seat_type === 0 && p.seat_no).map(p => p.seat_no)
+        seatText = seatNos.join('、') + '号座'
+        if (seatTypes.includes(1)) seatText += '（含无座）'
+      }
       this.setData({
         order: {
           ...order,
@@ -77,7 +94,9 @@ Page({
           pay_time: formatDateTime(order.pay_time),
           created_at: formatDateTime(order.created_at)
         },
+        paymentInfo,
         passengers,
+        seatText,
         statusText,
         statusColor,
         isCargo,
@@ -96,11 +115,39 @@ Page({
   handlePay() {
     startPayment(this.data.orderId, {
       confirmContent: `支付金额 ¥${this.data.order.totalPriceText}，确认支付？`,
-      onPaid: () => this.loadOrderDetail(this.data.orderId)
+      onPaid: () => {
+        // 支付回调要过几秒才到后端，立刻刷新还是"待支付"，轮询确认后再刷
+        this._payPollTimes = 0
+        this._pollOrderPaid()
+      }
     })
   },
 
-  // 取消订单
+  // 轮询订单状态：每1秒查一次，确认已支付（status=1）就停，最多8次
+  _pollOrderPaid() {
+    var self = this
+    if (self._payPollTimes >= 8) {
+      self.loadOrderDetail(self.data.orderId)
+      return
+    }
+    self._payPollTimes++
+    request({ url: `/api/wx/orders/${self.data.orderId}`, method: 'GET' }).then(function (res) {
+      if (res.data && res.data.order && res.data.order.status === 1) {
+        self.setData({ needsReload: false })
+        self.loadOrderDetail(self.data.orderId)
+      } else {
+        self._payPollTimer = setTimeout(function () { self._pollOrderPaid() }, 1000)
+      }
+    }).catch(function () {
+      self.loadOrderDetail(self.data.orderId)
+    })
+  },
+
+  onUnload() {
+    clearTimeout(this._payPollTimer)
+  },
+
+  // 退单
   handleCancel() {
     doCancelOrder(this.data.orderId, () => this.loadOrderDetail(this.data.orderId))
   },
@@ -108,6 +155,12 @@ Page({
   // 申请退票/退款（传递订单金额用于展示手续费明细）
   handleRefund() {
     doRefundOrder(this.data.orderId, this.data.isCargo, () => this.loadOrderDetail(this.data.orderId), { total_price: this.data.order.total_price })
+  },
+
+  // 改签：跳转改签选班次页（返回后刷新状态）
+  handleChange() {
+    this.setData({ needsReload: true })
+    wx.navigateTo({ url: `/pages/change-ticket/change-ticket?id=${this.data.orderId}` })
   },
 
   // 下载二维码图片（携带鉴权头）
@@ -164,7 +217,7 @@ Page({
     })
   },
 
-  // 预览二维码
+  // 看二维码
   previewQrcode() {
     if (this.data.qrcodeUrl) {
       wx.previewImage({
@@ -173,7 +226,7 @@ Page({
     }
   },
 
-  // 复制订单号
+  // 复制单号
   copyOrderNo() {
     if (this.data.order) {
       wx.setClipboardData({
@@ -205,7 +258,7 @@ Page({
     this.setData({ showDeleteModal: true, deleteTargetId: id, deleteTipExtra: extra })
   },
 
-  // 确认删除订单
+  // 确认删单
   confirmDelete() {
     doHideOrder(this.data.deleteTargetId, () => {
       this.setData({ showDeleteModal: false })
@@ -213,7 +266,7 @@ Page({
     })
   },
 
-  // 取消删除
+  // 不删了
   cancelDelete() {
     this.setData({ showDeleteModal: false })
   },

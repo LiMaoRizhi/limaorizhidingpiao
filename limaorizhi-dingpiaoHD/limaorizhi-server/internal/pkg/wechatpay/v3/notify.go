@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 // 微信支付 v3 回调通知验签 + AES-256-GCM 解密
 package v3
 

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -29,9 +28,9 @@ func CompleteTrip(tx *gorm.DB, tripID uint) (tripCompleted bool, completedOrders
 		return false, 0, 0, nil // 班次状态已被其他进程修改，跳过
 	}
 	// 已支付订单 → 完成（车票）或已到达（托运）
-	// 车票订单：1=待出行 → 2=已完成；托运订单：1=待运输 → 3=已到达
+	// 车票订单：1=待出行 → 2=已完成；5=已核销（已上车）→ 2=已完成；托运订单：1=待运输 → 3=已到达
 	ticketResult := tx.Model(&model.Order{}).
-		Where("trip_id = ? AND status = ? AND order_type = 1", tripID, model.OrderStatusPaid).
+		Where("trip_id = ? AND status IN (?, ?) AND order_type = 1", tripID, model.OrderStatusPaid, model.OrderStatusPickedUp).
 		Update("status", model.OrderStatusCompleted)
 	if ticketResult.Error != nil {
 		return false, 0, 0, ticketResult.Error
@@ -44,13 +43,23 @@ func CompleteTrip(tx *gorm.DB, tripID uint) (tripCompleted bool, completedOrders
 	}
 	completedOrders = int(ticketResult.RowsAffected + cargoResult.RowsAffected)
 	// 待支付订单 → 已取消（班次已到终点，无法再支付）
-	pendingResult := tx.Model(&model.Order{}).
-		Where("trip_id = ? AND status = ?", tripID, model.OrderStatusPending).
-		Update("status", model.OrderStatusCancelled)
-	if pendingResult.Error != nil {
-		return false, 0, 0, pendingResult.Error
+	var pendingOrders []model.Order
+	if err := tx.Where("trip_id = ? AND status = ?", tripID, model.OrderStatusPending).Find(&pendingOrders).Error; err != nil {
+		return false, 0, 0, err
 	}
-	cancelledPending = int(pendingResult.RowsAffected)
+	for _, po := range pendingOrders {
+		res := tx.Model(&model.Order{}).Where("id = ? AND status = ?", po.ID, model.OrderStatusPending).Update("status", model.OrderStatusCancelled)
+		if res.Error != nil {
+			return false, 0, 0, res.Error
+		}
+		if res.RowsAffected > 0 {
+			cancelledPending++
+			// 归还该订单绑定的优惠券
+			if err := ReturnOrderCoupon(tx, po.ID); err != nil {
+				return false, 0, 0, err
+			}
+		}
+	}
 	return true, completedOrders, cancelledPending, nil
 }
 

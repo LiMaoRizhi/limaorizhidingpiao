@@ -192,6 +192,16 @@ func main() {
 		_, err := wx.CreateWxRefund(order, refund.RefundNo, transactionID, refund.Amount)
 		return err
 	})
+	// 退款对账兜底：退款回调没送达时退款记录卡"处理中"但微信侧钱已退，
+	// 这个函数主动查微信退款状态，补偿任务对账时先用它判断是标记成功还是重试发起。
+	service.SetRefundQueryFunc(wx.QueryRefundStatus)
+	// 支付对账兜底：支付回调没送达时订单卡"待支付/已取消"但微信钱已扣，
+	// 这个任务主动把这类订单拿去问微信，已支付就确认、已取消就登记退款，
+	// 然后上面的退款补偿任务负责把真金白银退回去。存量卡死单就这么救。
+	service.SetPayReconcileFunc(func(db *gorm.DB, order model.Order) (bool, error) {
+		return wx.ReconcileOrderPaidState(db, order)
+	})
+	service.StartPayReconcileChecker(db)
 	service.StartRefundCompensator(db)
 
 	// 前端文件解压到dist/ nginx直接读

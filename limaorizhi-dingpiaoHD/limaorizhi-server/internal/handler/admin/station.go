@@ -1,4 +1,3 @@
-﻿// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -164,7 +163,7 @@ func (h *StationHandler) Delete(c *gin.Context) {
 				panic(r) // FK_CHECKS 已恢复，重抛 panic 供上层事务回滚
 			}
 		}()
-		// 删除线路站点序列中的引用
+		// 把线路站点序列里的引用删掉
 		if err := tx.Where("station_id = ?", id).Delete(&model.RouteStation{}).Error; err != nil {
 			return err
 		}
@@ -207,7 +206,7 @@ func (h *StationHandler) StationRoutes(c *gin.Context) {
 		return
 	}
 
-	// 查询以该站为起点的线路
+	// 以这站为起点的线路
 	var fromRoutes []model.Route
 	h.DB.Preload("FromStation").Preload("ToStation").
 		Where("from_station_id = ?", stationID).Find(&fromRoutes)
@@ -272,7 +271,7 @@ func (h *StationHandler) StationRoutes(c *gin.Context) {
 		})
 	}
 
-	// 查询站点名称
+	// 站点名字
 	var station model.Station
 	h.DB.First(&station, stationID)
 

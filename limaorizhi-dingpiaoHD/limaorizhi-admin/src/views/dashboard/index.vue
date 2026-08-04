@@ -99,7 +99,7 @@ let rankChart: echarts.ECharts | null = null
 let hourChart: echarts.ECharts | null = null
 
 const statusText = (status: number) => {
-  const map: Record<number, string> = { 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消' }
+  const map: Record<number, string> = { 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消', 5: '已核销' }
   return map[status] || '未知'
 }
 const statusTagType = (status: number) => {

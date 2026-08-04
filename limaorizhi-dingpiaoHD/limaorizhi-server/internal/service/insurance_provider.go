@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -11,7 +10,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -90,6 +91,50 @@ func GetActiveProvider(db *gorm.DB) (*model.InsuranceProvider, error) {
 	return &provider, nil
 }
 
+// validateAPIURL 校验出单API地址 防SSRF
+// 只放行HTTPS公网地址 拦截内网IP和localhost
+func validateAPIURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("API地址格式无效: %w", err)
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("API地址必须使用HTTPS")
+	}
+	if u.Host == "" {
+		return fmt.Errorf("API地址缺少主机名")
+	}
+	// 抠出主机名（端口去掉）
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		// 无端口时 u.Host 即为纯主机名
+		host = u.Host
+	}
+	// 禁止 localhost
+	if strings.EqualFold(host, "localhost") {
+		return fmt.Errorf("API地址不允许使用localhost")
+	}
+	// DNS解析并检查是否为私有/内网IP
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return fmt.Errorf("无法解析API地址域名: %s, err: %w", host, err)
+	}
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
+			return fmt.Errorf("API地址不允许指向内网IP: %s (%s)", host, ip.String())
+		}
+	}
+	return nil
+}
+
+// isPrivateIP 是否私有/内网地址
+func isPrivateIP(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+	return ip.IsPrivate()
+}
+
 // IssuePolicy 调用保险公司出单API获取保单号。
 // 流程：组装业务字段 → HMAC-SHA256签名 → POST JSON → 解析响应。
 // 失败重试最多2次（共3次），全部失败返回错误。
@@ -100,6 +145,10 @@ func IssuePolicy(db *gorm.DB, order model.Order, passengers []model.OrderPasseng
 	}
 	if provider.APIURL == "" || provider.AppID == "" || provider.AppSecret == "" {
 		return "", fmt.Errorf("保险公司配置不完整: name=%s", provider.Name)
+	}
+	// 防SSRF：校验API地址合法性
+	if err := validateAPIURL(provider.APIURL); err != nil {
+		return "", fmt.Errorf("保险公司API地址校验失败: name=%s err=%w", provider.Name, err)
 	}
 
 	// 组装业务字段
@@ -112,7 +161,10 @@ func IssuePolicy(db *gorm.DB, order model.Order, passengers []model.OrderPasseng
 			Phone:      p.Phone,
 		})
 	}
-	nonce, _ := generateNonce(16)
+	nonce, err := generateNonce(16)
+	if err != nil {
+		return "", fmt.Errorf("生成nonce失败: %w", err)
+	}
 	req := insuranceIssueRequest{
 		AppID:         provider.AppID,
 		ProductCode:   provider.ProductCode,
@@ -128,7 +180,11 @@ func IssuePolicy(db *gorm.DB, order model.Order, passengers []model.OrderPasseng
 		Timestamp:     time.Now().Unix(),
 		Nonce:         nonce,
 	}
-	req.Signature = signInsuranceRequest(req, provider.AppSecret)
+	sig, err := signInsuranceRequest(req, provider.AppSecret)
+	if err != nil {
+		return "", fmt.Errorf("生成签名失败: %w", err)
+	}
+	req.Signature = sig
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -195,9 +251,12 @@ func callInsuranceAPI(client *http.Client, apiURL string, body []byte) (string, 
 // signInsuranceRequest 按业务字段(除 signature)key 升序拼成 k=v&k=v，
 // 用 app_secret 做 HMAC-SHA256，hex 输出。
 // passengers 字段以 JSON 字符串参与签名（保证完整且顺序固定）。
-func signInsuranceRequest(req insuranceIssueRequest, appSecret string) string {
+func signInsuranceRequest(req insuranceIssueRequest, appSecret string) (string, error) {
 	// 准备各字段值字符串（passengers 取 JSON）
-	psgJSON, _ := json.Marshal(req.Passengers)
+	psgJSON, err := json.Marshal(req.Passengers)
+	if err != nil {
+		return "", fmt.Errorf("序列化乘客列表失败: %w", err)
+	}
 	fields := map[string]string{
 		"app_id":         req.AppID,
 		"product_code":   req.ProductCode,
@@ -209,7 +268,7 @@ func signInsuranceRequest(req insuranceIssueRequest, appSecret string) string {
 		"passengers":     string(psgJSON),
 		"contact_name":   req.ContactName,
 		"contact_phone":  req.ContactPhone,
-		"premium":        fmt.Sprintf("%v", req.Premium),
+		"premium":        fmt.Sprintf("%.2f", req.Premium),
 		"timestamp":      fmt.Sprintf("%d", req.Timestamp),
 		"nonce":          req.Nonce,
 	}
@@ -230,7 +289,7 @@ func signInsuranceRequest(req insuranceIssueRequest, appSecret string) string {
 	}
 	mac := hmac.New(sha256.New, []byte(appSecret))
 	mac.Write([]byte(b.String()))
-	return hex.EncodeToString(mac.Sum(nil))
+	return hex.EncodeToString(mac.Sum(nil)), nil
 }
 
 // generateNonce 生成随机 hex 字符串作为 nonce

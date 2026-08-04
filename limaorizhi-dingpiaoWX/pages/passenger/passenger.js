@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request } = require('../../utils/request')
 
@@ -19,6 +18,12 @@ Page({
   },
 
   onShow() {
+    // 需要登录才能加载乘客列表，未登录跳转登录页
+    const token = wx.getStorageSync('user_token')
+    if (!token) {
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
     this.loadPassengers()
   },
 
@@ -32,12 +37,12 @@ Page({
     }).catch((e) => { log.error('加载乘客列表失败', e) })
   },
 
-  // 跳转到新增页面
+  // 去新增
   showAddForm() {
     wx.navigateTo({ url: '/pages/passenger-form/passenger-form' })
   },
 
-  // 跳转到编辑页面
+  // 去编辑
   showEditForm(e) {
     if (this.data.selectMode) return // 勾选模式下不触发编辑
     const item = e.currentTarget.dataset.item
@@ -45,7 +50,7 @@ Page({
     wx.navigateTo({ url: '/pages/passenger-form/passenger-form?mode=edit' })
   },
 
-  // 删除乘客
+  // 删乘客
   deletePassenger(e) {
     const id = e.currentTarget.dataset.id
     wx.showModal({
@@ -76,7 +81,6 @@ Page({
     } else {
       ids.push(id)
     }
-    // 更新每个乘客的 checked 状态
     const passengers = this.data.passengers.map(p => ({
       ...p,
       checked: ids.indexOf(String(p.id)) !== -1
@@ -84,7 +88,7 @@ Page({
     this.setData({ selectedIds: ids, passengers })
   },
 
-  // 确认选择，将选中乘客写入 storage 并返回
+  // 确认选择，选中乘客写入 storage 返回
   confirmSelection() {
     const ids = this.data.selectedIds
     if (!ids.length) {

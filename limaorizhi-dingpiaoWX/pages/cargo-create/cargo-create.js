@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request, checkLogin } = require('../../utils/request')
 const stationPickerMixin = require('../../utils/station-picker-mixin')
@@ -22,7 +21,6 @@ Page({
     focusedField: '',
     // 运费预估
     feePreview: null,
-    // 提交中
     submitting: false,
     cargoTypes: ['日用品', '食品', '文件', '衣物', '电子产品', '其他'],
     maxWeight: 50, // 默认值，从后端配置获取
@@ -67,7 +65,7 @@ Page({
     }
   },
 
-  // 加载后端配置获取最大重量
+  // 拉配置，拿最大重量
   loadConfig() {
     request({ url: '/api/wx/config', method: 'GET' }).then(res => {
       const config = res.data || {}
@@ -86,7 +84,7 @@ Page({
     this.loadTrips()
   },
 
-  // 加载站点列表
+  // 拉站点列表
   loadStations() {
     request({ url: '/api/wx/stations', method: 'GET' }).then(res => {
       const stations = res.data || []
@@ -94,7 +92,7 @@ Page({
     }).catch((e) => { log.error('加载站点失败', e) })
   },
 
-  // 加载班次列表（按站点+日期筛选，用户手动选择）
+  // 拉班次（按站点+日期筛，用户自己选）
   loadTrips() {
     const { tripDate, selectedFromStation, selectedToStation } = this.data
     let url = `/api/wx/trips?trip_date=${tripDate}`
@@ -114,14 +112,14 @@ Page({
     }).catch((e) => { log.error('加载班次列表失败', e) })
   },
 
-  // 用户手动选择班次
+  // 用户自己选的班次
   selectTrip(e) {
     const trip = e.currentTarget.dataset.trip
     if (trip.status !== 1 || trip.available_seats <= 0) {
       wx.showToast({ title: '该班次暂无可用余票', icon: 'none' })
       return
     }
-    // 预计算跨天到达文案
+    // 先把跨天到达文案算好
     const selectedTrip = { ...trip, arrival_text: formatArrivalTime(trip.arrival_time, trip.arrival_day_offset) }
     const routeStations = (trip.route && trip.route.route_stations) ? trip.route.route_stations : []
     let fromStationId = 0, toStationId = 0
@@ -138,7 +136,7 @@ Page({
     })
   },
 
-  // 返回班次选择
+  // 回班次选择
   backToSelectTrip() {
     this.setData({ selectedTrip: null, routeStations: [], feePreview: null })
   },
@@ -180,7 +178,7 @@ Page({
   onFieldFocus(e) { this.setData({ focusedField: e.currentTarget.dataset.field }) },
   onFieldBlur() { this.setData({ focusedField: '' }) },
 
-  // 输入处理
+  // 输入框各种输入
   onSenderNameInput(e) { this.setData({ senderName: e.detail.value }) },
   onSenderPhoneInput(e) { this.setData({ senderPhone: e.detail.value }) },
   onReceiverNameInput(e) { this.setData({ receiverName: e.detail.value }) },
@@ -218,7 +216,7 @@ Page({
     }).catch((e) => { log.error('运费预估失败', e) })
   },
 
-  // 提交下单
+  // 提交订单
   handleSubmit() {
     if (!this.data.selectedTrip) {
       wx.showToast({ title: '暂无可选班次', icon: 'none' })

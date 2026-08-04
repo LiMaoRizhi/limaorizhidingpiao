@@ -1,5 +1,4 @@
 // 管理后台 - 司机管理（CRUD，仅超管可写）
-// 接 /api/wx/admin/drivers（后端 RequireSuperAdmin）
 const { request } = require('../../utils/request')
 
 const STATUS_TABS = [
@@ -15,6 +14,7 @@ Page({
     statusTabs: STATUS_TABS,
     activeStatus: '',
     keyword: '',
+    inputFocused: '',
     list: [],
     page: 1,
     pageSize: 20,
@@ -40,6 +40,14 @@ Page({
     if (role === 1) {
       this.loadList()
     }
+  },
+
+  // 输入框聚焦/失焦（黑框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   loadList(append) {
@@ -99,7 +107,7 @@ Page({
     wx.makePhoneCall({ phoneNumber: phone })
   },
 
-  // ===== 新增 / 编辑 / 删除 / 启用禁用 =====
+  // 新增 / 编辑 / 删除 / 启用禁用
   preventBubble() {},
 
   openAdd() {

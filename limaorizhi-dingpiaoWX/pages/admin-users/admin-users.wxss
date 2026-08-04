@@ -30,11 +30,17 @@ page {
   display: flex;
   flex-direction: row;
   align-items: center;
-  border: 1px solid #ddd;
+  background: #fff;
+  border: 1px solid #1a1a1a;
   border-radius: 8px;
   padding: 0 10px;
   height: 32px;
   box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+/* 点击（聚焦）边框变蓝 */
+.search-box.focused {
+  border-color: #409eff;
 }
 .search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
 .search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }

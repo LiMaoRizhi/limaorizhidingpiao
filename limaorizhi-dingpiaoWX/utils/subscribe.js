@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818
 
 // 订阅消息工具
 // 微信订阅消息机制：用户每次通过 wx.requestSubscribeMessage 授权一个模板，后端获得1次发送配额

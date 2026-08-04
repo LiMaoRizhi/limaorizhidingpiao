@@ -54,25 +54,26 @@ page {
   background: #1296db;
 }
 
-/* 订单列表 */
+/* 订单列表（间距与首页车票列表一致，保证卡片分隔层次感） */
 .order-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 16px;
 }
 
 .order-card {
   background: #fff;
   border-radius: 12px;
-  padding: 16px 20px;
+  padding: 18px 20px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.order-card-tap:active {
-  opacity: 0.85;
-}
+/* ===== 以下样式完全对齐首页 route-card 三层结构 ===== */
 
-.order-header {
+/* 第一层：路线 + 状态标签（对齐首页 route-top） */
+.order-top {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -80,187 +81,177 @@ page {
   margin-bottom: 14px;
 }
 
-.order-no {
-  font-size: 13px;
-  color: #999;
-}
-
-.type-tag {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 500;
-  margin-right: 4px;
-}
-.type-tag.ticket {
-  background: transparent;
-  border: 1px solid #d0d0d0;
-  color: #1a1a1a;
-}
-.type-tag.cargo {
-  background: transparent;
-  border: 1px solid #d0d0d0;
-  color: #1a1a1a;
-}
-
-.order-status {
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid #d0d0d0;
-  background: transparent;
-}
-
-.status-pending-pay {
-  color: #ff3b30;
-  border-color: rgba(255, 59, 48, 0.5);
-}
-
-.status-pending-travel {
-  color: #34c759;
-  border-color: rgba(52, 199, 89, 0.5);
-}
-
-.status-completed {
-  color: #8a8a8a;
-}
-
-.status-refunded {
-  color: #ff3b30;
-  border-color: rgba(255, 59, 48, 0.5);
-}
-
-.order-route {
+.order-path {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-bottom: 14px;
+  flex: 1;
 }
 
-.route-city {
+.order-from,
+.order-to {
   font-size: 19px;
   font-weight: bold;
   color: #1a1a1a;
 }
 
-.route-arrow {
-  flex: 1;
+.order-nav-icon {
+  width: 20px;
+  height: 20px;
+  margin: 0 10px;
+}
+
+.order-status-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  border-radius: 12px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+/* 状态标签颜色（黑白蓝主题：待支付警示红，待出行/运输用蓝，已退款/取消用黑灰） */
+.order-status-tag.status-0 { color: #ff3b30; border-color: rgba(255, 59, 48, 0.5); }
+.order-status-tag.status-1 { color: #1296db; border-color: rgba(18, 150, 219, 0.5); }
+.order-status-tag.status-2 { color: #8a8a8a; }
+.order-status-tag.status-3 { color: #1a1a1a; border-color: rgba(26, 26, 26, 0.4); }
+.order-status-tag.status-4 { color: #8a8a8a; }
+
+/* 第二层：行程信息（对齐首页 route-via 的分隔线风格） */
+.order-trip {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin: 0 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
 }
 
-.arrow-line {
-  flex: 1;
-  height: 1px;
-  background: #e0e0e0;
-}
-
-.arrow-icon {
-  font-size: 16px;
-  color: #ccc;
-  margin: 0 6px;
-}
-
-.arrow-icon-img {
+.order-bus-icon {
   width: 20px;
   height: 20px;
-  margin: 0 6px;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
-.order-info {
+.order-time {
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+}
+
+.order-type-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #1a1a1a;
+  padding: 1px 6px;
+  background: transparent;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-weight: 500;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* 无座站票徽标（黑白配色） */
+.order-standing-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #fff;
+  background: #1a1a1a;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.order-seats {
+  font-size: 13px;
+  color: #666;
+  margin-left: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 第三层：价格 + 操作按钮（一行规整排布，按钮过多时允许换行防止溢出卡片） */
+.order-bottom {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  row-gap: 10px;
 }
 
-.info-time {
-  font-size: 14px;
-  color: #666;
+/* 订单号独立行（不与金额/按钮挤在同一行，布局更规整） */
+.order-no-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f5f5f5;
 }
 
-.info-right {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.info-seats {
-  font-size: 13px;
+.order-no {
+  font-size: 12px;
   color: #999;
 }
 
-.info-price {
-  font-size: 20px;
+.order-action-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  row-gap: 8px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.order-price {
+  font-size: 22px;
   font-weight: bold;
   color: #1a1a1a;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
-.order-footer {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 0.5px solid #f0f0f0;
+/* 操作按钮：紧凑胶囊，保持原尺寸 */
+.order-action-secondary {
+  padding: 8px 16px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  border: 1px solid #1a1a1a;
+  margin-right: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
-.order-action {
+/* 主操作按钮 */
+.order-btn {
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
   padding: 8px 24px;
   border-radius: 22px;
-  font-size: 15px;
-  font-weight: 500;
-  box-sizing: border-box;
-  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 10;
 }
 
-.order-action-secondary {
-  padding: 8px 20px;
-  border-radius: 22px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #999;
-  border: 1px solid #e0e0e0;
-  margin-right: 10px;
-}
-
-.action-pending-pay {
-  background: #ff3b30;
-  color: #fff;
-}
-
-.action-pending-travel {
-  background: #1a1a1a;
-  color: #fff;
-}
-
-.action-completed {
-  background: #1a1a1a;
-  color: #fff;
-}
-
-.action-refunded {
-  background: #1a1a1a;
-  color: #fff;
-}
-
-/* 数字状态类 */
-.status-0 { color: #ff3b30; border-color: rgba(255, 59, 48, 0.5); }
-.status-1 { color: #34c759; border-color: rgba(52, 199, 89, 0.5); }
-.status-2 { color: #8a8a8a; }
-.status-3 { color: #ff3b30; border-color: rgba(255, 59, 48, 0.5); }
-.status-4 { color: #8a8a8a; }
-
-.action-0 { background: #1a1a1a; color: #fff; }
-.action-1 { background: #1a1a1a; color: #fff; }
-.action-2 { background: #1a1a1a; color: #fff; }
-.action-3 { background: transparent; color: #666; border-color: #d0d0d0; }
-.action-4 { background: transparent; color: #666; border-color: #d0d0d0; }
+.order-btn.action-0 { background: #1a1a1a; color: #fff; }
+.order-btn.action-1 { background: #1a1a1a; color: #fff; }
+.order-btn.action-2 { background: #1a1a1a; color: #fff; }
+.order-btn.action-3 { background: transparent; color: #666; border: 1px solid #d0d0d0; box-shadow: none; }
+.order-btn.action-4 { background: transparent; color: #666; border: 1px solid #d0d0d0; box-shadow: none; }
 
 /* 空状态 */
 .empty-state {
@@ -314,7 +305,7 @@ page {
   text-align: center;
   font-size: 18px;
   font-weight: 600;
-  color: #ff3b30;
+  color: #1a1a1a;
   margin-top: 28px;
 }
 .delete-desc {

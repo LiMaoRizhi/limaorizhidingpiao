@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package model
 
 import (
@@ -60,7 +59,7 @@ func (d JSONDate) Value() (driver.Value, error) {
 }
 
 // JSONTime 自定义时间类型，JSON序列化输出 "2006-01-02 15:04:05" 格式
-// 用于 CreatedAt、UpdatedAt、PayTime 等需要精确到秒的字段
+// CreatedAt/UpdatedAt/PayTime 这些要精确到秒的字段用这个
 type JSONTime time.Time
 
 // MarshalJSON 实现 json.Marshaler 接口

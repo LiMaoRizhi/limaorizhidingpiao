@@ -5,7 +5,7 @@
   "type": "module",
   "author": "limaorizhi",
   "description": "狸猫日志售票系统 (limaorizhi Ticketing System) - 管理后台前端",
-  "license": "Copyright (c) limaorizhi. All rights reserved.",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",

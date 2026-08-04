@@ -1,14 +1,24 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
 	"fmt"
+	"time"
 
 	"limaorizhi-server/internal/model"
 	"limaorizhi-server/internal/pkg/triptime"
 
 	"gorm.io/gorm"
 )
+
+// addDays 把 YYYY-MM-DD 日期字符串加减 n 天，解析失败就原样返回（老数据只能这样）
+// 跨天班次用：昨晚23:00发的车，今天凌晨1点才到，查今天班次时也得把昨天的车算上
+func addDays(dateStr string, n int) string {
+	d, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+	if err != nil {
+		return dateStr
+	}
+	return d.AddDate(0, 0, n).Format("2006-01-02")
+}
 
 // ConflictInfo 冲突详情（供管理员确认后决定是否强制分配）
 type ConflictInfo struct {
@@ -38,27 +48,6 @@ type TripConflictCheck struct {
 	ToStationID      uint   // 新班次终点站ID
 }
 
-// tripsTimeOverlap 判断两个同日发车班次的时间段是否重叠，支持跨天偏移
-// baseDate 为发车日期；dep*/arr* 为 HH:MM[:SS] 时刻；off* 为到达天数偏移
-// 解析失败时降级为字符串比较（向后兼容旧数据）
-func tripsTimeOverlap(baseDate, dep1, arr1 string, off1 int, dep2, arr2 string, off2 int) bool {
-	d1 := triptime.MustParse(baseDate, dep1)
-	a1 := triptime.MustParse(baseDate, arr1)
-	if off1 > 0 {
-		a1 = a1.AddDate(0, 0, off1)
-	}
-	d2 := triptime.MustParse(baseDate, dep2)
-	a2 := triptime.MustParse(baseDate, arr2)
-	if off2 > 0 {
-		a2 = a2.AddDate(0, 0, off2)
-	}
-	if d1.IsZero() || a1.IsZero() || d2.IsZero() || a2.IsZero() {
-		// 解析失败降级为字符串比较（不感知跨天）
-		return dep1 < arr2 && arr1 > dep2
-	}
-	return d1.Before(a2) && a1.After(d2)
-}
-
 // CheckTripConflict 检查班次冲突（司机时间重叠、车辆时间重叠、位置断层）
 // 使用站点ID进行比较，避免站点名称比较的误判
 // 返回所有冲突列表（硬冲突+软警告），调用方根据业务决定是否阻止
@@ -74,10 +63,13 @@ func CheckTripConflict(db *gorm.DB, check TripConflictCheck) []ConflictInfo {
 
 	// 司机冲突检测
 	if check.DriverID > 0 {
+		// 查前后各1天的班次：跨天班次（次日凌晨才到）司机可能还在上一趟车上，
+		// 只查当天会漏检。具体重不重叠下面用完整时间判断，这里宁可多查不能漏。
+		dateFrom, dateTo := addDays(check.TripDate, -1), addDays(check.TripDate, 1)
 		var allTrips []model.Trip
 		if err := db.Preload("Route.FromStation").Preload("Route.ToStation").
-			Where("driver_id = ? AND trip_date = ? AND status IN (?, ?) AND id != ?",
-				check.DriverID, check.TripDate, model.TripStatusSale, model.TripStatusDepart, check.ExcludeTripID).
+			Where("driver_id = ? AND trip_date BETWEEN ? AND ? AND status IN (?, ?) AND id != ?",
+				check.DriverID, dateFrom, dateTo, model.TripStatusSale, model.TripStatusDepart, check.ExcludeTripID).
 			Order("departure_time ASC").Find(&allTrips).Error; err != nil {
 			// DB查询失败时 fail-safe：返回冲突信息阻止操作，防止漏检导致冲突分配
 			conflicts = append(conflicts, ConflictInfo{
@@ -98,8 +90,10 @@ func CheckTripConflict(db *gorm.DB, check TripConflictCheck) []ConflictInfo {
 			}
 
 			// 1. 时间重叠检测（硬冲突）—— 跨天感知
-			ctDep := triptime.MustParse(check.TripDate, ct.DepartureTime)
-			ctArr := triptime.MustParse(check.TripDate, ct.ArrivalTime)
+			// 注意：查出来的班次可能不是当天发的（前后各放宽了1天），
+			// 所以解析时刻必须用人家自己的发车日期，不能用新班次的日期，不然就错乱了
+			ctDep := triptime.MustParse(string(ct.TripDate), ct.DepartureTime)
+			ctArr := triptime.MustParse(string(ct.TripDate), ct.ArrivalTime)
 			if ct.ArrivalDayOffset > 0 {
 				ctArr = ctArr.AddDate(0, 0, ct.ArrivalDayOffset)
 			}
@@ -183,10 +177,12 @@ func CheckTripConflict(db *gorm.DB, check TripConflictCheck) []ConflictInfo {
 
 	// 车辆冲突检测
 	if check.VehicleID > 0 {
+		// 跟司机一样：跨天班次车还没回来，前后各放宽1天查，别漏
+		dateFrom, dateTo := addDays(check.TripDate, -1), addDays(check.TripDate, 1)
 		var vehicleTrips []model.Trip
 		if err := db.Preload("Route.FromStation").Preload("Route.ToStation").
-			Where("vehicle_id = ? AND trip_date = ? AND status IN (?, ?) AND id != ?",
-				check.VehicleID, check.TripDate, model.TripStatusSale, model.TripStatusDepart, check.ExcludeTripID).
+			Where("vehicle_id = ? AND trip_date BETWEEN ? AND ? AND status IN (?, ?) AND id != ?",
+				check.VehicleID, dateFrom, dateTo, model.TripStatusSale, model.TripStatusDepart, check.ExcludeTripID).
 			Find(&vehicleTrips).Error; err != nil {
 			// DB查询失败时 fail-safe：返回冲突信息阻止操作
 			conflicts = append(conflicts, ConflictInfo{
@@ -197,9 +193,9 @@ func CheckTripConflict(db *gorm.DB, check TripConflictCheck) []ConflictInfo {
 		}
 
 		for _, vt := range vehicleTrips {
-			// 跨天感知：车辆时间重叠检测
-			vtDep := triptime.MustParse(check.TripDate, vt.DepartureTime)
-			vtArr := triptime.MustParse(check.TripDate, vt.ArrivalTime)
+			// 跨天感知：车辆时间重叠检测（同样用班次自己的日期解析，别用新班次的日期）
+			vtDep := triptime.MustParse(string(vt.TripDate), vt.DepartureTime)
+			vtArr := triptime.MustParse(string(vt.TripDate), vt.ArrivalTime)
 			if vt.ArrivalDayOffset > 0 {
 				vtArr = vtArr.AddDate(0, 0, vt.ArrivalDayOffset)
 			}

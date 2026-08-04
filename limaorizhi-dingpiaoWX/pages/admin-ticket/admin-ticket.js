@@ -1,5 +1,4 @@
 // 管理后台 - 售票管理（班次 + 票价，照搬后端 trips.vue）
-// 接 /api/wx/admin/trips，超管可增删改
 const { request } = require('../../utils/request')
 
 // 班次状态：1=可售 2=已发车 3=已取消 0=下架 4=已完成
@@ -26,6 +25,7 @@ Page({
     statusTabs: STATUS_TABS,
     activeStatus: '',
     keyword: '',         // 班次号搜索
+    inputFocused: '',    // 当前聚焦的输入框（黑线框点击变蓝）
     tripDate: '',        // 发车日期筛选
     routes: [],          // 线路筛选下拉（含“全部线路”）
     routeIndex: 0,
@@ -106,6 +106,14 @@ Page({
     this.loadList()
   },
 
+  // 输入框聚焦/失焦（黑线框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
+  },
+
   // 筛选线路下拉（含“全部线路”）
   loadRoutes() {
     request({ url: '/api/wx/admin/routes/all', method: 'GET', silent: true }).then(res => {
@@ -174,7 +182,7 @@ Page({
       arrival_date: this.arrivalDateStr(t.trip_date, offset),
       arrival_day_offset: offset,
       vehicle_plate: vehicle.plate_no || '未分配',
-      driver_text: t.driver_id ? ('司机#' + t.driver_id) : '未分配',
+      driver_text: t.driver && t.driver.name ? t.driver.name : (t.driver_id ? ('司机#' + t.driver_id) : '未分配'),
       total_seats: t.total_seats || 0,
       available_seats: t.available_seats || 0,
       base_price: (t.base_price || 0).toFixed(2),
@@ -219,7 +227,7 @@ Page({
   onPullDownRefresh() { this.loadList(false); wx.stopPullDownRefresh() },
   onLoadMore() { this.loadList(true) },
 
-  // ===== 表单下拉选项懒加载 =====
+  // 表单下拉选项懒加载
   loadFormRoutes() {
     if (this.data.formRoutes.length > 0) return Promise.resolve()
     return request({ url: '/api/wx/admin/routes/all', method: 'GET', silent: true }).then(res => {
@@ -249,7 +257,7 @@ Page({
     }).catch(() => {})
   },
 
-  // ===== 新增 / 编辑 / 删除 =====
+  // 新增 / 编辑 / 删除
   openAdd() {
     if (!this.data.isSuperAdmin) return
     Promise.all([this.loadFormRoutes(), this.loadFormVehicles(), this.loadFormDrivers()]).then(() => {
@@ -374,8 +382,35 @@ Page({
       wx.showToast({ title: isEdit ? '已保存' : '已新增', icon: 'success' })
       this.setData({ submitting: false, formVisible: false })
       this.loadList(false)
-    }).catch(() => {
+    }).catch(err => {
       wx.hideLoading()
+      // 冲突响应（软警告如位置断层）：弹窗展示冲突详情，允许管理员强制保存（硬冲突后端仍会拦截）
+      const conflicts = err && err.data && err.data.conflicts
+      if (conflicts && conflicts.length > 0) {
+        wx.showModal({
+          title: '调度冲突提示',
+          content: (err.message || '该司机/车辆在此日期有冲突') + '\n\n员工不足时可强制保存（时间重叠/车辆占用仍不可强制）',
+          confirmText: '强制保存', confirmColor: '#fa8c16',
+          cancelText: '取消',
+          success: r => {
+            if (!r.confirm) { this.setData({ submitting: false }); return }
+            this.setData({ submitting: true })
+            wx.showLoading({ title: '保存中...', mask: true })
+            request({ url, method: isEdit ? 'PUT' : 'POST', data: Object.assign({}, payload, { force: true }) })
+              .then(() => {
+                wx.hideLoading()
+                wx.showToast({ title: isEdit ? '已保存' : '已新增', icon: 'success' })
+                this.setData({ submitting: false, formVisible: false })
+                this.loadList(false)
+              })
+              .catch(() => {
+                wx.hideLoading()
+                this.setData({ submitting: false })
+              })
+          }
+        })
+        return
+      }
       this.setData({ submitting: false })
     })
   },
@@ -407,12 +442,13 @@ Page({
     return d.getFullYear() + '-' + m + '-' + day
   },
 
-  // ===== 批量生成班次 =====
+  // 批量生成班次
   openBatch() {
     if (!this.data.isSuperAdmin) return
     Promise.all([this.loadFormRoutes(), this.loadFormVehicles(), this.loadFormDrivers()]).then(() => {
       this.setData({
         batchVisible: true,
+        batchMinDate: this.todayStr(),
         batchForm: { route_id: 0, vehicle_id: 0, driver_id: 0, base_price: '', departure_time: '', arrival_time: '', arrival_day_offset: 0 },
         batchRouteIndex: 0, batchVehicleIndex: 0, batchDriverIndex: 0,
         batchDateInput: this.todayStr(), selectedDates: []
@@ -449,6 +485,7 @@ Page({
   addBatchDate() {
     const d = this.data.batchDateInput
     if (!d) { wx.showToast({ title: '请选择日期', icon: 'none' }); return }
+    if (d < this.todayStr()) { wx.showToast({ title: '不能添加过去的日期', icon: 'none' }); return }
     if (this.data.selectedDates.indexOf(d) >= 0) {
       wx.showToast({ title: '该日期已添加', icon: 'none' }); return
     }
@@ -498,7 +535,7 @@ Page({
     })
   },
 
-  // ===== 乘客名单（只读） =====
+  // 乘客名单（只读）
   openPassengers(e) {
     const id = e.currentTarget.dataset.id
     const item = this.data.list.find(t => t.id === id)
@@ -531,7 +568,7 @@ Page({
   },
   closePassengers() { this.setData({ passengersVisible: false }) },
 
-  // ===== 每站票价（只读，展示线路的累计票价表） =====
+  // 每站票价（只读，展示线路累计票价）
   openFare(e) {
     const id = e.currentTarget.dataset.id
     const item = this.data.list.find(t => t.id === id)
@@ -567,7 +604,7 @@ Page({
   },
   closeFare() { this.setData({ fareVisible: false }) },
 
-  // ===== 清理历史班次 =====
+  // 清理历史班次
   openCleanup() {
     if (!this.data.isSuperAdmin) return
     this.setData({

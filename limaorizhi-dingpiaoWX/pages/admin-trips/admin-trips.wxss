@@ -4,7 +4,9 @@ page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; b
 
 .filter-bar { background: #fff; padding: 8px 12px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
 .search-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; }
+.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; transition: border-color 0.2s; }
+/* 点击（聚焦）边框变蓝 */
+.search-box.focused { border-color: #409eff; }
 .search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
 .search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }
 .search-clear { width: 18px; height: 18px; line-height: 18px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 14px; }
@@ -41,6 +43,7 @@ page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; b
 .seat-info, .assign-info { display: flex; flex-direction: row; align-items: center; font-size: 11px; color: #999; }
 .meta-divider { margin: 0 5px; color: #ddd; }
 .assign-text { color: #666; }
+.standing-text { color: #ff9500; margin-right: 6px; flex-shrink: 0; }
 
 .status-tag { font-size: 11px; padding: 1px 7px; border-radius: 12px; flex-shrink: 0; border: 1px solid; box-sizing: border-box; }
 .status-sale { background: transparent; color: #52c41a; border-color: #52c41a; }
@@ -66,11 +69,18 @@ page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; b
 .form-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
 .form-body { padding: 0 16px; max-height: 60vh; }
 .form-item { padding: 8px 0; }
+.form-item-column { display: flex; flex-direction: column; }
+.switch-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.switch-row .form-label { margin-bottom: 0; }
+.form-hint { font-size: 11px; color: #bbb; margin-top: 4px; }
 .form-label { display: block; font-size: 12px; color: #999; margin-bottom: 6px; }
 .req { color: #ff4d4f; }
-.form-input { background: #f5f6f8; border-radius: 8px; height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; }
+.form-input { background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; transition: border-color 0.2s; }
+/* 聚焦边框变蓝 */
+.form-input.focused { border-color: #409eff; }
 .form-picker { width: 100%; }
-.picker-text { background: #f5f6f8; border-radius: 8px; height: 38px; line-height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.picker-text { background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; height: 38px; line-height: 38px; padding: 0 12px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: space-between; transition: border-color 0.2s; }
+.picker-text:active { border-color: #409eff; }
 .picker-arrow { color: #bbb; margin-left: 8px; }
 
 .action-bar { display: flex; flex-direction: row; gap: 10px; padding: 12px 16px 20px; border-top: 0.5px solid #f0f0f0; }

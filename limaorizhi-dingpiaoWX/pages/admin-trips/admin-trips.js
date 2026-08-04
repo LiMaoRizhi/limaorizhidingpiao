@@ -1,5 +1,4 @@
 // 管理后台 - 班次管理（超管可增删改）
-// 接 /api/wx/admin/trips + /api/wx/admin/routes/all（线路筛选下拉）
 const { request } = require('../../utils/request')
 
 // 班次状态：1=可售 2=已发车 3=已取消 0=下架 4=已完成
@@ -26,6 +25,7 @@ Page({
     statusTabs: STATUS_TABS,
     activeStatus: '',
     keyword: '',        // 班次号搜索
+    inputFocused: '',   // 当前聚焦的输入框（黑色输入框聚焦变蓝）
     tripDate: '',       // 发车日期筛选
     routes: [],         // 线路筛选下拉（含“全部线路”）
     routeIndex: 0,      // 选中的筛选线路下标（0=全部）
@@ -57,7 +57,8 @@ Page({
     form: {
       id: 0, route_id: 0, vehicle_id: 0, driver_id: 0,
       trip_no: '', trip_date: '', departure_time: '', arrival_time: '',
-      arrival_day_offset: 0, total_seats: '', base_price: '', status: 1
+      arrival_day_offset: 0, total_seats: '', base_price: '', status: 1,
+      allow_standing: false, standing_quota: '', standing_discount: '1'
     },
     tripRouteIndex: 0,
     tripVehicleIndex: 0,
@@ -71,6 +72,14 @@ Page({
     this.setData({ isSuperAdmin: userInfo.admin_role === 1 })
     this.loadRoutes()
     this.loadList()
+  },
+
+  // 输入框聚焦/失焦（黑框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   // 筛选线路下拉（含“全部线路”）
@@ -141,10 +150,15 @@ Page({
       arrival_time: t.arrival_time || '',
       arrival_day_offset: t.arrival_day_offset || 0,
       vehicle_plate: vehicle.plate_no || '未分配',
-      driver_text: t.driver_id ? ('司机#' + t.driver_id) : '未分配',
+      driver_text: t.driver && t.driver.name ? t.driver.name : (t.driver_id ? ('司机#' + t.driver_id) : '未分配'),
       total_seats: t.total_seats || 0,
       available_seats: t.available_seats || 0,
       base_price: (t.base_price || 0).toFixed(2),
+      allow_standing: t.allow_standing === true,
+      standing_quota: t.standing_quota || 0,
+      standing_sold: t.standing_sold || 0,
+      standing_discount: t.standing_discount || 1,
+      standing_left: Math.max(0, (t.standing_quota || 0) - (t.standing_sold || 0)),
       status,
       statusText: TRIP_STATUS_TEXT[status] || '未知',
       statusCls: CLS_MAP[status] || ''
@@ -175,7 +189,7 @@ Page({
   onPullDownRefresh() { this.loadList(false); wx.stopPullDownRefresh() },
   onLoadMore() { this.loadList(true) },
 
-  // ===== 表单下拉选项懒加载 =====
+  // 表单下拉选项懒加载
   loadFormRoutes() {
     if (this.data.formRoutes.length > 0) return Promise.resolve()
     return request({ url: '/api/wx/admin/routes/all', method: 'GET', silent: true }).then(res => {
@@ -205,13 +219,13 @@ Page({
     }).catch(() => {})
   },
 
-  // ===== 新增 / 编辑 / 删除 =====
+  // 新增 / 编辑 / 删除
   openAdd() {
     if (!this.data.isSuperAdmin) return
     Promise.all([this.loadFormRoutes(), this.loadFormVehicles(), this.loadFormDrivers()]).then(() => {
       this.setData({
         formVisible: true, formMode: 'add',
-        form: { id: 0, route_id: 0, vehicle_id: 0, driver_id: 0, trip_no: '', trip_date: this.todayStr(), departure_time: '', arrival_time: '', arrival_day_offset: 0, total_seats: '', base_price: '', status: 1 },
+        form: { id: 0, route_id: 0, vehicle_id: 0, driver_id: 0, trip_no: '', trip_date: this.todayStr(), departure_time: '', arrival_time: '', arrival_day_offset: 0, total_seats: '', base_price: '', status: 1, allow_standing: false, standing_quota: '', standing_discount: '1' },
         tripRouteIndex: 0, tripVehicleIndex: 0, tripDriverIndex: 0, tripStatusIndex: 0
       })
     })
@@ -246,7 +260,10 @@ Page({
           arrival_day_offset: item.arrival_day_offset || 0,
           total_seats: item.total_seats ? String(item.total_seats) : '',
           base_price: item.base_price === '0.00' ? '' : item.base_price,
-          status: item.status
+          status: item.status,
+          allow_standing: item.allow_standing === true,
+          standing_quota: item.standing_quota ? String(item.standing_quota) : '',
+          standing_discount: item.standing_discount ? String(item.standing_discount) : '1'
         },
         tripRouteIndex: rIdx, tripVehicleIndex: vIdx, tripDriverIndex: dIdx, tripStatusIndex: sIdx
       })
@@ -281,6 +298,10 @@ Page({
     const idx = Number(e.detail.value)
     this.setData({ tripStatusIndex: idx, 'form.status': FORM_STATUS[idx].value })
   },
+  // 是否开放无座票开关
+  onToggleStanding(e) {
+    this.setData({ 'form.allow_standing': e.detail.value })
+  },
   onTripDateChange(e) { this.setData({ 'form.trip_date': e.detail.value }) },
   onDepTimeChange(e) { this.setData({ 'form.departure_time': e.detail.value }) },
   onArrTimeChange(e) { this.setData({ 'form.arrival_time': e.detail.value }) },
@@ -295,6 +316,22 @@ Page({
     if (!f.arrival_time) { wx.showToast({ title: '请选择到达时间', icon: 'none' }); return }
     const totalSeats = parseInt(f.total_seats, 10)
     if (!totalSeats || totalSeats <= 0) { wx.showToast({ title: '座位数必须大于0', icon: 'none' }); return }
+    // 无座票配置校验（与后端一致：开放无座需配额>0，折扣0~1）
+    const allowStanding = f.allow_standing === true
+    let standingQuota = 0
+    if (allowStanding) {
+      standingQuota = parseInt(f.standing_quota, 10)
+      if (!standingQuota || standingQuota <= 0) {
+        wx.showToast({ title: '开放无座票需填写无座配额（>0）', icon: 'none' }); return
+      }
+      if (standingQuota > totalSeats) {
+        wx.showToast({ title: '无座配额不能超过总座位数', icon: 'none' }); return
+      }
+    }
+    const standingDiscount = parseFloat(f.standing_discount) || 0
+    if (allowStanding && (standingDiscount <= 0 || standingDiscount > 1)) {
+      wx.showToast({ title: '无座票价折扣需在0~1之间', icon: 'none' }); return
+    }
     const offset = Number(f.arrival_day_offset) || 0
     if (offset === 0 && f.departure_time >= f.arrival_time) {
       wx.showToast({ title: '当天到达须晚于发车，跨天请填到达天数', icon: 'none' }); return
@@ -310,7 +347,10 @@ Page({
       arrival_day_offset: offset,
       total_seats: totalSeats,
       base_price: Number(f.base_price) || 0,
-      status: Number(f.status) || 0
+      status: Number(f.status) || 0,
+      allow_standing: allowStanding,
+      standing_quota: standingQuota,
+      standing_discount: allowStanding ? standingDiscount : 1
     }
     const isEdit = this.data.formMode === 'edit'
     const url = isEdit ? ('/api/wx/admin/trips/' + f.id) : '/api/wx/admin/trips'
@@ -321,8 +361,35 @@ Page({
       wx.showToast({ title: isEdit ? '已保存' : '已新增', icon: 'success' })
       this.setData({ submitting: false, formVisible: false })
       this.loadList(false)
-    }).catch(() => {
+    }).catch(err => {
       wx.hideLoading()
+      // 冲突响应（软警告如位置断层）：弹窗展示冲突详情，允许管理员强制保存（硬冲突后端仍会拦截）
+      const conflicts = err && err.data && err.data.conflicts
+      if (conflicts && conflicts.length > 0) {
+        wx.showModal({
+          title: '调度冲突提示',
+          content: (err.message || '该司机/车辆在此日期有冲突') + '\n\n员工不足时可强制保存（时间重叠/车辆占用仍不可强制）',
+          confirmText: '强制保存', confirmColor: '#fa8c16',
+          cancelText: '取消',
+          success: r => {
+            if (!r.confirm) { this.setData({ submitting: false }); return }
+            this.setData({ submitting: true })
+            wx.showLoading({ title: '保存中...', mask: true })
+            request({ url, method: isEdit ? 'PUT' : 'POST', data: Object.assign({}, payload, { force: true }) })
+              .then(() => {
+                wx.hideLoading()
+                wx.showToast({ title: isEdit ? '已保存' : '已新增', icon: 'success' })
+                this.setData({ submitting: false, formVisible: false })
+                this.loadList(false)
+              })
+              .catch(() => {
+                wx.hideLoading()
+                this.setData({ submitting: false })
+              })
+          }
+        })
+        return
+      }
       this.setData({ submitting: false })
     })
   },

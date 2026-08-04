@@ -454,6 +454,6 @@ INSERT INTO `point_rules` (`rule_name`, `rule_type`, `points_per_yuan`, `fixed_p
 ('消费赠送', 1, 1.00, 0, '每消费1元获得1积分', 1),
 ('注册赠送', 2, 0.00, 100, '新用户注册赠送100积分', 1);
 
--- 默认管理员 admin/admin123 程序启动时InitAdmin自动创建
--- 不在这直接写INSERT 因为bcrypt哈希每次不一样
--- 登录后赶紧改密码
+-- 默认管理员admin 密码程序启动时随机生成 写到.admin_initial_password里
+-- 不在这直接写INSERT 因为bcrypt哈希每次都不一样
+-- 头一回登录赶紧改密码 别拿着初始密码到处晃

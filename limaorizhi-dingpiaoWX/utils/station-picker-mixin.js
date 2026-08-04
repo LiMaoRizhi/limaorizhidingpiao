@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818
 // 站点选择弹窗公共逻辑（home / cargo-create 共用）
 // 页面需自行实现 onStationTap（选中站点后的业务回调）
 var { matchStation } = require('./pinyin')

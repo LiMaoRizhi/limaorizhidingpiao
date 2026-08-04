@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 const { request, markLoginSuccess } = require('../../utils/request')
 
 Page({
@@ -25,7 +24,7 @@ Page({
     })
   },
 
-  // 切换协议勾选状态
+  // 协议勾选状态切一下
   toggleAgreement() {
     this.setData({ agreed: !this.data.agreed })
   },
@@ -35,7 +34,7 @@ Page({
     wx.showToast({ title: '请先阅读并勾选同意用户协议', icon: 'none' })
   },
 
-  // 跳转协议页面
+  // 去协议页
   goAgreement(e) {
     const type = e.currentTarget.dataset.type || 'user_agreement'
     wx.navigateTo({ url: `/pages/agreement/agreement?type=${type}` })
@@ -95,7 +94,7 @@ Page({
         }
       })
 
-      // 保存登录态
+      // 登录态存起来
       wx.setStorageSync('user_token', res.data.token)
       wx.setStorageSync('user_info', res.data.user)
       const app = getApp()

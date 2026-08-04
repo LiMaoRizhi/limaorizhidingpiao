@@ -1,5 +1,4 @@
-// 管理后台 - 用户管理
-// 接 /api/wx/admin/users(列表/详情) + /api/wx/admin/users/:id/status(封禁/解封)
+// 管理后台 - 用户管理，接 /api/wx/admin/users(列表/详情) + /api/wx/admin/users/:id/status(封禁/解封)
 const { request } = require('../../utils/request')
 
 // 用户状态：1=正常 0=封禁 2=已注销
@@ -15,6 +14,7 @@ Page({
     statusTabs: STATUS_TABS,
     activeStatus: '',
     keyword: '',
+    inputFocused: '',       // 当前聚焦的输入框（黑色输入框聚焦变蓝）
 
     list: [],
     page: 1,
@@ -34,6 +34,13 @@ Page({
 
   onLoad() {
     this.loadList()
+  },
+
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   loadList(append) {

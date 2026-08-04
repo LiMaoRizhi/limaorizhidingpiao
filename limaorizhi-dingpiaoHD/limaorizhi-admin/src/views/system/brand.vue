@@ -84,7 +84,7 @@ const handleLogoUpload = async (file: File) => {
   return false  // 阻止 el-upload 默认上传行为
 }
 
-// 保存品牌信息到后端 + store + localStorage
+// 品牌信息存后端 + store + localStorage
 const handleSave = async () => {
   if (!form.name.trim()) {
     ElMessage.warning('请输入系统名称')

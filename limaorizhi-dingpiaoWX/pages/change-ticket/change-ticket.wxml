@@ -1,0 +1,103 @@
+<!--改签：同线路换班次-->
+<navigation-bar title="改签" back="{{true}}" background="#ffffff"></navigation-bar>
+
+<view class="page-content" wx:if="{{order}}">
+
+  <!-- 改签引导横幅：一眼看出正在改签 -->
+  <view class="change-banner">
+    <text class="change-banner-title">正在改签</text>
+    <text class="change-banner-sub">选择下方新班次即可，上下车站与乘客不变</text>
+  </view>
+
+  <!-- 原班次信息卡片 -->
+  <view class="origin-card">
+    <view class="origin-header">
+      <text class="origin-label">原班次</text>
+      <text class="origin-no" wx:if="{{tripNo}}">{{tripNo}}</text>
+      <text class="origin-standing" wx:if="{{isStanding}}">无座票</text>
+    </view>
+    <view class="origin-route">
+      <text class="origin-station">{{fromName}}</text>
+      <image class="origin-arrow" src="/images/icons/route-direction.svg" />
+      <text class="origin-station">{{toName}}</text>
+    </view>
+    <view class="origin-meta">
+      <text class="origin-time">{{orderDate}} {{order.departure_time}} 发车</text>
+      <text class="origin-count">×{{order.passenger_count}}人</text>
+    </view>
+  </view>
+
+  <!-- 改签日期选择 -->
+  <view class="date-row">
+    <text class="date-label">改签日期</text>
+    <picker mode="date" value="{{selectedDate}}" start="{{todayStr}}" end="{{maxDateStr}}" bindchange="onDateChange">
+      <view class="date-picker">
+        <text>{{selectedDate}}</text>
+        <text class="date-arrow">▾</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>班次查询中...</text>
+  </view>
+
+  <!-- 可改签班次列表 -->
+  <view class="trip-list" wx:if="{{!loading && tripList.length > 0}}">
+    <view class="trip-card {{item.selectable ? '' : 'trip-disabled'}}" wx:for="{{tripList}}" wx:key="id" data-id="{{item.id}}" bindtap="onSelectTrip">
+      <view class="trip-left">
+        <text class="trip-time">{{item.departure_time}}</text>
+        <text class="trip-date">{{item.date}}</text>
+      </view>
+      <view class="trip-mid">
+        <text class="trip-no">班次 {{item.trip_no}}</text>
+        <text class="trip-arrive">到达 {{item.arrivalText}}</text>
+        <view class="trip-tags">
+          <text class="trip-seats-tag {{item.available_seats === 0 ? 'trip-seats-none' : ''}}">{{item.seatsText}}</text>
+          <text class="trip-standing-tag" wx:if="{{item.allow_standing}}">无座余{{item.standing_available}}张</text>
+        </view>
+      </view>
+      <view class="trip-right">
+        <text class="trip-price">¥{{item.priceText}}<text class="trip-per">/人</text></text>
+        <view class="trip-change-btn" wx:if="{{item.selectable}}">改签</view>
+        <text class="trip-disabled-tip" wx:else>{{item.disabledTip}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{!loading && tripList.length === 0}}">
+    <text class="empty-text">该日期暂无同线路可改签班次</text>
+    <text class="empty-hint">可点击上方日期更换改签日期</text>
+  </view>
+
+  <view class="change-tip">
+    <text>改签说明：仅支持同线路班次改签，上下车站与乘客不变；座位类型保持（无座订单仅可改至开放无座的班次）。价格只降不升，差价将自动原路退回；若目标班次票价高于原票，需退票后重新购买。</text>
+  </view>
+
+</view>
+
+<!-- 确认改签弹窗 -->
+<view class="modal-mask" wx:if="{{showConfirm}}" bindtap="cancelConfirm" catchtouchmove="noop">
+  <view class="confirm-modal" catchtap="noop">
+    <view class="confirm-title">确认改签</view>
+    <view class="confirm-row">
+      <text class="confirm-label">原班次</text>
+      <text class="confirm-val">{{orderDate}} {{order.departure_time}} 发车</text>
+    </view>
+    <view class="confirm-row">
+      <text class="confirm-label">改至</text>
+      <text class="confirm-val">{{selectedTrip.date}} {{selectedTrip.departure_time}} 发车（{{selectedTrip.trip_no}}）</text>
+    </view>
+    <view class="confirm-row">
+      <text class="confirm-label">票面单价</text>
+      <text class="confirm-val">¥{{confirmFareText}}/人 × {{order.passenger_count}}人</text>
+    </view>
+    <view class="confirm-note">改签后如有差价将原路退回；若目标班次票价高于原票，将无法改签</view>
+    <view class="confirm-btns">
+      <view class="confirm-btn-cancel" bindtap="cancelConfirm">取消</view>
+      <view class="confirm-btn-ok" bindtap="confirmChange" loading="{{changing}}">确认改签</view>
+    </view>
+  </view>
+</view>

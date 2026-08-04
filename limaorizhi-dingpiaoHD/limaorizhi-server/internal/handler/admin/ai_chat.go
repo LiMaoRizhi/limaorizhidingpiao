@@ -18,20 +18,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// sseSemaphore 限制并发SSE连接数，防止有心人用Admin Token开大量连接耗尽fd
-// channel当信号量用，满了就拒绝新连接（CodeServerError → HTTP 500）
-// 20个并发够用了，轻量客运系统不需要那么多
+// sseSemaphore 限制并发SSE连接数,防有心人拿 Admin Token 开一堆连接把 fd 耗完
+// channel 当信号量用,满了就拒新连接(CodeServerError → HTTP 500)
+// 20 个并发够用了,小客运系统没那么多人
 var sseSemaphore = make(chan struct{}, 20)
 
-// Chat SSE流式透传AI回复 前端得用fetch+ReadableStream接收
-// EventSource没法带JWT头 只能这么搞
+// Chat SSE 流式透传 AI 回复,前端得用 fetch+ReadableStream 收
+// EventSource 带不了 JWT 头,只能这么干
 func (h *AIHandler) Chat(c *gin.Context) {
 	if h.configGet("ai_employee_enabled") != "true" {
 		response.FailMsg(c, response.CodeForbidden, "AI数字员工未启用，请在系统配置中开启")
 		return
 	}
 
-	// 并发连接限制：获取信号量，超3秒没拿到就拒绝 防止fd耗尽
+	// 并发限制:抢信号量,超3秒没抢到就拒,防 fd 耗尽
 	select {
 	case sseSemaphore <- struct{}{}:
 		defer func() { <-sseSemaphore }()
@@ -55,9 +55,9 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	// 安全限制 防止有人恶意构造超大请求 DoS倒不怕 API费用爆炸才要命
+	// 安全限制:防有人恶意构造超大请求。DoS 倒不怕,API 费用爆炸才要命
 	const (
-		maxMessages    = 66   // 最多66条消息（含历史）
+		maxMessages    = 66   // 最多66条消息(含历史)
 		maxContentSize = 8000 // 单条文本最大8KB
 		maxImages      = 3    // 单条消息最多3张图片
 	)
@@ -66,12 +66,12 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 	for _, msg := range req.Messages {
-		// 文本内容大小校验（按Unicode字符计数，中文每字1个rune而非3字节）
+		// 文本大小校验(按 Unicode 字符数,中文每字1个 rune 不是 3 字节)
 		if text := plainText(msg.Content); utf8.RuneCountInString(text) > maxContentSize {
 			response.FailMsg(c, response.CodeParamError, fmt.Sprintf("单条消息不能超过%d字符", maxContentSize))
 			return
 		}
-		// 图片数量校验（多模态消息中的 image_url 类型）
+		// 图片数量校验(多模态消息里的 image_url 类型)
 		if arr, ok := msg.Content.([]interface{}); ok {
 			imgCount := 0
 			for _, item := range arr {
@@ -91,9 +91,9 @@ func (h *AIHandler) Chat(c *gin.Context) {
 	baseURL := h.configGet("ai_base_url")
 	modelName := h.configGet("ai_model")
 
-	// 旧模型名兼容 deepseek-chat那些7月24号停用了 DB存旧名自动映射到V4
-	// 不映射的话线上调用直接404
-	// NIM平台下线的旧模型也一起映射
+	// 旧模型名兼容:deepseek-chat 那批 7月24号停用了,DB 存旧名自动映射到 V4
+	// 不映射的话线上调直接 404
+	// NIM 平台下线的旧模型也一起映射
 	switch modelName {
 	case "deepseek-chat":
 		modelName = "deepseek-v4-flash"
@@ -155,7 +155,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		{"role": "system", "content": systemPrompt},
 	}
 
-	// 上下文注入 按用户最后一条消息关键词拉相关业务数据
+	// 按用户最后一条消息的关键词从库里拉业务数据,当上下文塞给AI
 	lastUserMsg := ""
 	for i := len(req.Messages) - 1; i >= 0; i-- {
 		if req.Messages[i].Role == "user" {
@@ -169,6 +169,14 @@ func (h *AIHandler) Chat(c *gin.Context) {
 			"content": ctx,
 		})
 	}
+
+	// 语言约束（必须放在最后一条system，紧贴用户消息，对模型约束力最强）：
+	// 无论系统提示词是否自定义，用户用中文提问就必须用简体中文回答。
+	// 视觉模型/小模型对语言指令遵循弱，不加强约束会时不时回英文
+	chatMessages = append(chatMessages, map[string]interface{}{
+		"role": "system",
+		"content": "重要要求：用户使用中文提问时，你必须始终使用简体中文回答，识别图片、生成内容同样必须用简体中文描述；严禁用英文或任何其他语言回复，除非用户明确要求使用其他语言。这是不可违反的硬性规则。",
+	})
 
 	for _, msg := range req.Messages {
 		role := msg.Role
@@ -199,8 +207,39 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		}
 	}
 
-	// 狸猫员工(auto)模式：自动选择最优可用模型，谁能用用谁
-	// 模型下架/限流/超时自动降级到下一个
+	// 识图保护:当前模型不支持视觉就自动切到最快的视觉模型(跟 H5 端行为一致)
+	// 不然纯文本模型收到 image_url 直接报错,识图必挂;auto 模式不用管(候选本来就是视觉模型)
+	if hasImages && modelName != "auto" && !modelSupportsVision(modelName) {
+		vm := firstVisionModel()
+		if vm == "" {
+			response.FailMsg(c, response.CodeServerError, "当前模型不支持图片识别，且无可用视觉模型，请先切换到视觉模型")
+			return
+		}
+		log.Printf("[狸猫员工] 当前模型 %s 不支持视觉，识图自动切换到 %s", modelName, vm)
+		modelName = vm
+		// 视觉模型都在英伟达平台:非 nvidia provider 时连着 baseURL 和 Key 一块切
+		if provider != "nvidia" {
+			provider = "nvidia"
+			baseURL = "https://integrate.api.nvidia.com/v1"
+			apiKeyEnc = h.configGet("ai_api_key_nvidia")
+			if apiKeyEnc == "" {
+				apiKeyEnc = h.configGet("ai_api_key")
+			}
+			if apiKeyEnc == "" {
+				response.FailMsg(c, response.CodeServerError, "AI API Key 未配置，请在系统配置中设置")
+				return
+			}
+			apiKey, err = crypto.Decrypt(apiKeyEnc)
+			if err != nil {
+				log.Printf("AI API Key 解密失败: %v", err)
+				response.FailMsg(c, response.CodeServerError, "AI API Key 解密失败，请重新配置")
+				return
+			}
+		}
+	}
+
+	// 狸猫员工(auto)模式:自动挑最优模型,谁能用用谁
+	// 模型下架/限流/超时就自动降级到下一个
 	var candidateModels []string
 	if modelName == "auto" {
 		candidateModels = autoCandidateModels(hasImages)
@@ -213,7 +252,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		candidateModels = []string{modelName}
 	}
 
-	// 逐个尝试候选模型，第一个返回200的就用它
+	// 逐个试候选模型,第一个返回200的用谁
 	var httpResp *http.Response
 	var usedModelName string
 	client := &http.Client{Timeout: 300 * time.Second}
@@ -249,11 +288,11 @@ func (h *AIHandler) Chat(c *gin.Context) {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			log.Printf("[AI] 模型 %s 返回错误 %d: %s", tryModel, resp.StatusCode, string(body))
-			// auto模式：任何非200都尝试下一个模型（模型下架/限流/超时自动降级）
+			// auto 模式:任何非200都换下一个(模型下架/限流/超时自动降级)
 			if modelName == "auto" {
 				continue
 			}
-			// 非auto模式：直接报错给前端
+			// 非 auto 模式:直接报错给前端
 			writeSSEHeaders(c)
 			errMsg := fmt.Sprintf("AI服务商返回错误(HTTP %d)，请检查API Key和模型配置", resp.StatusCode)
 			if resp.StatusCode == 504 {
@@ -261,18 +300,18 @@ func (h *AIHandler) Chat(c *gin.Context) {
 			}
 			c.SSEvent("message", map[string]string{"type": "content", "content": errMsg})
 			c.SSEvent("message", map[string]string{"type": "done"})
-			c.Writer.Flush() // 立即推送，避免数据滞留缓冲区导致前端长时间等待
+			c.Writer.Flush() // 立刻推,别让数据囤在缓冲区里让前端干等
 			return
 		}
 
-		// 成功！用这个模型
+		// 成了!就用这个模型
 		httpResp = resp
 		usedModelName = tryModel
 		break
 	}
 
 	if httpResp == nil {
-		// 所有候选模型都失败了
+		// 所有候选模型全挂了
 		writeSSEHeaders(c)
 		errMsg := "AI模型暂时不可用，请稍后重试或手动选择模型"
 		if modelName != "auto" {
@@ -291,17 +330,17 @@ func (h *AIHandler) Chat(c *gin.Context) {
 	}
 
 	writeSSEHeaders(c)
-	c.Writer.Flush() // 立即推送响应头，让前端尽早感知连接已建立
+	c.Writer.Flush() // 立刻推响应头,让前端早点知道连接通了
 
 	c.Stream(func(w io.Writer) bool {
 		scanner := bufio.NewScanner(httpResp.Body)
-		// 4MB buffer：推理模型（DeepSeek-R1等）reasoning_content 可能超1MB
-		// make第二个参数必须是length而非capacity，不然Scanner不会用预分配buf
+		// 4MB buffer:推理模型(DeepSeek-R1等)的 reasoning_content 可能超1MB
+		// make 第二个参数得是 length 不是 capacity,不然 Scanner 不会用预分配 buf
 		scanner.Buffer(make([]byte, 4*1024*1024), 4*1024*1024)
 
 		for scanner.Scan() {
 			line := scanner.Text()
-			// OpenAI SSE以data:开头 data: {json}和data:{json}都兼容
+			// OpenAI SSE 以 data: 开头,data: {json} 和 data:{json} 都兼容
 			if !strings.HasPrefix(line, "data:") {
 				continue
 			}
@@ -309,11 +348,11 @@ func (h *AIHandler) Chat(c *gin.Context) {
 
 			if data == "[DONE]" {
 				c.SSEvent("message", map[string]string{"type": "done"})
-				c.Writer.Flush() // 立即推送done，前端收到后退出等待
+				c.Writer.Flush() // 立刻推 done,前端收到就退出等待
 				return false
 			}
 
-			// delta.content正文 reasoning_content是推理模型的思考过程
+			// delta.content 正文,reasoning_content 是推理模型的思考过程
 			var chunk struct {
 				Choices []struct {
 					Delta struct {
@@ -339,7 +378,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 					"content": "请求失败：" + chunk.Error.Message,
 				})
 				c.SSEvent("message", map[string]string{"type": "done"})
-				c.Writer.Flush() // 错误路径立即推送，避免前端长时间等待
+				c.Writer.Flush() // 错误路径也立刻推,别让前端干等
 				return false
 			}
 
@@ -350,17 +389,17 @@ func (h *AIHandler) Chat(c *gin.Context) {
 						"type":    "reasoning",
 						"content": delta.ReasoningContent,
 					})
-					c.Writer.Flush() // 逐条推送，前端实时显示思考过程
+					c.Writer.Flush() // 一条条推,前端实时显思考过程
 				}
 				if delta.Content != "" {
 					c.SSEvent("message", map[string]string{
 						"type":    "content",
 						"content": delta.Content,
 					})
-					c.Writer.Flush() // 逐条推送，前端实时显示正文
+					c.Writer.Flush() // 一条条推,前端实时显正文
 				}
 			}
-			// 客户端断了就别继续处理了 白浪费带宽和API钱
+			// 客户端断了就别接着处理了,白瞎带宽和 API 钱
 			select {
 			case <-c.Request.Context().Done():
 				log.Printf("客户端已断开连接，终止SSE流")
@@ -371,23 +410,23 @@ func (h *AIHandler) Chat(c *gin.Context) {
 
 		if err := scanner.Err(); err != nil {
 			log.Printf("读取SSE流失败: %v", err)
-			// 通知前端连接意外断开，否则UI永久卡在"正在回答..."
+			// 告诉前端连接断了,不然 UI 一直卡在"正在回答..."
 			c.SSEvent("message", map[string]string{
 				"type":    "content",
 				"content": fmt.Sprintf("连接中断：%v，请稍后重试", err),
 			})
 			c.SSEvent("message", map[string]string{"type": "done"})
-			c.Writer.Flush() // 错误路径立即推送
+			c.Writer.Flush() // 错误路径立刻推
 			return false
 		}
-		// 补发done 服务商有时候不发[DONE]标记 前端收不到done会一直卡在"正在回答"
+		// 补发 done:服务商有时候不发 [DONE] 标记,前端收不到 done 会一直卡在"正在回答"
 		c.SSEvent("message", map[string]string{"type": "done"})
-		c.Writer.Flush() // 立即推送done，前端收到后退出等待
+		c.Writer.Flush() // 立刻推 done,前端收到就退出等待
 		return false
 	})
 }
 
-// writeSSEHeaders SSE响应头 X-Accel-Buffering:no让nginx别缓冲 不然推送不实时
+// writeSSEHeaders SSE 响应头,X-Accel-Buffering:no 让 nginx 别缓冲,不然推送不实时
 func writeSSEHeaders(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -395,9 +434,37 @@ func writeSSEHeaders(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no")
 }
 
-// autoCandidateModels 返回狸猫员工自动模式的候选模型列表
-// 视觉模型优先（已按参数量从小到大排序=速度从快到慢）
-// 有图片时只尝试视觉模型，无图片时视觉+文本都试
+// modelSupportsVision 这模型中不中视觉(模型表里找不到就按不中算)
+func modelSupportsVision(modelID string) bool {
+	for _, p := range aiProviders {
+		for _, m := range p.Models {
+			if m.ID == modelID {
+				return m.SupportsVision
+			}
+		}
+	}
+	return false
+}
+
+// firstVisionModel 最快的视觉模型(英伟达平台,按配置顺序,小模型优先)
+func firstVisionModel() string {
+	for _, p := range aiProviders {
+		if p.Value != "nvidia" {
+			continue
+		}
+		for _, m := range p.Models {
+			if m.ID == "auto" || m.Icon == "image" || !m.SupportsVision {
+				continue
+			}
+			return m.ID
+		}
+	}
+	return ""
+}
+
+// autoCandidateModels 狸猫员工自动模式的候选模型列表
+// 视觉模型优先(按参数量从小到大排=速度从快到慢)
+// 有图就只试视觉模型,没图视觉+文本都试
 func autoCandidateModels(hasImages bool) []string {
 	var candidates []string
 	for _, p := range aiProviders {
@@ -405,7 +472,7 @@ func autoCandidateModels(hasImages bool) []string {
 			continue
 		}
 		if hasImages {
-			// 有图片：只尝试视觉模型（文本模型收到image_url会报错）
+			// 有图:只试视觉模型(文本模型收到 image_url 会报错)
 			for _, m := range p.Models {
 				if m.ID == "auto" || m.Icon == "image" {
 					continue
@@ -415,7 +482,7 @@ func autoCandidateModels(hasImages bool) []string {
 				}
 			}
 		} else {
-			// 纯文本：视觉模型优先（小模型快），然后纯文本模型
+			// 纯文本:视觉模型优先(小模型快),再试纯文本模型
 			for _, m := range p.Models {
 				if m.ID == "auto" || m.Icon == "image" {
 					continue

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -72,7 +71,9 @@ type createOrderRequest struct {
 	ContactName   string                 `json:"contact_name" binding:"required"`
 	ContactPhone  string                 `json:"contact_phone" binding:"required"`
 	CouponID      uint                   `json:"coupon_id"`     // 可选，优惠券ID
-	BuyInsurance  bool                   `json:"buy_insurance"` // 已废弃：保险由后端自动附加，无需前端传参（保留字段仅兼容旧客户端请求）
+	BuyInsurance  bool                   `json:"buy_insurance"` // 用户是否选择购买保险（Required=false 时生效，Required=true 时始终为 true）
+	SeatNos       []int                  `json:"seat_nos"`      // 可选，用户选择的座位号列表（与passengers一一对应），空则自动分配
+	BuyStanding   bool                   `json:"buy_standing"`  // 是否购买无座站票（春运等客流高峰开放；座位不足时也可自动兜底无座）
 }
 
 func (h *UserHandler) CreateOrder(c *gin.Context) {
@@ -153,6 +154,9 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 
 	// 事务处理：锁座 + 创建订单 + 创建乘客
 	var order model.Order
+	var seatHonored bool   // 用户选座偏好是否全部被满足（M3修复：告知用户选座被自动调整）
+	var standingUsed bool  // 本次下单是否为无座票（含座位不足自动兜底无座）
+	var standingAuto bool  // 是否由座位不足自动降级为无座（用于提示用户）
 	err := h.DB.Transaction(func(tx *gorm.DB) error {
 		// 1. 查询班次（加行锁防止并发超卖）
 		// 必须是事务内第一条语句：MySQL REPEATABLE READ 下，第一条普通 SELECT
@@ -255,15 +259,49 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 		if err != nil {
 			return err
 		}
-		if avail < passengerCount {
-			return errNoSeat
+		// 无座票（春运等客流高峰）：座位不足或用户主动选择无座时，走无座通道
+		// 无座不占座位（seat_type=1），按班次无座配额实时校验，价格按班次无座折扣计算
+		useStanding := req.BuyStanding
+		standingAutoFallback := false
+		if !useStanding && avail < passengerCount {
+			if trip.AllowStanding && trip.StandingQuota > 0 {
+				if _, standingAvail := service.RealtimeStandingStats(tx, trip.ID, trip.StandingQuota); standingAvail >= passengerCount {
+					useStanding = true
+					standingAutoFallback = true
+				} else {
+					return errNoSeat
+				}
+			} else {
+				return errNoSeat
+			}
+		} else if useStanding {
+			if !trip.AllowStanding || trip.StandingQuota <= 0 {
+				return errors.New("该班次未开放无座票")
+			}
+			if _, standingAvail := service.RealtimeStandingStats(tx, trip.ID, trip.StandingQuota); standingAvail < passengerCount {
+				return errors.New("无座票已售罄，请选择其他班次")
+			}
+		}
+		if useStanding {
+			standingUsed = true
+			standingAuto = standingAutoFallback
 		}
 
-		// 分配具体座位号（区间复用模型：同一座位在不同不重叠区间可复用）
-		seatNos, err := service.AssignSeats(tx, trip.ID, trip.TotalSeats, fromOrder, toOrder, passengerCount)
-		if err != nil {
-			return errNoSeat
+		// 分配座位号（区间复用模型：同一座位在不同不重叠区间可复用）
+		// 无座订单不分配座位号；优先使用用户选择的座位号，未选或不可用则自动分配
+		var honored bool
+		var seatNos []string
+		if useStanding {
+			seatNos = make([]string, passengerCount) // 无座：seat_no 留空
+			honored = true
+		} else {
+			var err2 error
+			seatNos, honored, err2 = service.AssignSeatsWithPreferences(tx, trip.ID, trip.TotalSeats, fromOrder, toOrder, passengerCount, req.SeatNos)
+			if err2 != nil {
+				return errNoSeat
+			}
 		}
+		seatHonored = honored // 传出事务闭包，供最终响应使用
 
 		// 3. 生成订单号（加密随机后缀，防止枚举攻击）
 		randomBytes := make([]byte, 4)
@@ -274,13 +312,20 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 
 	// 4. 创建订单
 	// JSONDate.Scan 已确保格式为 "2006-01-02"，无需再手动剥离 RFC3339
-	// 保险费：后台启用保险公司后自动附加（按乘客数计费），用户端无需任何操作。
-	// 保费统一由【保险配置】中启用的保险公司设定，未启用保险公司则不收保费
+	// 保险费：必购(Required=true)直接加 / 可选则看用户勾没勾
+	// 没启用保险公司或用户没选就不收
+	// 无座票价 = 区间票价 × 班次无座折扣（按分四舍五入）
+	farePerTicket := fare
+	if standingUsed && trip.StandingDiscount > 0 && trip.StandingDiscount < 1 {
+		farePerTicket = money.FromFen(int64(float64(money.ToFen(fare))*trip.StandingDiscount + 0.5))
+	}
 	insuranceFeeUnit := 0.0
 	var insuranceProviderID uint = 0
 	if provider, perr := service.GetActiveProvider(h.DB); perr == nil && provider != nil {
-		insuranceFeeUnit = provider.Fee
-		insuranceProviderID = provider.ID
+		if provider.Required || req.BuyInsurance {
+			insuranceFeeUnit = provider.Fee
+			insuranceProviderID = provider.ID
+		}
 	}
 	var insuranceTotal float64
 	if insuranceFeeUnit > 0 {
@@ -299,7 +344,7 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 			TripDate:            trip.TripDate,
 			DepartureTime:       trip.DepartureTime,
 			PassengerCount:      passengerCount,
-			TotalPrice:          money.Mul(fare, passengerCount), // 车票金额，保险费在优惠券折扣后叠加
+			TotalPrice:          money.Mul(farePerTicket, passengerCount), // 车票金额（无座按折扣价），保险费在优惠券折扣后叠加
 			InsuranceFee:        insuranceTotal,
 			InsuranceProviderID: insuranceProviderID,      // 0=未启用保险公司（保险未生效）
 			Status:              model.OrderStatusPending, // 待支付
@@ -311,7 +356,7 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 			return err
 		}
 
-		// 5. 创建乘客记录（含座位号分配）
+		// 5. 创建乘客记录（含座位号分配/无座标记）
 		for i, p := range req.Passengers {
 			idCardType := p.IDCardType
 			if idCardType == 0 {
@@ -323,7 +368,11 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 				IDCardType: idCardType,
 				IDCardNo:   p.IDCardNo,
 				Phone:      p.Phone,
-				SeatNo:     seatNos[i], // 分配的座位号
+				SeatNo:     seatNos[i], // 分配的座位号（无座为空）
+				SeatType:   0,
+			}
+			if standingUsed {
+				passenger.SeatType = 1 // 无座站票（不占座）
 			}
 			if err := tx.Create(&passenger).Error; err != nil {
 				return err
@@ -379,6 +428,27 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 			}
 		}
 
+		// 0元订单特殊处理：优惠券把车票钱全抵扣了、又没买保险时，总价就是0。
+		// 微信支付最低要0.01元，0元单子根本调不起支付，用户会卡死在"待支付"。
+		// 所以直接把订单置为已支付（用户凭券白坐车），再补一条0元支付记录，
+		// 免得后面退款/统计找不到支付流水。
+		if order.TotalPrice <= 0 {
+			if err := tx.Model(&order).Update("status", model.OrderStatusPaid).Error; err != nil {
+				return err
+			}
+			order.Status = model.OrderStatusPaid
+			zeroPay := model.Payment{
+				OrderID:   order.ID,
+				PaymentNo: "ZERO" + orderNo, // 0元免支付标记，避免撞唯一索引
+				Amount:    0,
+				Method:    "优惠券抵扣",
+				Status:    model.PaymentStatusSuccess,
+			}
+			if err := tx.Create(&zeroPay).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -411,7 +481,10 @@ func (h *UserHandler) CreateOrder(c *gin.Context) {
 	order.Mask()
 
 	response.OKMsg(c, "下单成功", gin.H{
-		"order":      order,
-		"passengers": passengers,
+		"order":          order,
+		"passengers":     passengers,
+		"seats_honored":  seatHonored, // 选座偏好是否全部满足（false=已自动调整）
+		"standing_used":  standingUsed, // 是否为无座票订单
+		"standing_auto":  standingAuto, // 是否由座位不足自动降级为无座
 	})
 }

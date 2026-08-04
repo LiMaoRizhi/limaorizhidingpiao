@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 
 /**
  * 安全提取日期字符串的纯日期部分（前10位），兼容 "2026-07-21" 和 "2026-07-21T00:00:00+08:00" 两种格式
@@ -19,12 +18,14 @@ function formatDate(str) {
 /**
  * 订单状态映射（车票）含状态颜色
  */
+// 黑白蓝主题：待支付保留警示红，其余状态只用黑/灰/蓝，不用绿色
 var TICKET_STATUS_MAP = {
   0: { key: '0', text: '待支付', color: '#ff3b30', action: '去支付', secondaryAction: '取消订单', secondaryActionType: 'cancel' },
-  1: { key: '1', text: '待出行', color: '#34c759', action: '查看详情', secondaryAction: '申请退票', secondaryActionType: 'refund' },
+  1: { key: '1', text: '待出行', color: '#1296db', action: '查看详情', secondaryAction: '申请退票', secondaryActionType: 'refund', changeAction: '改签' },
   2: { key: '2', text: '已完成', color: '#8a8a8a', action: '查看详情' },
-  3: { key: '3', text: '已退款', color: '#ff3b30', action: '查看详情' },
-  4: { key: '4', text: '已取消', color: '#8a8a8a', action: '查看详情' }
+  3: { key: '3', text: '已退款', color: '#1a1a1a', action: '查看详情' },
+  4: { key: '4', text: '已取消', color: '#8a8a8a', action: '查看详情' },
+  5: { key: '5', text: '已核销', color: '#1296db', action: '查看详情' }
 }
 
 /**
@@ -32,9 +33,9 @@ var TICKET_STATUS_MAP = {
  */
 var CARGO_STATUS_MAP = {
   0: { key: '0', text: '待支付', color: '#ff3b30', action: '去支付', secondaryAction: '取消订单', secondaryActionType: 'cancel' },
-  1: { key: '1', text: '待运输', color: '#34c759', action: '查看详情', secondaryAction: '申请退款', secondaryActionType: 'refund' },
-  2: { key: '2', text: '运输中', color: '#007aff', action: '查看详情' },
-  3: { key: '3', text: '已到达', color: '#34c759', action: '查看详情' },
+  1: { key: '1', text: '待运输', color: '#1296db', action: '查看详情', secondaryAction: '申请退款', secondaryActionType: 'refund' },
+  2: { key: '2', text: '运输中', color: '#1296db', action: '查看详情' },
+  3: { key: '3', text: '已到达', color: '#1296db', action: '查看详情' },
   4: { key: '4', text: '已取消', color: '#8a8a8a', action: '查看详情' },
   5: { key: '5', text: '已取件', color: '#8a8a8a', action: '查看详情' }
 }
@@ -65,10 +66,16 @@ function formatOrder(item) {
     time: item.departure_time,
     arrivalText: arrivalText,
     price: (parseFloat(item.total_price) || 0).toFixed(0),
+    // 保留精确金额（两位小数），供退票/退款弹窗计算手续费明细（页面不再单独请求订单详情）
+    total_price: (parseFloat(item.total_price) || 0).toFixed(2),
     infoText: isCargo ? (item.cargo_type + ' ' + item.weight + 'kg') : ('×' + item.passenger_count + '张'),
     actionText: statusInfo.action,
     secondaryAction: statusInfo.secondaryAction || '',
-    secondaryActionType: statusInfo.secondaryActionType || ''
+    secondaryActionType: statusInfo.secondaryActionType || '',
+    // 改签入口（仅车票订单待出行状态显示）
+    changeAction: (!isCargo && item.status === 1) ? (statusInfo.changeAction || '') : '',
+    // 无座站票标识（后端 has_standing 标记）
+    standTicket: !isCargo && item.has_standing === true
   }
 }
 

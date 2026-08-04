@@ -284,6 +284,46 @@ page {
 }
 .error-bubble { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
 
+/* 消息里的图片（识图缩略图） */
+.msg-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.msg-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 8rpx;
+  background: #f0f0f0;
+}
+/* 图片生成中 */
+.gen-loading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #409eff;
+}
+.gen-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(64, 158, 255, 0.25);
+  border-top-color: #409eff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: avatar-spin 0.8s linear infinite;
+}
+/* 生成的图片 */
+.gen-image {
+  width: 420rpx;
+  max-width: 100%;
+  border-radius: 12rpx;
+  margin-bottom: 6rpx;
+  display: block;
+}
+
 /* 思考过程 */
 .reasoning-block {
   background: #fafafa;
@@ -348,8 +388,7 @@ page {
 /* 输入区 */
 .input-bar {
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
   padding: 8px 12px;
   background: #fff;
@@ -357,30 +396,92 @@ page {
   flex-shrink: 0;
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
 }
-.stop-btn {
+/* 输入栏一行：输入框 + 发送 */
+.input-bar-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+/* 快捷功能栏（豆包式入口：AI生图/识图） */
+.feature-bar {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+.feature-item {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 4px;
-  padding: 8px 12px;
+  padding: 6px 16px;
   background: #fff;
   border: 1px solid #1a1a1a;
   border-radius: 18px;
-  font-size: 13px;
+  font-size: 12px;
   color: #1a1a1a;
-  height: 36px;
   box-sizing: border-box;
 }
-.stop-btn:active { background: #1a1a1a; color: #fff; }
-.stop-icon {
-  width: 10px;
-  height: 10px;
-  background: currentColor;
-  border-radius: 2px;
+.feature-item:active { border-color: #409eff; color: #409eff; }
+/* 生图模式激活：按钮变蓝 */
+.feature-item.active {
+  background: #409eff;
+  border-color: #409eff;
+  color: #fff;
+}
+/* 画图模式提示条 */
+.gen-mode-tip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: #eef5ff;
+  border: 1px solid #409eff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #409eff;
+}
+.gen-mode-close {
+  padding: 0 4px;
+  font-size: 16px;
+  color: #409eff;
+}
+/* 待发送图片（识图） */
+.pending-images {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+.pending-img {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+.pending-img image {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid #1a1a1a;
+  box-sizing: border-box;
+}
+.pending-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 50%;
 }
 .input-box {
   flex: 1;
-  background: #f5f6f8;
+  background: #fff;
+  border: 1px solid #1a1a1a;
   border-radius: 18px;
   padding: 8px 12px;
   min-height: 36px;
@@ -389,6 +490,23 @@ page {
   flex-direction: row;
   align-items: flex-end;
   overflow: hidden;
+  transition: border-color 0.2s;
+}
+/* 回复中：输入框变蓝（仅回复/转圈时变蓝，平时保持黑线） */
+.input-box.sending {
+  border-color: #409eff;
+}
+/* 回复中：蓝色转圈特效 */
+.typing-spinner {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin: 0 0 3px 8px;
+  border: 2px solid rgba(64, 158, 255, 0.25);
+  border-top-color: #409eff;
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: avatar-spin 0.8s linear infinite;
 }
 .input-field {
   flex: 1;
@@ -397,9 +515,10 @@ page {
   min-height: 20px;
   max-height: 100px;
   width: 100%;
+  color: #1a1a1a;
 }
 .send-btn {
-  padding: 0 16px;
+  width: 72px;
   height: 36px;
   display: flex;
   align-items: center;
@@ -410,6 +529,18 @@ page {
   font-size: 14px;
   font-weight: 500;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 .send-btn.active { background: #1a1a1a; }
 .send-btn:active { opacity: 0.8; }
+/* 回复中：按钮变蓝 + 白色停止方块图标（点击可暂停） */
+.send-btn.paused {
+  background: #409eff;
+  box-shadow: 0 2rpx 12rpx rgba(64, 158, 255, 0.35);
+}
+.send-stop-icon {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 2px;
+}

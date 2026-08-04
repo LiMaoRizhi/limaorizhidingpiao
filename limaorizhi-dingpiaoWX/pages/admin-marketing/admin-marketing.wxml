@@ -4,9 +4,9 @@
 <view class="page">
   <view class="filter-bar">
     <view class="search-row" wx:if="{{activeTab !== 'rules'}}">
-      <view class="search-box">
+      <view class="search-box {{inputFocused === 'search' ? 'focused' : ''}}">
         <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
-        <input class="search-input" type="text" placeholder="{{activeTab === 'coupons' ? '优惠券名称' : (activeTab === 'records' ? '用户ID' : '手机号')}}" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <input class="search-input" type="text" placeholder="{{activeTab === 'coupons' ? '优惠券名称' : (activeTab === 'records' ? '用户ID' : '手机号')}}" value="{{keyword}}" data-field="search" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
         <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
       </view>
     </view>
@@ -132,7 +132,7 @@
   <scroll-view class="sheet-body" scroll-y wx:if="{{editingType === 'coupon'}}">
     <view class="form-item">
       <text class="form-label">名称</text>
-      <input class="form-input" type="text" value="{{couponForm.name}}" placeholder="请输入优惠券名称" bindinput="onCouponNameInput"/>
+      <input class="form-input {{inputFocused === 'c_name' ? 'focused' : ''}}" type="text" value="{{couponForm.name}}" placeholder="请输入优惠券名称" data-field="c_name" bindinput="onCouponNameInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">类型</text>
@@ -142,19 +142,19 @@
     </view>
     <view class="form-item">
       <text class="form-label">{{couponForm.type === 1 ? '减免金额（元）' : (couponForm.type === 2 ? '折扣值（0-10，如8.5=85折）' : '抵扣金额（元）')}}</text>
-      <input class="form-input" type="digit" value="{{couponForm.discount_value}}" placeholder="请输入面值" bindinput="onCouponDiscountInput"/>
+      <input class="form-input {{inputFocused === 'c_discount' ? 'focused' : ''}}" type="digit" value="{{couponForm.discount_value}}" placeholder="请输入面值" data-field="c_discount" bindinput="onCouponDiscountInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">最低消费（元）</text>
-      <input class="form-input" type="digit" value="{{couponForm.min_spend}}" placeholder="0" bindinput="onCouponMinSpendInput"/>
+      <input class="form-input {{inputFocused === 'c_min_spend' ? 'focused' : ''}}" type="digit" value="{{couponForm.min_spend}}" placeholder="0" data-field="c_min_spend" bindinput="onCouponMinSpendInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">有效天数</text>
-      <input class="form-input" type="number" value="{{couponForm.valid_days}}" placeholder="30" bindinput="onCouponValidDaysInput"/>
+      <input class="form-input {{inputFocused === 'c_valid_days' ? 'focused' : ''}}" type="number" value="{{couponForm.valid_days}}" placeholder="30" data-field="c_valid_days" bindinput="onCouponValidDaysInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">发放总量（0=不限）</text>
-      <input class="form-input" type="number" value="{{couponForm.total_count}}" placeholder="0" bindinput="onCouponTotalCountInput"/>
+      <input class="form-input {{inputFocused === 'c_total_count' ? 'focused' : ''}}" type="number" value="{{couponForm.total_count}}" placeholder="0" data-field="c_total_count" bindinput="onCouponTotalCountInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item row-item">
       <text class="form-label">状态</text>
@@ -166,7 +166,7 @@
   <scroll-view class="sheet-body" scroll-y wx:if="{{editingType === 'rule'}}">
     <view class="form-item">
       <text class="form-label">规则名称</text>
-      <input class="form-input" type="text" value="{{ruleForm.rule_name}}" placeholder="请输入规则名称" bindinput="onRuleNameInput"/>
+      <input class="form-input {{inputFocused === 'r_name' ? 'focused' : ''}}" type="text" value="{{ruleForm.rule_name}}" placeholder="请输入规则名称" data-field="r_name" bindinput="onRuleNameInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">规则类型</text>
@@ -176,15 +176,15 @@
     </view>
     <view class="form-item" wx:if="{{ruleForm.rule_type === 1}}">
       <text class="form-label">每元积分</text>
-      <input class="form-input" type="digit" value="{{ruleForm.points_per_yuan}}" placeholder="如1表示每消费1元送1积分" bindinput="onRulePointsPerYuanInput"/>
+      <input class="form-input {{inputFocused === 'r_points_yuan' ? 'focused' : ''}}" type="digit" value="{{ruleForm.points_per_yuan}}" placeholder="如1表示每消费1元送1积分" data-field="r_points_yuan" bindinput="onRulePointsPerYuanInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item" wx:if="{{ruleForm.rule_type === 2 || ruleForm.rule_type === 3}}">
       <text class="form-label">固定积分</text>
-      <input class="form-input" type="number" value="{{ruleForm.fixed_points}}" placeholder="请输入固定积分数" bindinput="onRuleFixedPointsInput"/>
+      <input class="form-input {{inputFocused === 'r_fixed_points' ? 'focused' : ''}}" type="number" value="{{ruleForm.fixed_points}}" placeholder="请输入固定积分数" data-field="r_fixed_points" bindinput="onRuleFixedPointsInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item">
       <text class="form-label">描述</text>
-      <textarea class="form-textarea" value="{{ruleForm.description}}" placeholder="可选，规则说明" bindinput="onRuleDescInput" maxlength="200"/>
+      <textarea class="form-textarea {{inputFocused === 'r_desc' ? 'focused' : ''}}" value="{{ruleForm.description}}" placeholder="可选，规则说明" data-field="r_desc" bindinput="onRuleDescInput" maxlength="200" bindfocus="onFieldFocus" bindblur="onFieldBlur"/>
     </view>
     <view class="form-item row-item">
       <text class="form-label">状态</text>

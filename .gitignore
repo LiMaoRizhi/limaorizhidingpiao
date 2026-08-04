@@ -47,6 +47,15 @@ components.d.ts
 *.test
 coverage.out
 
+# Go compiled binaries
+limaorizhi-server/limaorizhi-server
+limaorizhi-dingpiaoHD/limaorizhi-server/limaorizhi-server
+limaorizhi-dingpiaoHD/limaorizhi-server/cmd/server/limaorizhi-server
+
+# Admin env files (keep only .env.example)
+limaorizhi-dingpiaoHD/limaorizhi-admin/.env.development
+limaorizhi-dingpiaoHD/limaorizhi-admin/.env.production
+
 # Certificates and sensitive data
 cert/
 密钥/

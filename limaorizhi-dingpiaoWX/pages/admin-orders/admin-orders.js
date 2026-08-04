@@ -1,5 +1,5 @@
 // 管理后台 - 订单管理
-// 接 /api/wx/admin/orders(列表/详情/状态流转) + /api/wx/admin/orders/:id/refund(超管退款)
+// 接 /api/wx/admin/orders（列表/详情/状态流转/超管退款）
 const { request } = require('../../utils/request')
 
 // 状态标签：与后端 model/consts.go 一致
@@ -28,6 +28,7 @@ Page({
     activeStatus: '',       // 当前选中的状态筛选（空字符串=全部）
     activeType: '',         // 当前选中的订单类型筛选
     keyword: '',            // 搜索关键字（订单号/手机号）
+    inputFocused: '',       // 当前聚焦的输入框（黑色输入框聚焦变蓝）
     startDate: '',
     endDate: '',
 
@@ -54,6 +55,14 @@ Page({
     const userInfo = wx.getStorageSync('user_info') || {}
     this.setData({ adminRole: userInfo.admin_role || 0 })
     this.loadList()
+  },
+
+  // 输入框聚焦/失焦（黑框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   // 拉取订单列表
@@ -132,7 +141,7 @@ Page({
       contact,
       phone,
       countText,
-      total_price: (o.total_price || 0).toFixed(2),
+      total_price: (parseFloat(o.total_price) || 0).toFixed(2),
       status: o.status,
       statusText,
       statusCls,
@@ -144,7 +153,7 @@ Page({
     if (isCargo) {
       return { 0: '待支付', 1: '待运输', 2: '运输中', 3: '已到达', 4: '已取消', 5: '已取件' }[s] || '未知'
     }
-    return { 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消' }[s] || '未知'
+    return { 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消', 5: '已核销' }[s] || '未知'
   },
   statusCls(s) {
     return { 0: 'pay', 1: 'travel', 2: 'done', 3: 'refund', 4: 'cancel', 5: 'done' }[s] || ''
@@ -235,7 +244,7 @@ Page({
         passenger_count: order.passenger_count,
         weight: order.weight,
         countText: isCargo ? (order.weight ? order.weight + 'kg' : '-') : (order.passenger_count + '人'),
-        total_price: (order.total_price || 0).toFixed(2),
+        total_price: (parseFloat(order.total_price) || 0).toFixed(2),
         status: order.status,
         statusText: this.statusText(order.status, isCargo),
         statusCls: this.statusCls(order.status),
@@ -266,7 +275,7 @@ Page({
     })
   },
 
-  // 计算订单可执行的状态流转操作
+  // 算这单还能做啥操作
   // 规则严格对齐后端 allowedTransitions（退款不在此处，走专用 Refund 接口）
   availableActions(status, isCargo) {
     const actions = []

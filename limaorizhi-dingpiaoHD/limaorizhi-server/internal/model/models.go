@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package model
 
 import (
@@ -58,8 +57,9 @@ type Station struct {
 // 注：from_station_id/to_station_id 为首站/末站冗余缓存（由 route_stations 派生），仅用于列表展示；
 // 售票/区间判断一律基于 route_stations 站点序列。
 // RouteType: 1=城乡公交（多站点途经，如商丘→界沟镇沿途各站）
-//            2=城际客运（跨城市，如商丘→郑州途经开封）
-//            3=旅游专线（A地直达B地，如景区直达）
+//
+//	2=城际客运（跨城市，如商丘→郑州途经开封）
+//	3=旅游专线（A地直达B地，如景区直达）
 type Route struct {
 	ID              uint           `gorm:"primaryKey" json:"id"`
 	Name            string         `gorm:"size:128;not null" json:"name"`
@@ -99,7 +99,8 @@ type Vehicle struct {
 	PlateNo     string   `gorm:"size:20;uniqueIndex;not null" json:"plate_no"`
 	VehicleType string   `gorm:"size:32;default:''" json:"vehicle_type"`
 	SeatCount   int      `gorm:"default:0" json:"seat_count"`
-	Status      int8     `gorm:"default:1" json:"status"` // 1=可用 0=维修
+	SeatLayout  string   `gorm:"type:text" json:"seat_layout"` // 座位布局JSON，空则自动根据seat_count生成默认布局
+	Status      int8     `gorm:"default:1" json:"status"`      // 1=可用 0=维修
 	CreatedAt   JSONTime `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   JSONTime `gorm:"autoUpdateTime" json:"updated_at"`
 }
@@ -138,8 +139,13 @@ type Trip struct {
 	BasePrice          float64  `gorm:"type:decimal(8,2);not null" json:"base_price"`
 	Status             int8     `gorm:"default:1;index:idx_date_status" json:"status"` // 1=可售 2=已发车 3=已取消 0=下架 4=已完成
 	CurrentPassedOrder int      `gorm:"default:0" json:"current_passed_order"`         // 手动标记车已驶过到第几站序(0=未标记)，>0时覆盖其他到站判断
-	CreatedAt          JSONTime `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt          JSONTime `gorm:"autoUpdateTime" json:"updated_at"`
+	// 无座票（春运等客流高峰开放站票）
+	AllowStanding    bool     `gorm:"default:false" json:"allow_standing"`                     // 是否开放无座票
+	StandingQuota    int      `gorm:"default:0" json:"standing_quota"`                         // 无座票可售数量上限（0=不允许，>0时开放，常设为座位数的一定比例）
+	StandingSold     int      `gorm:"default:0" json:"standing_sold"`                          // 已售无座票数（实时增减，随订单支付/取消/退款同步）
+	StandingDiscount float64  `gorm:"type:decimal(3,2);default:1.00" json:"standing_discount"` // 无座票价折扣（0~1，1=与座位同价默认不强制打折，0.9=按区间座位价9折）
+	CreatedAt        JSONTime `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt        JSONTime `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 // Order 订单（统一订单：车票+托运）
@@ -180,6 +186,7 @@ type Order struct {
 	PayTime       *JSONTime `json:"pay_time"`
 	PayMethod     string    `gorm:"size:16;default:''" json:"pay_method"`
 	UserHidden    bool      `gorm:"default:false" json:"user_hidden"` // 用户端软删除：true=用户已删除（仅前端隐藏，管理端仍可见）
+	HasStanding   bool      `gorm:"-" json:"has_standing"`            // 是否含无座站票乘客（非持久化字段，接口响应动态计算）
 	CreatedAt     JSONTime  `gorm:"autoCreateTime;index" json:"created_at"`
 	UpdatedAt     JSONTime  `gorm:"autoUpdateTime" json:"updated_at"`
 }
@@ -196,6 +203,7 @@ type OrderPassenger struct {
 	IDCardNo    string    `gorm:"size:128;not null" json:"id_card_no"`
 	Phone       string    `gorm:"size:20;default:''" json:"phone"`
 	SeatNo      string    `gorm:"size:8;default:''" json:"seat_no"`
+	SeatType    int8      `gorm:"default:0" json:"seat_type"`    // 0=座位 1=无座站票（春运等客流高峰，不占座）
 	CheckStatus int8      `gorm:"default:0" json:"check_status"` // 0=未核销 1=已核销
 	CheckedAt   *JSONTime `json:"checked_at"`
 	CheckedBy   uint      `gorm:"default:0" json:"checked_by"` // 司机ID
@@ -237,8 +245,9 @@ type Refund struct {
 	RefundNo   string    `gorm:"size:64;uniqueIndex;not null" json:"refund_no"`
 	Amount     float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Reason     string    `gorm:"size:255;default:''" json:"reason"`
-	Status     int8      `gorm:"default:0" json:"status"`     // 0=处理中 1=成功 2=失败
-	PreStatus  int8      `gorm:"default:0" json:"pre_status"` // 退款前订单状态（用于退款失败回滚：1=待出行 2=已完成 4=已取消）
+	Status     int8      `gorm:"default:0" json:"status"`            // 0=处理中 1=成功 2=失败
+	PreStatus  int8      `gorm:"default:0" json:"pre_status"`        // 退款前订单状态（用于退款失败回滚：1=待出行 2=已完成 4=已取消）
+	RefundType int8      `gorm:"default:0;index" json:"refund_type"` // 0=整单退款 1=改签差价退款（改签差价记录不阻塞后续整单退款/退票）
 	RefundTime *JSONTime `json:"refund_time"`
 	CreatedAt  JSONTime  `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt  JSONTime  `gorm:"autoUpdateTime" json:"updated_at"`

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -188,7 +187,7 @@ func (h *CouponHandler) PublicHomeCoupons(c *gin.Context) {
 		response.OK(c, []interface{}{})
 		return
 	}
-	// 解析逗号分隔的ID列表
+	// 拆逗号分隔的ID
 	idStrs := strings.Split(cfg.ConfigValue, ",")
 	var ids []uint
 	for _, s := range idStrs {
@@ -316,7 +315,8 @@ func (h *PointRuleHandler) Update(c *gin.Context) {
 		return
 	}
 	if req.RuleType < 1 || req.RuleType > 3 {
-		req.RuleType = 1
+		response.FailMsg(c, response.CodeParamError, "规则类型不合法（1=消费赠送 2=注册赠送 3=手动调整）")
+		return
 	}
 	if err := h.DB.Model(&r).Updates(map[string]interface{}{
 		"rule_name": req.RuleName, "rule_type": req.RuleType,
@@ -458,7 +458,7 @@ func (h *UserPointsHandler) Adjust(c *gin.Context) {
 		if err := tx.Model(&up).Updates(updates).Error; err != nil {
 			return err
 		}
-		// 写入积分明细
+		// 记积分明细
 		record := model.PointRecord{
 			UserID:     uint(userID),
 			ChangeType: changeType,

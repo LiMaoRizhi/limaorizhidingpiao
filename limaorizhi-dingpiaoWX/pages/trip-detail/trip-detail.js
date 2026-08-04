@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request } = require('../../utils/request')
 const { matchStation } = require('../../utils/pinyin')
@@ -32,11 +31,20 @@ Page({
     intervalPrice: '0.00',
     intervalAvailableSeats: -1, // 区间可用余座（-1=加载中）
     intervalSeatsText: '', // 区间余座文案
-    finalPrice: '0.00', // 优惠后总价（合计展示用）
-    insuranceFeeUnit: 0, // 保险费单价（元/人，从配置读取，0=未开启保险）
-    buyInsurance: false, // 是否勾选购买保险
-    insuranceRequired: false, // 是否强制购买保险（后端配置）
-    insuranceTotal: '0.00', // 保险费小计（元）
+    // 无座票（春运等客流高峰开放）
+    standingAllowed: false,     // 该班次是否开放无座票
+    standingAvailable: 0,       // 无座票实时余量
+    standingSold: 0,            // 无座票已售
+    standingDiscount: 1,        // 无座票价折扣（0~1）
+    standingPriceText: '0.00',  // 无座单价（区间票价×折扣）
+    buyStanding: false,         // 用户是否选择购买无座站票
+    soldOut: false,             // 当前模式（座位/无座）是否售罄（控制下单按钮）
+    finalPrice: '0.00',
+    insuranceFeeUnit: 0, // 保险费单价（元/人，0=未开启）
+    buyInsurance: false,
+    insuranceRequired: false,
+    insuranceTotal: '0.00',
+    configLoaded: false, // 防异步竞态
     showStationPicker: false,
     stationPickerType: '',
     stationSearchValue: '',
@@ -46,7 +54,6 @@ Page({
     // 从首页传入的预设站点
     preFromStationId: 0,
     preToStationId: 0,
-    // 站点搜索框聚焦态（控制边框高亮）
     searchFocused: false,
     stationScrollHeight: '300px', // 站点列表scroll-view高度，JS动态计算
     // 车辆位置地图预览
@@ -60,12 +67,26 @@ Page({
     vehicleLocation: null,
     mapReady: false,
     currentPassedOrder: 0, // 司机手动标记的已过站序号
-    effectivePassedOrder: 0 // 有效过站序号（GPS优先+手动标记取max，驱动进度条）
+    effectivePassedOrder: 0, // 有效过站序号（GPS优先+手动标记取max，驱动进度条）
+    // 下单确认弹窗
+    showConfirmModal: false,
+    confirmBuyInsurance: false,
+    confirmTripSummary: null,
+    confirmBasePrice: '0.00',
+    confirmInsuranceTotal: '0.00',
+    confirmFinalPrice: '0.00',
+    confirmInsuranceFeeUnit: 0,
+    confirmPassengerCount: 0,
+    confirmInsuranceRequired: false,
+    confirmHasSeats: false,   // 确认弹窗中是否已选座（控制去选座链接显示）
+    addPassengerDisabled: false,
+    selectedSeatNos: [],
+    seatPreview: ''
   },
 
   onLoad(options) {
     const tripId = options.id
-    // 获取屏幕高度，动态计算站点列表 scroll-view 高度
+    // 动态计算站点列表 scroll-view 高度
     try {
       const sysInfo = wx.getSystemInfoSync()
       this.setData({
@@ -98,12 +119,12 @@ Page({
           contactName: user.nickname || '',
           contactPhone: user.phone || ''
         })
-        // 更新本地缓存
+        // 刷新本地缓存
         wx.setStorageSync('user_info', user)
       }
     }).catch((e) => {
       log.error('获取用户信息失败', e)
-      // 降级使用本地缓存
+      // 降级用本地缓存
       const userInfo = wx.getStorageSync('user_info')
       if (userInfo) {
         this.setData({
@@ -114,20 +135,24 @@ Page({
     })
   },
 
-  // 页面再次显示时刷新登录态并读取选中乘客和优惠券
+  // 页面再次显示时刷新登录态、选中乘客和优惠券
   onShow() {
     const token = wx.getStorageSync('user_token')
     if (token && !this.data.isLogin) {
-      // 用户从登录页返回，更新登录态并加载数据
       this.setData({ isLogin: true })
       this.loadSelectedPassengers()
       this.loadCoupons()
       this.loadContactInfo()
+      // 从 addPassenger 跳去登录的，登录成功自动继续添加流程
+      if (wx.getStorageSync('trip_pending_add_passenger')) {
+        wx.removeStorageSync('trip_pending_add_passenger')
+        setTimeout(() => this.addPassenger(), 300)
+      }
     } else if (this.data.isLogin) {
-      // 已登录，刷新选中乘客和优惠券（如从乘客选择页返回）
       this.loadSelectedPassengers()
       this.loadCoupons()
     }
+    this._loadSeatSelection()
   },
 
   onUnload() {
@@ -135,7 +160,7 @@ Page({
     clearTimeout(this._orderTimer)
   },
 
-  // 站点搜索input聚焦/失焦：控制搜索框边框高亮
+  // 站点搜索聚焦/失焦：控制搜索框边框高亮
   onStationSearchFocus(e) {
     this.setData({ searchFocused: true })
   },
@@ -146,7 +171,7 @@ Page({
   // 空方法：供 catchtap/catchtouchmove 阻止冒泡和滚动穿透使用
   noop() {},
 
-  // 计算优惠折扣金额（basePrice=原价）
+  // 优惠折扣金额（basePrice=原价）
   calcDiscount(basePrice) {
     const c = this.data.selectedCoupon
     if (!c) return 0
@@ -159,23 +184,26 @@ Page({
     return 0
   },
 
-  // 加载系统配置（保险费单价等公开配置）
+  // 拉系统配置（保险费单价这些公开的）
   loadConfig() {
     request({ url: '/api/wx/config', method: 'GET' }).then(res => {
       const config = res.data || {}
       const fee = parseFloat(config.insurance_fee) || 0
       const required = config.insurance_required === 'true'
       // 强制购买且配置了单价时，默认勾选且不可取消
-      const updateData = { insuranceFeeUnit: fee, insuranceRequired: required }
+      const updateData = { insuranceFeeUnit: fee, insuranceRequired: required, configLoaded: true }
       if (required && fee > 0) {
         updateData.buyInsurance = true
       }
       this.setData(updateData)
       this.calcTotalPrice()
-    }).catch((e) => { log.error('加载配置失败', e) })
+    }).catch((e) => {
+      log.error('加载配置失败', e)
+      wx.showToast({ title: '加载系统配置失败，请检查网络', icon: 'none' })
+    })
   },
 
-  // 切换保险勾选，重新计算合计
+  // 保险勾没勾，重新算合计
   toggleInsurance() {
     // 强制购买时不允许取消勾选
     if (this.data.insuranceRequired && this.data.buyInsurance) {
@@ -188,7 +216,9 @@ Page({
 
   // 计算优惠后总价并更新显示（保险费在优惠券折扣后叠加，不参与满减判断）
   calcTotalPrice() {
-    const basePrice = (parseFloat(this.data.intervalPrice) || 0) * this.data.passengers.length
+    // 无座模式按无座单价计，座位模式按区间座位价计
+    const unitPrice = parseFloat(this.data.buyStanding && this.data.standingAllowed ? this.data.standingPriceText : this.data.intervalPrice) || 0
+    const basePrice = unitPrice * this.data.passengers.length
     const discount = this.calcDiscount(basePrice)
     const final = Math.max(0, basePrice - discount)
     const insuranceTotal = this.data.buyInsurance ? this.data.insuranceFeeUnit * this.data.passengers.length : 0
@@ -205,7 +235,49 @@ Page({
     this.setData(updateData)
   },
 
-  // 加载班次详情
+  // 无座单价 = 区间座位票价 × 折扣（四舍五入到分）
+  _calcStandingPrice(discount) {
+    const price = parseFloat(this.data.intervalPrice) || 0
+    const d = discount && discount > 0 && discount < 1 ? discount : 1
+    return (price * d).toFixed(2)
+  },
+
+  // 切换是否购买无座站票
+  toggleStanding() {
+    if (!this.data.standingAllowed) return
+    const newVal = !this.data.buyStanding
+    if (newVal && this.data.standingAvailable === 0) {
+      wx.showToast({ title: '无座票已售罄', icon: 'none' })
+      return
+    }
+    if (newVal && this.data.passengers.length > this.data.standingAvailable) {
+      wx.showToast({ title: `无座票仅剩${this.data.standingAvailable}张，请减少乘客数`, icon: 'none' })
+      return // 不加 return 会带着超量人数切到无座，下单时后端再报错，用户一头雾水
+    }
+    // 无座票不占座位，切换时清空已选座位
+    this.setData({
+      buyStanding: newVal,
+      selectedSeatNos: [],
+      seatPreview: ''
+    })
+    this.calcTotalPrice()
+    this._updateAddPassengerState()
+    this._updateSoldOutState()
+  },
+
+  // 当前模式（座位/无座）是否售罄：控制下单按钮禁用与文案
+  _updateSoldOutState() {
+    const standingMode = this.data.buyStanding && this.data.standingAllowed
+    let soldOut = false
+    if (standingMode) {
+      soldOut = this.data.standingAvailable <= 0
+    } else {
+      soldOut = this.data.intervalAvailableSeats === 0 || (this.data.trip && this.data.trip.available_seats === 0)
+    }
+    this.setData({ soldOut })
+  },
+
+  // 拉班次详情
   loadTripDetail(id) {
     request({ url: `/api/wx/trips/${id}`, method: 'GET' }).then(res => {
       const trip = res.data.trip || res.data // 兼容旧格式
@@ -215,7 +287,7 @@ Page({
       const durationMin = trip.route ? trip.route.duration_minutes : 0
       const durationStr = durationMin >= 60 ? `约${Math.floor(durationMin/60)}小时${durationMin%60 > 0 ? durationMin%60 + '分钟' : ''}` : `约${durationMin}分钟`
 
-      // 解析站点序列
+      // 拆站点序列
       const routeStations = (trip.route && trip.route.route_stations) ? trip.route.route_stations : []
       // 预设上下车站：优先用首页传入的，否则默认首末站
       let fromSid = this.data.preFromStationId
@@ -226,6 +298,21 @@ Page({
         }
         if (!toSid || !routeStations.find(s => s.station_id === toSid)) {
           toSid = routeStations[routeStations.length - 1].station_id
+        }
+        // 班次进行中且上车站已过，自动跳到下一个未过的站
+        if (trip.status === 2 && effectivePassedOrder > 0) {
+          const fromRS = routeStations.find(s => s.station_id === fromSid)
+          if (fromRS && fromRS.stop_order <= effectivePassedOrder) {
+            const nextRS = routeStations.find(s => s.stop_order > effectivePassedOrder)
+            if (nextRS) {
+              fromSid = nextRS.station_id
+              // 同时修正下车点，确保在上车点之后
+              const toRS = routeStations.find(s => s.station_id === toSid)
+              if (!toRS || toRS.stop_order <= nextRS.stop_order) {
+                toSid = routeStations[routeStations.length - 1].station_id
+              }
+            }
+          }
         }
       }
       this.setData({
@@ -244,19 +331,22 @@ Page({
         effectivePassedOrder
       }, () => {
         this.calcIntervalPrice()
-        // 立即用站点坐标构建地图（不依赖班次状态或登录）
+        this._updateAddPassengerState()
         this.buildStationMap()
-        // 延迟渲染地图原生组件，避免与页面初始化抢占资源
+        // 延迟渲染地图原生组件，避免跟页面初始化抢占资源
         this._mapReadyTimer = setTimeout(() => { this.setData({ mapReady: true }) }, 600)
         // 班次已发车时叠加车辆实时位置
         if (this.data.trip && this.data.trip.status === 2) {
           this.loadVehicleLocation(trip.id)
         }
       })
-    }).catch((e) => { log.error('加载班次详情失败', e) })
+    }).catch((e) => {
+      log.error('加载班次详情失败', e)
+      wx.showToast({ title: '加载班次详情失败，请检查网络', icon: 'none' })
+    })
   },
 
-  // 计算区间票价
+  // 算区间票价
   calcIntervalPrice() {
     const { routeStations, fromStationId, toStationId } = this.data
     if (!routeStations.length || !fromStationId || !toStationId) return
@@ -274,13 +364,20 @@ Page({
       fromStationName: fromName,
       toStationName: toName,
       intervalAvailableSeats: -1,
-      intervalSeatsText: '查询中...'
+      intervalSeatsText: '查询中...',
+      selectedSeatNos: [],
+      seatPreview: '',
+      // 切换上下车站后重置无座状态（无座信息随区间余票接口返回）
+      standingAllowed: false,
+      standingAvailable: 0,
+      buyStanding: false,
+      standingPriceText: this._calcStandingPrice(this.data.standingDiscount)
     })
     this.calcTotalPrice()
     this.loadIntervalSeats()
   },
 
-  // 查询区间实时余票
+  // 查这段路实时余票
   loadIntervalSeats() {
     const { tripId, fromStationId, toStationId } = this.data
     if (!tripId || !fromStationId || !toStationId) return
@@ -298,16 +395,42 @@ Page({
       } else {
         seatsText = '有票'
       }
+      // 无座票信息（后端区间余票接口返回）：开放+余量+折扣
+      const standingAllowed = res.data.allow_standing === true
+      const standingAvailable = res.data.standing_available || 0
+      const standingSold = res.data.standing_sold || 0
+      const standingDiscount = res.data.standing_discount || 1
+      const standingPriceText = this._calcStandingPrice(standingDiscount)
+      // 区间查询失败/未开放无座时自动取消无座勾选
+      const buyStanding = this.data.buyStanding && standingAllowed
       this.setData({
         intervalAvailableSeats: avail,
-        intervalSeatsText: seatsText
+        intervalSeatsText: seatsText,
+        standingAllowed,
+        standingAvailable,
+        standingSold,
+        standingDiscount,
+        standingPriceText,
+        buyStanding
       })
+      this.calcTotalPrice()
+      this._updateAddPassengerState()
+      this._updateSoldOutState()
     }).catch((e) => {
       log.error('查询区间余票失败', e)
+      // 区间余票查询失败时回退整车余票（避免用户永远看到"余票查询中"）
+      const trip = this.data.trip
+      const fallback = (trip && trip.available_seats !== undefined && trip.available_seats !== null) ? trip.available_seats : -1
       this.setData({
-        intervalAvailableSeats: -1,
-        intervalSeatsText: ''
+        intervalAvailableSeats: fallback,
+        intervalSeatsText: fallback < 0 ? '' : (fallback === 0 ? '无票' : (fallback <= 5 ? `余${fallback}座` : '有票')),
+        standingAllowed: false,
+        standingAvailable: 0,
+        buyStanding: false
       })
+      this.calcTotalPrice()
+      this._updateAddPassengerState()
+      this._updateSoldOutState()
     })
   },
 
@@ -322,7 +445,7 @@ Page({
     wx.hideKeyboard()
     this.setData({ showStationPicker: false, stationSearchValue: '', searchFocused: false })
   },
-  // 站点搜索：支持中文包含/全拼包含/拼音首字母包含
+  // 站点搜索：支持中文包含/全拼/拼音首字母
   onStationSearchInput(e) {
     const kw = e.detail.value
     let filtered = this.data.routeStations
@@ -331,13 +454,20 @@ Page({
     }
     this.setData({ stationSearchValue: kw, filteredRouteStations: filtered })
   },
-  // 站点搜索确认（点击键盘"搜索"按钮）：收起键盘，让弹窗恢复全高，方便查看结果
+  // 点击键盘搜索：收起键盘，弹窗恢复全高方便看结果
   onStationSearchConfirm() {
     wx.hideKeyboard()
   },
   onStationSelect(e) {
     const stationId = e.currentTarget.dataset.sid
-    const { stationPickerType, routeStations, fromStationId, toStationId } = this.data
+    const { stationPickerType, routeStations, fromStationId, toStationId, effectivePassedOrder } = this.data
+    const newRS = routeStations.find(s => s.station_id === stationId)
+    if (!newRS) return
+    // 选择上车站时：班次进行中且该站已过，不可选
+    if (stationPickerType === 'from' && this.data.trip && this.data.trip.status === 2 && effectivePassedOrder > 0 && newRS.stop_order <= effectivePassedOrder) {
+      wx.showToast({ title: '车辆已过此站，不可上车', icon: 'none' })
+      return
+    }
     if (stationPickerType === 'from') {
       // 不能等于下车站，且 stop_order 要小于下车站
       const toRS = routeStations.find(s => s.station_id === toStationId)
@@ -359,15 +489,18 @@ Page({
     this.calcIntervalPrice()
   },
 
-  // 从 storage 读取乘客实名页勾选的乘客
+  // 把实名页勾的乘客捞过来
   loadSelectedPassengers() {
     const selected = wx.getStorageSync('trip_selected_passengers')
     if (!selected || !selected.length) return
-    // 合并到已有乘客列表（去重）
+    // 合并到已有乘客列表（去重），不超过余票数
     const existing = this.data.passengers
     const newPassengers = [...existing]
+    const avail = this._getAvailableSeats()
+    let added = 0
     for (const p of selected) {
       if (newPassengers.find(item => item.id === p.id)) continue
+      if (avail >= 0 && newPassengers.length >= avail) break // 已达上限
       newPassengers.push({
         name: p.name,
         idCardNo: p.id_card_no,
@@ -375,14 +508,18 @@ Page({
         id: p.id,
         uid: 'p' + Date.now() + Math.floor(Math.random() * 1000)
       })
+      added++
     }
     this.setData({ passengers: newPassengers })
     this.calcTotalPrice()
-    // 清除 storage，避免重复读取
+    this._updateAddPassengerState()
+    // 清掉 storage,避免重复读取
     wx.removeStorageSync('trip_selected_passengers')
+    if (added < selected.length) {
+      wx.showToast({ title: '余票不足，仅添加' + added + '人', icon: 'none' })
+    }
   },
 
-  // 加载可用优惠券
   loadCoupons() {
     request({ url: '/api/wx/coupons', method: 'GET' }).then(res => {
       this.setData({ coupons: res.data || [] })
@@ -402,7 +539,7 @@ Page({
     this.setData({ showCouponPicker: true, couponList })
   },
 
-  // 关闭优惠券选择器
+  // 关掉优惠券弹层
   closeCouponPicker() {
     this.setData({ showCouponPicker: false })
   },
@@ -427,32 +564,112 @@ Page({
     this.calcTotalPrice()
   },
 
-  // 清除已选优惠券（主页面的“不使用优惠券”链接）
+  // 清除已选优惠券（主页面的"不使用优惠券"链接）
   clearCoupon() {
     this.setData({ selectedCoupon: null })
     this.calcTotalPrice()
   },
 
-  // 弹窗内点击“不使用优惠券”：清除选择并关闭弹窗
+  // 弹窗内点"不使用优惠券"：清除选择并关闭弹窗
   clearCouponInPicker() {
     this.setData({ selectedCoupon: null, showCouponPicker: false })
     this.calcTotalPrice()
   },
 
+  // 获取有效余票数（无座模式按无座余量计；座位模式优先区间余票，回退整车余票）
+  _getAvailableSeats() {
+    if (this.data.buyStanding && this.data.standingAllowed) {
+      return this.data.standingAvailable
+    }
+    const intervalSeats = this.data.intervalAvailableSeats
+    if (intervalSeats >= 0) return intervalSeats
+    const trip = this.data.trip
+    if (trip && trip.available_seats !== undefined && trip.available_seats !== null) return trip.available_seats
+    return -1 // 未知
+  },
+
+  // 添加乘客按钮禁用不禁用
+  _updateAddPassengerState() {
+    const avail = this._getAvailableSeats()
+    if (avail < 0) { this.setData({ addPassengerDisabled: false }); return } // 未知时允许操作
+    const full = this.data.passengers.length >= avail
+    this.setData({ addPassengerDisabled: full })
+  },
+
   // 添加乘客：跳转到乘客实名页（勾选模式）
   addPassenger() {
+    if (!this.data.isLogin) {
+      wx.setStorageSync('trip_pending_add_passenger', true)
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
+    const avail = this._getAvailableSeats()
+    if (avail >= 0 && this.data.passengers.length >= avail) {
+      wx.showToast({ title: '余票不足，无法添加更多乘客', icon: 'none' })
+      return
+    }
     // 把当前已选乘客 id 列表写入 storage，供选择页回显已选状态
     const preselectIds = (this.data.passengers || []).map(p => p.id)
     wx.setStorageSync('trip_preselect_ids', preselectIds)
     wx.navigateTo({ url: '/pages/passenger/passenger?selectMode=1' })
   },
 
-  // 删除乘客
+  // 去选座
+  goPickSeat() {
+    if (!this.data.isLogin) {
+      wx.navigateTo({ url: '/pages/login/login' })
+      return
+    }
+    const { tripId, fromStationId, toStationId, passengers } = this.data
+    if (!tripId || !fromStationId || !toStationId || !passengers.length) {
+      wx.showToast({ title: '请先选择上下车站和乘客', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: `/pages/seat-picker/seat-picker?trip_id=${tripId}&from_sid=${fromStationId}&to_sid=${toStationId}&count=${passengers.length}&standing_allowed=${this.data.standingAllowed ? 1 : 0}&standing_available=${this.data.standingAvailable}&standing_price=${encodeURIComponent(this.data.standingPriceText)}`
+    })
+  },
+
+  // 从 storage 读取选座结果（选座页返回：座位数组 或 'STANDING' 无座标记）
+  _loadSeatSelection() {
+    const seatNos = wx.getStorageSync('trip_selected_seats')
+    if (seatNos === 'STANDING') {
+      // 在选座页选择了无座站票：切到无座模式
+      this.setData({ buyStanding: true, selectedSeatNos: [], seatPreview: '' })
+      this.calcTotalPrice()
+      this._updateSoldOutState()
+      wx.removeStorageSync('trip_selected_seats')
+      return
+    }
+    if (seatNos && seatNos.length > 0) {
+      this.setData({
+        selectedSeatNos: seatNos,
+        seatPreview: '已选' + seatNos.length + '座'
+      })
+    } else {
+      this.setData({ selectedSeatNos: [], seatPreview: '' })
+    }
+    // 清除storage，避免旧数据残留
+    wx.removeStorageSync('trip_selected_seats')
+  },
+
   removePassenger(e) {
     const idx = e.currentTarget.dataset.idx
     const passengers = this.data.passengers.filter((_, i) => i !== idx)
-    this.setData({ passengers })
+    const updateData = { passengers }
+    // 已选座位数不能超过乘客数：删除乘客后截断多余选座，否则下单时座位数与人数不匹配
+    let selectedSeatNos = this.data.selectedSeatNos || []
+    if (passengers.length === 0) {
+      selectedSeatNos = []
+      updateData.seatPreview = ''
+    } else if (selectedSeatNos.length > passengers.length) {
+      selectedSeatNos = selectedSeatNos.slice(0, passengers.length)
+      updateData.seatPreview = '已选' + selectedSeatNos.length + '座'
+    }
+    updateData.selectedSeatNos = selectedSeatNos
+    this.setData(updateData)
     this.calcTotalPrice()
+    this._updateAddPassengerState()
   },
 
   // 联系人输入
@@ -481,12 +698,11 @@ Page({
     })
   },
 
-  // 点击车辆位置区域：有车辆位置直接打开微信地图导航，否则打开站点位置
+  // 点击车辆位置区域：有车辆位置直接开微信地图导航，否则开站点位置
   handleViewTrack() {
     const trip = this.data.trip
     if (!trip) return
     if (this.data.vehicleLocation) {
-      // 有车辆实时位置，直接打开微信地图
       const loc = this.data.vehicleLocation
       wx.openLocation({
         latitude: loc.latitude,
@@ -536,7 +752,6 @@ Page({
     const epo = this.data.effectivePassedOrder || 0
     const routeStations = (trip.route && trip.route.route_stations) ? trip.route.route_stations : []
 
-    // 遍历所有站点，依次添加标记
     routeStations.forEach(function (rs, index) {
       const station = rs.station
       if (!station || !station.latitude || !station.longitude) return
@@ -611,7 +826,7 @@ Page({
     })
   },
 
-  // 加载车辆实时位置（班次已发车时调用，仅用于将地图视野聚焦到车辆所在区域，不再绘制车辆标记）
+  // 加载车辆实时位置（班次已发车时调用）
   loadVehicleLocation(tripId) {
     const token = wx.getStorageSync('user_token')
     if (!token) return
@@ -624,7 +839,7 @@ Page({
 
       const stationMarkers = this.data.vehicleMarkers || []
       const stationPoints = stationMarkers.map(m => ({ latitude: m.latitude, longitude: m.longitude }))
-      // 将车辆实时位置纳入地图视野（聚焦车辆所在区域），但不绘制为标记
+      // 把车辆位置纳入视野但不绘制标记
       const includePoints = stationPoints.slice()
       includePoints.push({ latitude: location.latitude, longitude: location.longitude })
       const polyline = stationPoints.length >= 2 ? [{
@@ -647,32 +862,29 @@ Page({
     })
   },
 
-  // 创建订单
+  // 下单（先弹确认框）
   async createOrder() {
     if (!this.data.isLogin) {
       wx.navigateTo({ url: '/pages/login/login' })
       return
     }
 
-    const { trip, passengers, contactName, contactPhone, fromStationId, toStationId, intervalAvailableSeats } = this.data
+    const { trip, passengers, contactName, contactPhone, fromStationId, toStationId } = this.data
 
-    if (!trip || trip.status !== 1) {
+    // status=1可售 status=2已发车 中途站仍可买
+    if (!trip || (trip.status !== 1 && trip.status !== 2)) {
       wx.showToast({ title: '该班次不可预订', icon: 'none' })
       return
     }
 
-    // 优先校验区间余票（比整车余票更精确），未查询到区间余票时回退整车余票
-    if (intervalAvailableSeats !== undefined && intervalAvailableSeats !== null) {
-      if (intervalAvailableSeats < 0) {
-        wx.showToast({ title: '余票查询中，请稍后重试', icon: 'none' })
-        return
-      }
-      if (intervalAvailableSeats < passengers.length) {
-        wx.showToast({ title: '该区间已无票', icon: 'none' })
-        return
-      }
-    } else if (trip.available_seats === 0) {
-      wx.showToast({ title: '该班次已无票', icon: 'none' })
+    // 优先校验区间余票（比整车余票精确）；区间查询失败时 _getAvailableSeats 已回退整车余票，不存在"永远查询中"
+    const avail = this._getAvailableSeats()
+    if (avail < 0) {
+      wx.showToast({ title: '余票查询中，请稍后重试', icon: 'none' })
+      return
+    }
+    if (avail < passengers.length) {
+      wx.showToast({ title: this.data.buyStanding ? '无座票余量不足，请减少乘客数' : '该区间已无票', icon: 'none' })
       return
     }
     if (!fromStationId || !toStationId) {
@@ -697,13 +909,11 @@ Page({
       wx.showToast({ title: '请填写联系人姓名', icon: 'none' })
       return
     }
-    // 手机号格式校验
     if (!contactPhone || !validatePhone(contactPhone)) {
       wx.showToast({ title: '请填写正确的联系人手机号（11位）', icon: 'none' })
       return
     }
 
-    // 验证乘客信息
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i]
       if (!p.name) {
@@ -717,7 +927,6 @@ Page({
       }
     }
 
-    // 二次确认：展示完整行程信息，防止买错票/交错车
     const routeStations = this.data.routeStations
     const fromRS = routeStations.find(s => s.station_id === fromStationId)
     const toRS = routeStations.find(s => s.station_id === toStationId)
@@ -727,24 +936,84 @@ Page({
     const directLabel = stopCount === 0 ? '直达' : '经' + stopCount + '站'
     const basePrice = (parseFloat(this.data.intervalPrice) || 0) * passengers.length
     const discount = this.calcDiscount(basePrice)
-    const insuranceTotal = this.data.buyInsurance ? this.data.insuranceFeeUnit * passengers.length : 0
-    const totalPrice = (Math.max(0, basePrice - discount) + insuranceTotal).toFixed(2)
+    const discountedBase = (Math.max(0, basePrice - discount)).toFixed(2)
     const tripNo = trip.trip_no || ''
-    const arrivalText = formatArrivalTime(trip.arrival_time, trip.arrival_day_offset)
-    const confirmContent = '车次：' + tripNo + '\n日期：' + trip.trip_date + ' ' + trip.departure_time + '发车\n到达：' + (arrivalText || '详见班次') + '\n上车：' + this.data.fromStationName + '（第' + fromOrder + '站）\n下车：' + this.data.toStationName + '（第' + toOrder + '站）\n' + directLabel + '　' + passengers.length + '人' + (this.data.buyInsurance ? '\n保险：¥' + insuranceTotal.toFixed(2) : '') + '\n合计：¥' + totalPrice
-    const confirmed = await new Promise(resolve => {
-      wx.showModal({
-        title: '请确认行程信息',
-        content: confirmContent,
-        confirmText: '确认下单',
-        cancelText: '再看看',
-        success: (res) => resolve(res.confirm),
-        fail: () => resolve(false)
-      })
-    })
-    if (!confirmed) return
+    const seatNos = this.data.selectedSeatNos
+    const isStandingMode = this.data.buyStanding && this.data.standingAllowed
+    const hasSeats = !isStandingMode && seatNos && seatNos.length > 0
+    const seatInfo = isStandingMode ? '无座站票（不占座）' : (hasSeats ? seatNos.join('、') + '号' : '自动分配')
 
-    this.setData({ orderLoading: true })
+    // 配置没加载完时 insuranceRequired 还是默认值，用 buyInsurance 兜底
+    const initBuyInsurance = this.data.insuranceRequired ? true : this.data.buyInsurance
+    const initInsuranceTotal = initBuyInsurance ? this.data.insuranceFeeUnit * passengers.length : 0
+    const initFinalPrice = (parseFloat(discountedBase) + initInsuranceTotal).toFixed(2)
+
+    // 暂存下单所需数据，供确认弹窗回调使用
+    this._pendingOrder = {
+      trip, passengers, contactName, contactPhone,
+      fromStationId, toStationId
+    }
+
+    this.setData({
+      showConfirmModal: true,
+      confirmBuyInsurance: initBuyInsurance,
+      confirmTripSummary: {
+        tripNo: tripNo,
+        dateTime: trip.trip_date + ' ' + trip.departure_time + '发车',
+        fromInfo: this.data.fromStationName + '（第' + fromOrder + '站）',
+        toInfo: this.data.toStationName + '（第' + toOrder + '站）',
+        directLabel: directLabel,
+        seatInfo: seatInfo
+      },
+      confirmBasePrice: discountedBase,
+      confirmInsuranceTotal: initInsuranceTotal.toFixed(2),
+      confirmFinalPrice: initFinalPrice,
+      confirmInsuranceFeeUnit: this.data.insuranceFeeUnit,
+      confirmPassengerCount: passengers.length,
+      confirmInsuranceRequired: this.data.insuranceRequired,
+      confirmHasSeats: hasSeats,
+      confirmStanding: isStandingMode
+    })
+  },
+
+  // 确认弹窗里勾保险
+  toggleConfirmInsurance() {
+    if (this.data.confirmInsuranceRequired && this.data.confirmBuyInsurance) {
+      wx.showToast({ title: '该班次必购保险', icon: 'none' })
+      return
+    }
+    const newVal = !this.data.confirmBuyInsurance
+    const insuranceTotal = newVal ? this.data.confirmInsuranceFeeUnit * this.data.confirmPassengerCount : 0
+    const finalPrice = (parseFloat(this.data.confirmBasePrice) + insuranceTotal).toFixed(2)
+    this.setData({
+      confirmBuyInsurance: newVal,
+      confirmInsuranceTotal: insuranceTotal.toFixed(2),
+      confirmFinalPrice: finalPrice
+    })
+  },
+
+  // 不下了
+  cancelConfirmOrder() {
+    this.setData({ showConfirmModal: false })
+  },
+
+  // 从确认弹窗跳去选座（关闭弹窗→跳seat-picker）
+  goPickSeatFromConfirm() {
+    this.setData({ showConfirmModal: false })
+    setTimeout(() => this.goPickSeat(), 200)
+  },
+
+  // 确认下单（真正提交）
+  async confirmCreateOrder() {
+    // 防重复提交
+    if (this.data.orderLoading) return
+    const pending = this._pendingOrder
+    if (!pending) return
+    const { trip, passengers, contactName, contactPhone, fromStationId, toStationId } = pending
+    const buyInsurance = this.data.confirmBuyInsurance
+    const seatNos = this.data.selectedSeatNos
+
+    this.setData({ showConfirmModal: false, orderLoading: true })
 
     try {
       const res = await request({
@@ -762,16 +1031,34 @@ Page({
           contact_name: contactName,
           contact_phone: contactPhone,
           coupon_id: this.data.selectedCoupon ? this.data.selectedCoupon.id : 0,
-          buy_insurance: this.data.buyInsurance
+          buy_insurance: buyInsurance,
+          buy_standing: this.data.buyStanding,
+          seat_nos: seatNos && seatNos.length > 0 ? seatNos : undefined
         }
       })
 
       const orderId = res.data.order.id
       wx.showToast({ title: '下单成功', icon: 'success' })
 
-      // 弹出支付确认（orderLoading保持true，防止500ms窗口内重复提交）
+      // 选座偏好被自动调整时提示用户
+      if (res.data.seats_honored === false) {
+        setTimeout(() => {
+          wx.showToast({ title: '部分座位已被占用，已自动调整', icon: 'none', duration: 2500 })
+        }, 1500)
+      }
+
+      // orderLoading 保持 true,防止 500ms 窗口内重复提交
       const redirect = () => {
         wx.redirectTo({ url: `/pages/order-detail/order-detail?id=${orderId}` })
+      }
+      // 0元订单（优惠券全额抵扣+无保险）：后端下单时已直接置为已支付，
+      // 不需要再走支付弹窗，免得用户点了支付结果被告知"订单状态不允许支付"
+      if (res.data.order && res.data.order.status === 1) {
+        this._orderTimer = setTimeout(() => {
+          this.setData({ orderLoading: false })
+          redirect()
+        }, 500)
+        return
       }
       this._orderTimer = setTimeout(() => {
         this.setData({ orderLoading: false })
@@ -792,7 +1079,7 @@ Page({
     }
   },
 
-  // 分享给好友（分享班次信息，好友点开直达该班次详情）
+  // 分享给好友（好友点开直达该班次详情）
   onShareAppMessage() {
     var trip = this.data.trip
     if (trip) {
@@ -814,7 +1101,6 @@ Page({
     }
   },
 
-  // 分享到朋友圈
   onShareTimeline() {
     var trip = this.data.trip
     var title = '狸猫日志售票 · 在线订票便捷出行'

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package money
 
 // 金额计算辅助函数
@@ -39,4 +38,17 @@ func Discount(orderTotal, discountValue float64) float64 {
 	// discountValue 为折扣（如 8.5 表示 85 折），discountFen = fen * (10 - discountValue) / 10
 	discountFen := int64(float64(fen) * (10 - discountValue) / 10)
 	return FromFen(discountFen)
+}
+
+// CalcRefundAmount 计算退款金额（扣手续费）
+// feeRate 为百分比（0~100，如5.0=5%）。
+// 统一四舍五入规则（用户端退票与管理端退款共用，保证财务对账一致），
+// 避免两端一个截断一个四舍五入导致 1 分钱差异。
+func CalcRefundAmount(totalPrice float64, feeRate float64) float64 {
+	totalFen := ToFen(totalPrice)
+	refundFeeFen := int64(float64(totalFen)*feeRate/100 + 0.5)
+	if refundFeeFen > totalFen {
+		refundFeeFen = totalFen // 手续费不超过票款，保证退款金额不小于0
+	}
+	return FromFen(totalFen - refundFeeFen)
 }

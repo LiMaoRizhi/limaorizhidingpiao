@@ -107,7 +107,6 @@ const loadData = async () => {
     form.refund_before_departure_hours = Number(data.refund_before_departure_hours) || 2
     form.refund_fee_rate = Number(data.refund_fee_rate) || 0
     form.notice = data.notice || ''
-    // 加载 AI 配置
     if (authStore.isSuperAdmin()) {
       try {
         const [aiRes, modelsRes] = await Promise.all([aiApi.getConfig(), aiApi.getModels()])

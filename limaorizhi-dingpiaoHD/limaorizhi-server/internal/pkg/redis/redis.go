@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package redis
 
 import (
@@ -175,7 +174,7 @@ func ClearLoginFail(ip, username string) (fallback bool) {
 	return false
 }
 
-// 登录失败计数（含内存降级封装，供多包复用）
+// 登录失败次数（带内存降级，多个包共用）
 
 // memLoginAttempts 进程内存登录失败计数（Redis 不可用时降级）
 var memLoginAttempts sync.Map // key: "ip:username"
@@ -373,7 +372,7 @@ func Unlock(key string) (fallback bool) {
 
 // IncrWithTTL 自增计数器（带TTL，首次自增时设置过期时间）
 // 返回: count=当前计数值, fallback=是否需要降级
-// 用于频率限制场景：如每小时最多N次操作
+// 限流用：比如一小时最多N次
 func IncrWithTTL(key string, ttl time.Duration) (count int64, fallback bool) {
 	if !Enabled() {
 		return 0, true

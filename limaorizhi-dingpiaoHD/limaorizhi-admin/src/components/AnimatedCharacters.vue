@@ -58,7 +58,7 @@ const props = withDefaults(defineProps<{
   passwordLength: 0,
 })
 
-// ─── 模板引用 ──────────────────────────────────────────────
+// 模板引用
 const containerRef = ref<HTMLElement | null>(null)
 const orangeRef = ref<HTMLElement | null>(null)
 const purpleRef = ref<HTMLElement | null>(null)
@@ -70,7 +70,7 @@ const blackFaceRef = ref<HTMLElement | null>(null)
 const yellowFaceRef = ref<HTMLElement | null>(null)
 const yellowMouthRef = ref<HTMLElement | null>(null)
 
-// ─── 内部状态 ──────────────────────────────────────────────
+// 内部状态
 const mouseRef = { x: 0, y: 0 }
 let rafId = 0
 
@@ -88,7 +88,7 @@ const stateRef = ref({
   isLooking: false,
 })
 
-// ─── quickTo 函数集合 ──────────────────────────────────────
+// quickTo 函数集合
 interface QuickToSet {
   purpleSkew: gsap.QuickToFunc
   blackSkew: gsap.QuickToFunc
@@ -110,7 +110,7 @@ interface QuickToSet {
 }
 let qt: QuickToSet | null = null
 
-// ─── 计算函数 ──────────────────────────────────────────────
+// 算位置
 function calcPos(el: HTMLElement) {
   const rect = el.getBoundingClientRect()
   const cx = rect.left + rect.width / 2
@@ -135,7 +135,7 @@ function calcEyePos(el: HTMLElement, maxDist: number) {
   return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist }
 }
 
-// ─── 主循环 tick ────────────────────────────────────────────
+// 主循环 tick
 function tick() {
   const container = containerRef.value
   if (!container || !qt) {
@@ -249,7 +249,7 @@ function tick() {
   rafId = requestAnimationFrame(tick)
 }
 
-// ─── 眨眼动画 ──────────────────────────────────────────────
+// 眨眼动画
 function scheduleBlink(
   charRef: { value: HTMLElement | null },
   eyeSize: number,
@@ -283,7 +283,7 @@ function scheduleBlink(
   }
 }
 
-// ─── 对视动画 ──────────────────────────────────────────────
+// 对视动画
 function applyLookAtEachOther() {
   if (qt) {
     qt.purpleFaceLeft(55)
@@ -299,7 +299,7 @@ function applyLookAtEachOther() {
   })
 }
 
-// ─── 密码隐藏时偷看 ────────────────────────────────────────
+// 密码隐藏时偷看
 function applyHidingPassword() {
   if (qt) {
     qt.purpleFaceLeft(55)
@@ -307,7 +307,7 @@ function applyHidingPassword() {
   }
 }
 
-// ─── 显示密码时回避 ────────────────────────────────────────
+// 显示密码时回避
 function applyShowPassword() {
   if (qt) {
     qt.purpleSkew(0)
@@ -344,7 +344,7 @@ function applyShowPassword() {
   })
 }
 
-// ─── 紫色偷瞄（显示密码时随机偷看） ────────────────────────
+// 紫色偷瞄（显示密码时随机偷看）
 function schedulePeek() {
   const purpleEyePupils = purpleRef.value?.querySelectorAll('.eyeball-pupil')
   if (!purpleEyePupils?.length) return
@@ -367,7 +367,7 @@ function schedulePeek() {
   }, Math.random() * 3000 + 2000)
 }
 
-// ─── 监听状态变化 ──────────────────────────────────────────
+// 盯着状态变化
 watch(() => [props.isTyping, props.showPassword, props.passwordLength], () => {
   const isHidingPassword = props.passwordLength > 0 && !props.showPassword
   const isShowingPassword = props.passwordLength > 0 && props.showPassword
@@ -399,7 +399,7 @@ watch(() => [props.isTyping, props.showPassword, props.passwordLength], () => {
     stateRef.value.isLooking = false
   }
 
-  // 显示/隐藏密码
+  // 密码可见时偷看，隐藏时回避
   if (isShowingPassword) {
     applyShowPassword()
     // 启动紫色偷瞄
@@ -413,9 +413,8 @@ watch(() => [props.isTyping, props.showPassword, props.passwordLength], () => {
   }
 })
 
-// ─── 生命周期 ──────────────────────────────────────────────
+// 生命周期
 onMounted(() => {
-  // 初始化 quickTo 函数
   if (
     purpleRef.value && blackRef.value && orangeRef.value && yellowRef.value &&
     purpleFaceRef.value && blackFaceRef.value && orangeFaceRef.value && yellowFaceRef.value &&

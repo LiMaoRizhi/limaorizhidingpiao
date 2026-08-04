@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -21,7 +20,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// notifyConcurrency 订阅消息并发发送上限，避免50座大巴瞬时spawn 50个goroutine+50次HTTP请求
+// notifyConcurrency 发消息并发上限5个，50座大巴全员推通知时，
+// 别一下子50个goroutine+50个HTTP请求糊微信脸上，糊多了人家限流
 const notifyConcurrency = 5
 
 // 微信订阅消息服务
@@ -104,14 +104,14 @@ func GetTemplateIDs() map[string]string {
 	return result
 }
 
-// AddSubscribeQuota 增加用户的订阅消息发送配额
-// 前端 wx.requestSubscribeMessage 返回结果后调用，用户授权的每个模板配额+1
+// AddSubscribeQuota 给用户加订阅消息配额
+// 前端 wx.requestSubscribeMessage 出结果后调这个，用户点授权的模板每种+1次
 func AddSubscribeQuota(db *gorm.DB, userID uint, templateKeys []string) {
 	for _, key := range templateKeys {
 		if getTemplateID(key) == "" {
 			continue // 模板未配置，跳过
 		}
-		// 使用 upsert 原子增加配额，避免并发时重复创建或丢失更新
+		// upsert 原子加配额，俩人同时授权也不会重复建记录或者把次数搞丢
 		if err := db.Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "user_id"},
@@ -126,8 +126,8 @@ func AddSubscribeQuota(db *gorm.DB, userID uint, templateKeys []string) {
 	}
 }
 
-// consumeQuota 原子消耗1次发送配额（WHERE quota > 0 防并发）
-// 返回true表示有配额已消耗，false表示无配额
+// consumeQuota 原子扣1次配额（WHERE quota > 0 防并发）
+// 返回true=扣上了，false=没配额了（用户没订阅或者次数用光了）
 func consumeQuota(db *gorm.DB, userID uint, templateKey string) bool {
 	result := db.Model(&model.SubscribeQuota{}).
 		Where("user_id = ? AND template_key = ? AND quota > 0", userID, templateKey).
@@ -140,8 +140,8 @@ type subscribeMsgData struct {
 	Value string `json:"value"`
 }
 
-// sendSubscribeMessage 调用微信API发送一条订阅消息
-// 返回nil表示发送成功，error包含微信返回的错误信息
+// sendSubscribeMessage 调微信API发一条订阅消息
+// 返回nil=发送成功，error=微信那边给的错误信息
 func sendSubscribeMessage(openid, templateID, page string, data map[string]subscribeMsgData) error {
 	token := wxtoken.GetAccessToken(config.AppConfig.Wechat.Appid, config.AppConfig.Wechat.Secret)
 	if token == "" {
@@ -182,8 +182,8 @@ func sendSubscribeMessage(openid, templateID, page string, data map[string]subsc
 	return nil
 }
 
-// safeSendSubscribeMessage 发送订阅消息（带 panic 恢复，不影响主流程）
-// 在goroutine中调用，失败仅记录日志，不阻塞业务逻辑
+// safeSendSubscribeMessage 发订阅消息（带panic兜底，崩了也不拖累主流程）
+// 在goroutine里跑的，失败了记个日志拉倒，别耽误正经业务
 func safeSendSubscribeMessage(db *gorm.DB, userID uint, templateKey, page string, data map[string]subscribeMsgData) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -196,8 +196,8 @@ func safeSendSubscribeMessage(db *gorm.DB, userID uint, templateKey, page string
 		return // 模板未配置，静默跳过
 	}
 
-	// 先查用户OpenID，再消耗配额
-	// 顺序不能反：若OpenID为空时已消耗配额，用户授权就白白浪费了
+	// 先查OpenID再扣配额，这顺序可不能反了
+	// 要是OpenID是空的先把配额扣了，人家授权一次就算白授权了，多亏
 	var user model.User
 	if err := db.Select("openid").First(&user, userID).Error; err != nil {
 		log.Printf("[WARN] wx_notify: 查询用户openid失败 userID=%d: %v\n", userID, err)
@@ -207,15 +207,15 @@ func safeSendSubscribeMessage(db *gorm.DB, userID uint, templateKey, page string
 		return // 用户无OpenID（未绑定微信），无法发送
 	}
 
-	// 检查并消耗配额（WHERE quota > 0 防并发，原子操作）
+	// 扣配额（WHERE quota > 0 防并发，原子操作）
 	if !consumeQuota(db, userID, templateKey) {
 		return // 无配额，用户未订阅或已用完
 	}
 
-	// 发送订阅消息
+	// 给用户推订阅消息
 	if err := sendSubscribeMessage(user.OpenID, templateID, page, data); err != nil {
-		// 发送失败不回退配额：微信API可能已收到请求但响应超时
-		// 宁可漏发也不重复发送（用户侧不会收到重复通知）
+		// 发失败了不退配额：微信那边可能其实收到了，只是回包超时
+		// 宁肯漏一条也不重复推，重复推了用户不烦死也嫌得慌
 		log.Printf("[WARN] wx_notify: 发送%s失败 userID=%d order_page=%s: %v\n",
 			templateKey, userID, page, err)
 	}
@@ -250,8 +250,8 @@ func NotifyPaymentSuccess(db *gorm.DB, order model.Order) {
 	)
 }
 
-// NotifyTripDeparture 发送班次发车通知（异步，批量发送给该班次所有已支付订单的用户）
-// 在司机StartTrip或定时任务departTrips中班次状态 1→2 时调用
+// NotifyTripDeparture 班次发车通知（异步，一车已付钱的订单全推一遍）
+// 司机点发车或者定时任务把班次从1整到2的时候调
 func NotifyTripDeparture(db *gorm.DB, trip model.Trip) {
 	go func() {
 		defer func() {
@@ -265,7 +265,7 @@ func NotifyTripDeparture(db *gorm.DB, trip model.Trip) {
 			return
 		}
 
-		// 查询该班次所有已支付(status=1)的车票订单
+		// 这趟车已付钱(status=1)的订单都查出来
 		var orders []model.Order
 		if err := db.Where("trip_id = ? AND status = ? AND order_type = 1", trip.ID, model.OrderStatusPaid).Find(&orders).Error; err != nil {
 			log.Printf("[WARN] wx_notify: 查询班次已支付订单失败 tripID=%d: %v\n", trip.ID, err)
@@ -273,7 +273,7 @@ func NotifyTripDeparture(db *gorm.DB, trip model.Trip) {
 		}
 
 		departureTimeStr := triptime.FormatDateTime(string(trip.TripDate), trip.DepartureTime)
-		// 限制并发：信号量+WaitGroup，避免瞬时大量goroutine+HTTP请求
+		// 信号量+WaitGroup限一下并发，别一趟车人满为患时HTTP请求乌泱乌泱的
 		sem := make(chan struct{}, notifyConcurrency)
 		var wg sync.WaitGroup
 		for _, order := range orders {
@@ -298,8 +298,8 @@ func NotifyTripDeparture(db *gorm.DB, trip model.Trip) {
 	}()
 }
 
-// NotifyTripArrival 发送班次到达通知（异步，批量发送给该班次所有已完成订单的用户）
-// 在班次到达终点(completeArrivedTrip)班次状态 2→4 时调用
+// NotifyTripArrival 班次到达通知（异步，到站的订单全推）
+// 车到终点站(completeArrivedTrip)班次2→4的时候调
 func NotifyTripArrival(db *gorm.DB, trip model.Trip) {
 	go func() {
 		defer func() {
@@ -313,7 +313,7 @@ func NotifyTripArrival(db *gorm.DB, trip model.Trip) {
 			return
 		}
 
-		// 查询该班次所有已完成(status=2)的车票订单
+		// 这趟车已完成(status=2)的订单都查出来
 		var orders []model.Order
 		if err := db.Where("trip_id = ? AND status = ? AND order_type = 1", trip.ID, model.OrderStatusCompleted).Find(&orders).Error; err != nil {
 			log.Printf("[WARN] wx_notify: 查询班次已完成订单失败 tripID=%d: %v\n", trip.ID, err)
@@ -345,8 +345,8 @@ func NotifyTripArrival(db *gorm.DB, trip model.Trip) {
 	}()
 }
 
-// NotifyRefundSuccess 发送退款到账通知（异步）
-// 在微信退款回调 RefundNotify 中退款状态更新为成功时调用
+// NotifyRefundSuccess 退款到账通知（异步）
+// 退款回调 RefundNotify 把钱退成功的时候调
 func NotifyRefundSuccess(db *gorm.DB, refund model.Refund, order model.Order) {
 	go safeSendSubscribeMessage(db, order.UserID, TemplateRefundSuccess,
 		fmt.Sprintf("pages/order-detail/order-detail?id=%d", order.ID),
@@ -358,7 +358,7 @@ func NotifyRefundSuccess(db *gorm.DB, refund model.Refund, order model.Order) {
 	)
 }
 
-// truncateStr 截断字符串到指定长度（微信订阅消息thing类型限制20字符）
+// truncateStr 字符串截断（微信订阅消息thing字段最多20字符，多了不让发）
 func truncateStr(s string, maxLen int) string {
 	r := []rune(s)
 	if len(r) <= maxLen {

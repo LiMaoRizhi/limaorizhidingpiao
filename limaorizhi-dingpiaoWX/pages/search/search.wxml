@@ -26,51 +26,37 @@
       </view>
     </view>
 
-    <!-- 订单列表 -->
+    <!-- 订单列表（卡片结构完全对齐首页 route-card 三层布局） -->
     <view class="order-list" wx:if="{{isLogin && filteredOrders.length > 0}}">
-      <view class="order-card" wx:for="{{filteredOrders}}" wx:key="id" bindlongpress="onLongPressOrder" data-id="{{item.id}}" data-status="{{item.status}}">
-        <view class="order-card-tap" bindtap="goToDetail" data-id="{{item.id}}">
-        <view class="order-header">
-          <text class="order-no"><text class="type-tag {{item.isCargo ? 'cargo' : 'ticket'}}">{{item.typeText}}</text> {{item.orderNo}}</text>
-          <view class="order-status status-{{item.status}}">
-            <text>{{item.statusText}}</text>
+      <view class="order-card" wx:for="{{filteredOrders}}" wx:key="id" bindtap="goToDetail" bindlongpress="onLongPressOrder" data-id="{{item.id}}" data-status="{{item.status}}">
+        <!-- 第一层：路线 + 状态标签（对齐首页 route-top） -->
+        <view class="order-top">
+          <view class="order-path">
+            <text class="order-from">{{item.from}}</text>
+            <image class="order-nav-icon" src="/images/icons/route-direction.svg" />
+            <text class="order-to">{{item.to}}</text>
           </view>
+          <text class="order-status-tag status-{{item.status}}">{{item.statusText}}</text>
         </view>
-        <view class="order-route">
-          <text class="route-city">{{item.from}}</text>
-          <view class="route-arrow">
-            <view class="arrow-line"></view>
-            <image class="arrow-icon-img" src="/images/icons/route-direction.svg" />
-            <view class="arrow-line"></view>
-          </view>
-          <text class="route-city">{{item.to}}</text>
+        <!-- 第二层：行程信息（对齐首页 route-via 的分隔线风格） -->
+        <view class="order-trip">
+          <image class="order-bus-icon" src="/images/icons/bus.svg" />
+          <text class="order-time">{{item.date}} {{item.time}} 发车</text>
+          <text class="order-type-tag {{item.isCargo ? 'cargo' : 'ticket'}}">{{item.typeText}}</text>
+          <text class="order-standing-tag" wx:if="{{item.standTicket}}">无座</text>
+          <text class="order-seats">{{item.infoText}}</text>
         </view>
-        <view class="order-info">
-          <text class="info-time">{{item.date}} {{item.time}} 发车</text>
-          <view class="info-right">
-            <text class="info-seats">{{item.infoText}}</text>
-            <text class="info-price">¥{{item.price}}</text>
-          </view>
+        <!-- 订单号（独立一行，不与金额/按钮挤在一起） -->
+        <view class="order-no-row">
+          <text class="order-no">订单号 {{item.orderNo}}</text>
         </view>
-        </view>
-        <view class="order-footer">
-          <view
-            class="order-action-secondary"
-            wx:if="{{item.secondaryAction}}"
-            bindtap="onSecondaryAction"
-            data-id="{{item.id}}"
-            data-type="{{item.secondaryActionType}}"
-            data-cargo="{{item.isCargo}}"
-          >
-            <text>{{item.secondaryAction}}</text>
-          </view>
-          <view
-            class="order-action action-{{item.status}}"
-            bindtap="onOrderAction"
-            data-id="{{item.id}}"
-            data-status="{{item.status}}"
-          >
-            <text>{{item.actionText}}</text>
+        <!-- 第三层：价格 + 操作按钮（一行排布，原紧凑尺寸） -->
+        <view class="order-bottom">
+          <text class="order-price">¥{{item.price}}</text>
+          <view class="order-action-wrap">
+            <view class="order-action-secondary" wx:if="{{item.changeAction}}" catchtap="onSecondaryAction" data-id="{{item.id}}" data-type="change" data-cargo="{{item.isCargo}}"><text>{{item.changeAction}}</text></view>
+            <view class="order-action-secondary" wx:if="{{item.secondaryAction}}" catchtap="onSecondaryAction" data-id="{{item.id}}" data-type="{{item.secondaryActionType}}" data-cargo="{{item.isCargo}}"><text>{{item.secondaryAction}}</text></view>
+            <view class="order-btn action-{{item.status}}" catchtap="onOrderAction" data-id="{{item.id}}" data-status="{{item.status}}"><text>{{item.actionText}}</text></view>
           </view>
         </view>
       </view>

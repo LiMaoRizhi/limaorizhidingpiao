@@ -44,9 +44,9 @@
 }
 
 .login-btn-disabled {
-  background: #999;
-  color: #ddd;
-  border: 2px solid #666;
+  background: #e8e8e8;
+  color: #aaa;
+  border: none;
 }
 
 .login-tips {
@@ -62,21 +62,36 @@
   gap: 2px;
 }
 
-/* 药丸形勾选框：未勾选透明底灰边，勾选后纯黑 */
+/* 圆形勾选框：没勾是空心灰圈，勾了是黑底白对勾，一眼就懂 */
 .checkbox {
-  width: 36px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   border: 1.5px solid #999;
-  border-radius: 10px;
+  border-radius: 50%;
   flex-shrink: 0;
   margin-right: 6px;
   transition: all 0.2s;
   background: transparent;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .checkbox.checked {
   background: #000;
   border-color: #000;
+}
+
+/* 白对勾：用旋转45度的L形边框画出来，比贴图干净 */
+.checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 5px;
+  width: 10px;
+  height: 16px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
 }
 
 .agreement-text {

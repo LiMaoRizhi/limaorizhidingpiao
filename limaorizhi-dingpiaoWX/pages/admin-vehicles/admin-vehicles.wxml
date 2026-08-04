@@ -4,9 +4,9 @@
 <view class="page">
   <view class="filter-bar">
     <view class="search-row">
-      <view class="search-box">
+      <view class="search-box {{inputFocused === 'search' ? 'focused' : ''}}">
         <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
-        <input class="search-input" type="text" placeholder="车牌号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <input class="search-input" type="text" placeholder="车牌号" value="{{keyword}}" data-field="search" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
         <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
       </view>
       <view class="add-btn" wx:if="{{isSuperAdmin}}" bindtap="openAdd">+ 新增车辆</view>
@@ -57,7 +57,7 @@
     <view class="form-body">
       <view class="form-item">
         <text class="form-label">车牌号<text class="req">*</text></text>
-        <input class="form-input" type="text" placeholder="如 京A12345" value="{{form.plate_no}}" bindinput="onPlateInput" maxlength="20"></input>
+        <input class="form-input {{inputFocused === 'plate_no' ? 'focused' : ''}}" type="text" placeholder="如 京A12345" value="{{form.plate_no}}" data-field="plate_no" bindinput="onPlateInput" maxlength="20" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
       </view>
 
       <view class="form-item">
@@ -69,7 +69,7 @@
 
       <view class="form-item">
         <text class="form-label">座位数<text class="req">*</text></text>
-        <input class="form-input" type="number" placeholder="请输入座位数" value="{{form.seat_count}}" bindinput="onSeatInput"></input>
+        <input class="form-input {{inputFocused === 'seat_count' ? 'focused' : ''}}" type="number" placeholder="请输入座位数" value="{{form.seat_count}}" data-field="seat_count" bindinput="onSeatInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
       </view>
 
       <view class="form-item form-item-switch">

@@ -205,7 +205,7 @@ const handleReset = () => {
   formRef.value?.resetFields()
 }
 
-// ====== 忘记密码功能 ======
+// 忘记密码功能
 const showForgotDialog = ref(false)
 const resetLoading = ref(false)
 const adminList = ref<any[]>([])
@@ -215,7 +215,7 @@ const resetForm = reactive({
   confirmPassword: '',
 })
 
-// 打开弹窗时加载管理员列表
+// 开弹窗时把管理员列表拉出来
 const loadAdminList = async () => {
   try {
     const res = await adminApi.list({ page: 1, page_size: 100 })
@@ -231,7 +231,6 @@ const onDialogOpen = () => {
   }
 }
 
-// 监听弹窗打开
 watch(showForgotDialog, (val) => {
   if (val) onDialogOpen()
 })

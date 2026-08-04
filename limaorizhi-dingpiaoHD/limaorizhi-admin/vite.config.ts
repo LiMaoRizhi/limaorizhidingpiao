@@ -1,11 +1,4 @@
-﻿/* ============================================================
- * 狸猫日志售票系统 (limaorizhi Ticketing System)
- * Copyright (c) limaorizhi. All rights reserved.
- * 版权所有：狸猫日志 (limaorizhi)  保留所有权利
- * 项目：limaorizhi-admin  作者：limaorizhi
- * 未经授权不得复制、传播或用于商业用途
- * ============================================================ */
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'

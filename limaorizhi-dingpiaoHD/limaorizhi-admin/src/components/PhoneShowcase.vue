@@ -366,7 +366,7 @@ const orderManageSvg = `<svg viewBox="0 0 1024 1024" width="34" height="34" xmln
 const goTicketManage = () => router.push('/ticket/trips')
 const goOrderList = () => router.push('/order/list')
 
-// ====== 桌面 APP 数据驱动 + 长按拖拽重排 ======
+// 桌面 APP 数据驱动 + 长按拖拽重排
 type DesktopApp = {
   id: string
   name: string
@@ -417,7 +417,7 @@ const onAppClick = (app: DesktopApp) => {
   }
 }
 
-// ====== 长按拖拽重排逻辑 ======
+// 长按拖拽重排逻辑
 const dragIndex = ref(-1)        // 正在拖拽的图标索引，-1 表示未拖拽
 const dragOverIndex = ref(-1)   // 鼠标悬停的目标索引（让位提示）
 let longPressTimer: ReturnType<typeof setTimeout> | null = null

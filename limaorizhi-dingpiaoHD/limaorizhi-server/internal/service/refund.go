@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -112,6 +111,17 @@ func SetRefundRetryFunc(fn RefundRetryFunc) {
 	refundRetryFn = fn
 }
 
+// RefundQueryFunc 退款状态查询函数类型（由 handler/wx 注入）
+// 返回微信侧退款状态：SUCCESS（已到账）/PROCESSING（处理中）/CLOSED/ABNORMAL
+type RefundQueryFunc func(refundNo string) (string, error)
+
+var refundQueryFn RefundQueryFunc
+
+// SetRefundQueryFunc 注入退款状态查询函数（main.go 启动时调用）
+func SetRefundQueryFunc(fn RefundQueryFunc) {
+	refundQueryFn = fn
+}
+
 // StartRefundCompensator 退款补偿定时任务：扫描 status=0 超时的退款记录重试退款API
 // 兜底场景：PayNotify 创建退款记录后、调用微信退款API前进程崩溃，微信重试回调已耗尽或未覆盖
 // 5月16号就写了，后来6月18号又调了几次，微信重试回调跟定时任务打架重复退款
@@ -148,13 +158,13 @@ func compensateRefunds(db *gorm.DB) {
 			continue // 已被其他实例处理或状态已变更
 		}
 
-		// 查询关联订单
+		// 找对应订单
 		var order model.Order
 		if err := db.First(&order, locked.OrderID).Error; err != nil {
 			log.Printf("[退款补偿] 查询订单失败 退款单号:%s: %v", locked.RefundNo, err)
 			continue
 		}
-		// 查询关联支付的 transaction_id（微信支付流水号，退款API必需）
+		// 查 transaction_id（微信流水号，退款API离不开它）
 		// 必须过滤 status=1（成功），避免取到失败/待支付记录的空 transaction_id
 		var payment model.Payment
 		var txnID string
@@ -164,6 +174,33 @@ func compensateRefunds(db *gorm.DB) {
 		if txnID == "" {
 			log.Printf("[退款补偿] 无效transaction_id 退款单号:%s，跳过", locked.RefundNo)
 			continue
+		}
+		// 对账兜底：先主动问微信这笔退款到底退没退，别傻等退款回调。
+		// 背景：退款回调（refund/notify）可能没送达（比如 APIv3Key 配错导致解密失败），
+		// 微信侧其实已经退款到账，但本地退款记录卡"处理中"，用户看不到钱到账。
+		// 已成功 → 直接标记本地退款成功（钱都退了，绝不能再发起第二次退款）；
+		// 处理中 → 微信还在处理，跳过等下次；
+		// 查不到/查询失败 → 走下面的重试发起退款。
+		if refundQueryFn != nil {
+			st, qerr := refundQueryFn(locked.RefundNo)
+			if qerr == nil {
+				switch st {
+				case "SUCCESS":
+					if err := MarkRefundSuccess(db, locked); err != nil {
+						log.Printf("[退款补偿] 对账标记退款成功失败 退款单号:%s err:%v", locked.RefundNo, err)
+					} else {
+						log.Printf("[退款补偿] 对账: 退款单%s微信侧已到账，本地已同步为已退款", locked.RefundNo)
+					}
+					continue
+				case "PROCESSING":
+					log.Printf("[退款补偿] 对账: 退款单%s微信侧处理中，跳过本次", locked.RefundNo)
+					continue
+				default:
+					log.Printf("[退款补偿] 对账: 退款单%s微信侧状态=%s，走重试发起退款", locked.RefundNo, st)
+				}
+			} else {
+				log.Printf("[退款补偿] 对账查退款状态失败 退款单号:%s err:%v", locked.RefundNo, qerr)
+			}
 		}
 		if err := refundRetryFn(locked, txnID); err != nil {
 			log.Printf("[退款补偿] 重试失败 退款单号:%s err:%v", locked.RefundNo, err)

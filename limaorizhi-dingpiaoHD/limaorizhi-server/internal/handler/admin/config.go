@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -122,10 +121,34 @@ func (h *ConfigHandler) Update(c *gin.Context) {
 				return
 			}
 		}
-		if key == "insurance_fee" {
-			feeVal, err := strconv.ParseFloat(value, 64)
-			if err != nil || feeVal < 0 || feeVal > 1000 {
-				response.FailMsg(c, response.CodeParamError, "保险费必须为0-1000之间的数字")
+		// 托运配置数值范围校验（防配置异常导致业务DoS）
+		if key == "cargo_price_per_km" {
+			if v, err := strconv.ParseFloat(value, 64); err != nil || v < 0 || v > 100 {
+				response.FailMsg(c, response.CodeParamError, "托运每公里运费必须为0-100之间的数字")
+				return
+			}
+		}
+		if key == "cargo_min_fee" {
+			if v, err := strconv.ParseFloat(value, 64); err != nil || v < 0 || v > 10000 {
+				response.FailMsg(c, response.CodeParamError, "托运最低运费必须为0-10000之间的数字")
+				return
+			}
+		}
+		if key == "cargo_free_weight" {
+			if v, err := strconv.ParseFloat(value, 64); err != nil || v < 0 || v > 1000 {
+				response.FailMsg(c, response.CodeParamError, "托运免费重量必须为0-1000之间的数字")
+				return
+			}
+		}
+		if key == "cargo_extra_weight_fee" {
+			if v, err := strconv.ParseFloat(value, 64); err != nil || v < 0 || v > 1000 {
+				response.FailMsg(c, response.CodeParamError, "托运超重费必须为0-1000之间的数字")
+				return
+			}
+		}
+		if key == "cargo_max_weight" {
+			if v, err := strconv.ParseFloat(value, 64); err != nil || v < 0.1 || v > 10000 {
+				response.FailMsg(c, response.CodeParamError, "托运最大重量必须为0.1-10000之间的数字")
 				return
 			}
 		}
@@ -207,7 +230,7 @@ func (h *AdminUserHandler) Create(c *gin.Context) {
 		Phone:        req.Phone,
 		Status:       1,
 	}
-	// 校验角色值
+	// 角色值得合法
 	if req.Role != 1 && req.Role != 2 {
 		req.Role = 2 // 默认普通管理员
 	}
@@ -238,7 +261,7 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 	currentRole, _ := currentRoleVal.(int8)
 	isSuperAdmin := currentRole == 1
 
-	// 查询目标管理员信息
+	// 目标管理员信息
 	var target model.AdminUser
 	if err := h.DB.First(&target, id).Error; err != nil {
 		response.Fail(c, response.CodeUserNotFound)
@@ -270,6 +293,12 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 		"phone":     req.Phone,
 		"role":      req.Role,
 		"status":    req.Status,
+	}
+	// 角色或状态变更时使该管理员的旧Token立即失效（防降级后旧Token仍以超管身份调用接口）
+	// 只更新被修改的字段：判断与DB当前值不一致才写 token_invalid_before
+	if target.Role != req.Role || target.Status != req.Status {
+		now := time.Now()
+		updates["token_invalid_before"] = &now
 	}
 	if err := h.DB.Model(&model.AdminUser{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		response.FailMsg(c, response.CodeServerError, "更新失败")

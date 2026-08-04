@@ -5,9 +5,9 @@
   <!-- 顶部筛选条 -->
   <view class="filter-bar">
     <view class="search-row">
-      <view class="search-box">
+      <view class="search-box {{inputFocused === 'search' ? 'focused' : ''}}">
         <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
-        <input class="search-input" type="text" placeholder="订单号 / 手机号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <input class="search-input" type="text" placeholder="订单号 / 手机号" value="{{keyword}}" data-field="search" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
         <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
       </view>
       <view class="filter-toggle {{showFilter ? 'active' : ''}}" bindtap="toggleFilter">
@@ -208,7 +208,7 @@
 <view class="mask {{showRefundModal ? 'show' : ''}}" bindtap="cancelRefund">
   <view class="refund-modal" catchtap="preventBubble">
     <view class="modal-title">退款原因</view>
-    <textarea class="refund-textarea" placeholder="请输入退款原因（可选）" value="{{refundReason}}" maxlength="200" bindinput="onReasonInput"></textarea>
+    <textarea class="refund-textarea {{inputFocused === 'refund' ? 'focused' : ''}}" placeholder="请输入退款原因（可选）" value="{{refundReason}}" maxlength="200" data-field="refund" bindinput="onReasonInput" bindfocus="onFieldFocus" bindblur="onFieldBlur"></textarea>
     <view class="modal-actions">
       <view class="modal-btn ghost" bindtap="cancelRefund">取消</view>
       <view class="modal-btn danger" bindtap="confirmRefund">确定退款</view>

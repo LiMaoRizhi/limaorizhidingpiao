@@ -4,7 +4,9 @@ page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; b
 
 .filter-bar { background: #fff; padding: 8px 12px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
 .search-row { display: flex; flex-direction: row; align-items: center; }
-.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; }
+.search-box { flex: 1; display: flex; flex-direction: row; align-items: center; background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0 10px; height: 32px; box-sizing: border-box; transition: border-color 0.2s; }
+/* 点击（聚焦）边框变蓝 */
+.search-box.focused { border-color: #409eff; }
 .search-icon { width: 14px; height: 14px; margin-right: 6px; opacity: 0.5; }
 .search-input { flex: 1; font-size: 13px; color: #1a1a1a; height: 30px; line-height: 30px; }
 .search-clear { width: 18px; height: 18px; line-height: 18px; text-align: center; color: #fff; background: #c5c8cc; border-radius: 50%; font-size: 14px; }
@@ -64,6 +66,11 @@ page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; b
 .form-item.row-item { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
 .form-label { display: block; font-size: 13px; color: #333; margin-bottom: 6px; }
 .row-item .form-label { margin-bottom: 0; }
-.form-input { background: #f5f6f8; border-radius: 8px; padding: 0 12px; height: 38px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; }
-.form-picker { background: #f5f6f8; border-radius: 8px; padding: 0 12px; height: 38px; line-height: 38px; font-size: 13px; color: #1a1a1a; }
-.form-textarea { background: #f5f6f8; border-radius: 8px; padding: 10px 12px; height: 70px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; width: 100%; }
+.form-input { background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0 12px; height: 38px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; transition: border-color 0.2s; }
+/* 聚焦边框变蓝 */
+.form-input.focused { border-color: #409eff; }
+.form-picker { background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; padding: 0 12px; height: 38px; line-height: 38px; font-size: 13px; color: #1a1a1a; transition: border-color 0.2s; }
+.form-picker:active { border-color: #409eff; }
+.form-textarea { background: #fff; border: 1px solid #1a1a1a; border-radius: 8px; padding: 10px 12px; height: 70px; font-size: 13px; color: #1a1a1a; box-sizing: border-box; width: 100%; transition: border-color 0.2s; }
+/* 聚焦边框变蓝 */
+.form-textarea.focused { border-color: #409eff; }

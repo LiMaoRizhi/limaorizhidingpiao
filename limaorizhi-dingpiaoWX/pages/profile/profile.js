@@ -1,4 +1,3 @@
-﻿// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 const { request, upload } = require('../../utils/request')
 const { normalizeUrl, maskPhone } = require('../../utils/format')
@@ -22,7 +21,6 @@ Page({
     this.loadConfig()
   },
 
-  // 检查登录状态
   checkLoginStatus() {
     const token = wx.getStorageSync('user_token')
     const userInfo = wx.getStorageSync('user_info')
@@ -43,12 +41,12 @@ Page({
     }
   },
 
-  // 切换手机号脱敏/明文
+  // 手机号脱敏/明文切着看
   togglePhoneMask() {
     this.setData({ phoneMasked: !this.data.phoneMasked })
   },
 
-  // 加载系统配置
+  // 拉系统配置
   loadConfig() {
     request({ url: '/api/wx/config', method: 'GET' }).then(res => {
       const config = res.data || {}
@@ -82,7 +80,7 @@ Page({
     }
   },
 
-  // 上传头像到服务器并更新用户信息
+  // 传头像，顺便把用户信息也更新了
   // 注意：request.js 的 upload/request 失败时会自动调用 wx.showToast，
   // showToast 会自动关闭 showLoading，所以 .catch 里不需要再调用 hideLoading，
   // 否则会触发"showLoading 与 hideLoading 必须配对使用"的警告
@@ -120,7 +118,7 @@ Page({
     })
   },
 
-  // 退出登录
+  // 退出
   handleLogout() {
     wx.showModal({
       title: '提示',

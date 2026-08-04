@@ -93,12 +93,12 @@ import cosmicBg from '@/assets/cosmic-bg.jpg'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// --- 常量 ---
+// 常量
 const CANVAS_W = 310
 const PIECE_TOTAL_W = 44
 const MAX_DRAG = CANVAS_W - PIECE_TOTAL_W // 266
 
-// --- 响应式状态 ---
+// 响应式状态
 const loading = ref(false)
 const blockX = ref(0)
 const yPosition = ref(0)
@@ -107,14 +107,14 @@ const result = ref<'idle' | 'success' | 'fail'>('idle')
 const bgImageUrl = ref('')
 const puzzleImageUrl = ref('')
 
-// --- 非响应式状态 ---
+// 非响应式状态
 let captchaToken = ''
 let dragStartX = 0
 let dragStartBlockX = 0
 let timers: ReturnType<typeof setTimeout>[] = []
 let pendingLogin: { username: string; password: string } | null = null
 
-// --- 宇宙神经元背景动画 ---
+// 宇宙神经元背景动画
 const neuronCanvas = ref<HTMLCanvasElement | null>(null)
 let neuronAnimId = 0
 let neuronCleanup: (() => void) | null = null
@@ -167,7 +167,6 @@ function initNeuronCanvas() {
     ctx.clearRect(0, 0, w, h)
     frame++
 
-    // 更新节点位置
     for (const n of nodes) {
       n.x += n.vx
       n.y += n.vy
@@ -252,7 +251,7 @@ function addTimer(fn: () => void, delay: number) {
   timers.push(t)
 }
 
-// --- 初始化 / 刷新验证码 ---
+// 换/刷新验证码
 async function init() {
   loading.value = true
   result.value = 'idle'
@@ -285,14 +284,14 @@ function refresh() {
   init()
 }
 
-// --- 返回登录页 ---
+// 返回登录页
 function goBack() {
   clearTimers()
   sessionStorage.removeItem('limao_pending_login')
   router.push('/login')
 }
 
-// --- 拖拽处理 ---
+// 拖拽处理
 function startDrag(e: MouseEvent | TouchEvent) {
   if (result.value === 'success' || loading.value) return
   e.preventDefault()
@@ -345,7 +344,7 @@ function removeEventListeners() {
   document.removeEventListener('touchend', onTouchEnd)
 }
 
-// --- 验证 + 登录 ---
+// 验证 + 登录
 async function checkResult() {
   if (blockX.value === 0) return
 

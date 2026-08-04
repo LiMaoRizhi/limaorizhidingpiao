@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // awardPoints 消费赠送积分（在事务内调用）
@@ -59,11 +59,14 @@ func awardRegisterPoints(db *gorm.DB, userID uint) {
 // changeType: 1=获得 2=消耗
 func addPoints(tx *gorm.DB, userID uint, points int, changeType int8, source string, orderID uint, remark string) error {
 	// 查找或创建用户积分余额
+	// 并发安全：用户首次获得积分时，多请求同时 First 都查不到记录，
+	// 直接 Create 会因 user_id 唯一索引冲突报错。改用 OnConflict(DoNothing)，
+	// 并发下若另一方已创建则静默跳过，后续原子更新不受影响。
 	var up model.UserPoints
 	result := tx.Where("user_id = ?", userID).First(&up)
 	if result.Error != nil {
 		up = model.UserPoints{UserID: userID, Balance: 0, TotalEarned: 0, TotalSpent: 0}
-		if err := tx.Create(&up).Error; err != nil {
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&up).Error; err != nil {
 			return fmt.Errorf("创建积分记录失败: %w", err)
 		}
 		log.Printf("[INFO] addPoints: 创建用户积分记录 userID=%d\n", userID)
@@ -95,7 +98,7 @@ func addPoints(tx *gorm.DB, userID uint, points int, changeType int8, source str
 		}
 	}
 
-	// 创建积分明细记录
+	// 建积分明细记录
 	record := model.PointRecord{
 		UserID:     userID,
 		ChangeType: changeType,

@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 // 订单操作公共逻辑（取消订单 / 申请退票退款，order-page-mixin 和 order-detail 共用）
 const { request } = require('./request')
 var log = require('./log')

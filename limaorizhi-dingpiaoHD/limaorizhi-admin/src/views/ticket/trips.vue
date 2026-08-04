@@ -122,8 +122,20 @@
         <el-form-item label="总座位数"><el-input-number v-model="editing.total_seats" :min="0" /><span style="margin-left:8px;color:#909399;font-size:12px">车辆总座位数，留0则自动取车辆座位数</span></el-form-item>
         <el-form-item label="可售座位"><el-input-number v-model="editing.available_seats" :min="0" /><span style="margin-left:8px;color:#909399;font-size:12px">可销售上限，留0则自动等于总座位数</span></el-form-item>
         <el-form-item label="参考票价"><el-input-number v-model="editing.base_price" :min="0" :precision="2" /><span style="margin-left:8px;color:#909399;font-size:12px">全程参考价，实际按站点区间价表算</span></el-form-item>
+        <el-form-item label="开放无座票">
+          <el-switch v-model="editing.allow_standing" active-text="开启" inactive-text="关闭" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">开启后余座不足时乘客可购买无座站票，座位不占用</span>
+        </el-form-item>
+        <el-form-item v-if="editing.allow_standing" label="无座配额">
+          <el-input-number v-model="editing.standing_quota" :min="0" :precision="0" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">无座票可售上限（≤总座位数）</span>
+        </el-form-item>
+        <el-form-item v-if="editing.allow_standing" label="无座折扣">
+          <el-input-number v-model="editing.standing_discount" :min="0" :max="1" :step="0.05" :precision="2" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">无座票价折扣，1=与座位同价（默认），0.9 表示 9 折，填 0 也与座位同价不强制打折</span>
+        </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="editing.status"><el-option label="可售" :value="1" /><el-option label="已发车" :value="2" /><el-option label="已取消" :value="3" /><el-option label="下架" :value="0" /></el-select>
+          <el-select v-model="editing.status"><el-option label="可售" :value="1" /><el-option label="已发车" :value="2" /><el-option label="已取消" :value="3" /><el-option label="已完成" :value="4" /><el-option label="下架" :value="0" /></el-select>
         </el-form-item>
         <el-form-item label="到站标记">
           <el-input-number v-model="editing.current_passed_order" :min="0" :step="1" />
@@ -154,6 +166,18 @@
         <el-form-item label="参考票价">
           <el-input-number v-model="batch.base_price" :min="0" :precision="2" />
           <span style="margin-left:8px;color:#909399;font-size:12px">全程参考价，实际按站点区间价表算</span>
+        </el-form-item>
+        <el-form-item label="开放无座票">
+          <el-switch v-model="batch.allow_standing" active-text="开启" inactive-text="关闭" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">批量生成的班次统一按此无座配置</span>
+        </el-form-item>
+        <el-form-item v-if="batch.allow_standing" label="无座配额">
+          <el-input-number v-model="batch.standing_quota" :min="0" :precision="0" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">无座票可售上限（≤车辆座位数）</span>
+        </el-form-item>
+        <el-form-item v-if="batch.allow_standing" label="无座折扣">
+          <el-input-number v-model="batch.standing_discount" :min="0" :max="1" :step="0.05" :precision="2" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">无座票价折扣，1=与座位同价（默认），0.9 表示 9 折，填 0 也与座位同价不强制打折</span>
         </el-form-item>
         <el-form-item label="快捷选择">
           <div class="quick-select-bar">
@@ -187,7 +211,7 @@
           </div>
         </el-form-item>
         <el-form-item label="手动微调" required>
-          <el-date-picker v-model="batchDates" type="dates" value-format="YYYY-MM-DD" placeholder="可在此手动增减日期" style="width: 100%" />
+          <el-date-picker v-model="batchDates" type="dates" value-format="YYYY-MM-DD" :disabled-date="disablePastDates" placeholder="可在此手动增减日期（过去日期不可选）" style="width: 100%" />
         </el-form-item>
         <el-form-item label="默认时间">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -329,8 +353,8 @@ const list = ref<any[]>([]), total = ref(0), loading = ref(false), dialogVisible
 const routes = ref<any[]>([]), vehicles = ref<any[]>([]), drivers = ref<any[]>([])
 const passengerDialogVisible = ref(false), passengerList = ref<any[]>([]), currentTrip = ref<any>(null)
 const query = reactive({ trip_date: '', route_id: '' as any, status: '' as any, page: 1, page_size: 20 })
-const editing = reactive({ id: 0, route_id: 0, vehicle_id: 0, trip_date: '', departure_time: '', arrival_time: '', arrival_date: '', arrival_day_offset: 0, base_price: 0, total_seats: 0, available_seats: 0, status: 1, current_passed_order: 0 })
-const batch = reactive({ route_id: 0, vehicle_id: 0, driver_id: 0, base_price: 0 })
+const editing = reactive({ id: 0, route_id: 0, vehicle_id: 0, trip_date: '', departure_time: '', arrival_time: '', arrival_date: '', arrival_day_offset: 0, base_price: 0, total_seats: 0, available_seats: 0, status: 1, current_passed_order: 0, allow_standing: false, standing_quota: 0, standing_discount: 1 })
+const batch = reactive({ route_id: 0, vehicle_id: 0, driver_id: 0, base_price: 0, allow_standing: false, standing_quota: 0, standing_discount: 1 })
 const batchDates = ref<string[]>([])
 const batchDefaultDep = ref('')
 const batchDefaultArr = ref('')
@@ -524,6 +548,13 @@ const applyDefaultTimeToSelected = () => {
   ElMessage.success(`已应用到 ${batchSelectedItems.value.length} 个选中日期`)
 }
 
+// 禁用过去日期（批量生成日期选择器）
+const disablePastDates = (date: Date) => {
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
+  return date.getTime() < t.getTime()
+}
+
 const quickSelect = (mode: string) => {
   const now = new Date()
   let year = now.getFullYear()
@@ -536,17 +567,21 @@ const quickSelect = (mode: string) => {
   const lastDay = new Date(year, month + 1, 0)
   const dates: string[] = []
   const excludeSet = new Set(batchExcludeWeekdays.value)
+  const todayStr = formatDateLocal(new Date())
+  let pastCount = 0
   for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+    const ds = formatDateLocal(d)
+    if (ds < todayStr) { pastCount++; continue } // 跳过已过去的日期，避免生成历史班次
     const wd = d.getDay()
     if (mode.includes('Workdays') && (wd === 0 || wd === 6)) continue
     if (mode.includes('Weekends') && wd !== 0 && wd !== 6) continue
     if (excludeSet.has(wd)) continue
-    dates.push(formatDateLocal(d))
+    dates.push(ds)
   }
   const existing = new Set(batchDates.value)
   dates.forEach(d => existing.add(d))
   batchDates.value = Array.from(existing).sort((a, b) => a.localeCompare(b))
-  ElMessage.success(`已添加 ${dates.length} 个日期（共 ${batchDates.value.length} 个）`)
+  ElMessage.success(`已添加 ${dates.length} 个日期${pastCount > 0 ? `（跳过 ${pastCount} 个过去日期）` : ''}（共 ${batchDates.value.length} 个）`)
   if (batchDates.value.length > 0 && !batchDefaultDep.value) {
     ElNotification({ title: '提示', message: '请在下方设置默认发车/到达时间，点击"应用到全部"统一设置。', type: 'info', duration: 6000 })
   }
@@ -565,16 +600,20 @@ const applyDateRange = () => {
   const end = new Date(batchRangeEnd.value)
   const excludeSet = new Set(batchExcludeWeekdays.value)
   const dates: string[] = []
+  const todayStr = formatDateLocal(new Date())
+  let pastCount = 0
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const ds = formatDateLocal(d)
+    if (ds < todayStr) { pastCount++; continue } // 跳过已过去的日期
     if (excludeSet.has(d.getDay())) continue
-    dates.push(formatDateLocal(d))
+    dates.push(ds)
   }
-  if (dates.length === 0) { ElMessage.warning('该范围内没有可用日期（可能全部被排除）'); return }
+  if (dates.length === 0) { ElMessage.warning('该范围内没有可用日期（可能全部为过去日期或已被排除）'); return }
   if (dates.length > 90) { ElMessage.warning('日期数量不能超过90天，请缩小范围'); return }
   const existing = new Set(batchDates.value)
   dates.forEach(d => existing.add(d))
   batchDates.value = Array.from(existing).sort((a, b) => a.localeCompare(b))
-  ElMessage.success(`已添加 ${dates.length} 个日期（共 ${batchDates.value.length} 个）`)
+  ElMessage.success(`已添加 ${dates.length} 个日期${pastCount > 0 ? `（跳过 ${pastCount} 个过去日期）` : ''}（共 ${batchDates.value.length} 个）`)
 }
 
 const applyDefaultTime = () => {
@@ -608,7 +647,7 @@ watch(batchDates, (newDates) => {
 })
 
 const openBatchDialog = () => {
-  Object.assign(batch, { route_id: viewMode.value === 'trips' ? currentRouteId.value : 0, vehicle_id: 0, driver_id: 0, base_price: 0 })
+  Object.assign(batch, { route_id: viewMode.value === 'trips' ? currentRouteId.value : 0, vehicle_id: 0, driver_id: 0, base_price: 0, allow_standing: false, standing_quota: 0, standing_discount: 1 })
   batchDates.value = []
   batchDefaultDep.value = ''
   batchDefaultArr.value = ''
@@ -649,7 +688,8 @@ const handleAdd = () => {
     id: 0, route_id: currentRouteId.value || 0, vehicle_id: 0,
     trip_date: query.trip_date || '', departure_time: '', arrival_time: '',
     arrival_date: query.trip_date || '', arrival_day_offset: 0,
-    base_price: 0, total_seats: 0, available_seats: 0, status: 1, current_passed_order: 0
+    base_price: 0, total_seats: 0, available_seats: 0, status: 1, current_passed_order: 0,
+    allow_standing: false, standing_quota: 0, standing_discount: 1
   })
   dialogVisible.value = true
 }
@@ -667,6 +707,9 @@ const handleEdit = (row: any) => {
     base_price: row.base_price, total_seats: row.total_seats,
     available_seats: row.available_seats, status: row.status,
     current_passed_order: row.current_passed_order || 0,
+    allow_standing: row.allow_standing === true,
+    standing_quota: row.standing_quota || 0,
+    standing_discount: row.standing_discount || 1,
   });
   dialogVisible.value = true
 }
@@ -692,6 +735,24 @@ const handleSave = async () => {
   if (offset === 0 && editing.departure_time >= editing.arrival_time) {
     ElMessage.warning('当天到达时间必须晚于发车时间，如需次日到达请选择到达日期为次日')
     return
+  }
+  // 无座票配置校验（与后端一致）
+  if (editing.allow_standing) {
+    if (!editing.standing_quota || editing.standing_quota <= 0) {
+      ElMessage.warning('开放无座票需填写无座配额（>0）')
+      return
+    }
+    const seats = editing.total_seats > 0 ? editing.total_seats : 0
+    if (seats > 0 && editing.standing_quota > seats) {
+      ElMessage.warning('无座配额不能超过总座位数')
+      return
+    }
+    // 无座折扣：填0也中，跟有座一个价，不硬叫人家打折（后端自动按1存）；
+    // 想打九折就填0.9，0到1中间随便填，超过1那可不行
+    if (editing.standing_discount < 0 || editing.standing_discount > 1) {
+      ElMessage.warning('无座票价折扣需在0~1之间（0=与座位同价不强制打折）')
+      return
+    }
   }
   const payload = {
     ...editing,
@@ -807,11 +868,28 @@ const handleBatchCreate = async () => {
       return
     }
   }
+  // TODO: 这套日期+时间校验和新增班次里重复了，后面抽个公共函数统一处理
+  // 无座票配置校验（与后端一致）
+  if (batch.allow_standing) {
+    if (!batch.standing_quota || batch.standing_quota <= 0) {
+      ElMessage.warning('开放无座票需填写无座配额（>0）')
+      return
+    }
+    // 无座折扣：填0也中，跟有座一个价，不硬叫人家打折（后端自动按1存）；
+    // 想打九折就填0.9，0到1中间随便填，超过1那可不行
+    if (batch.standing_discount < 0 || batch.standing_discount > 1) {
+      ElMessage.warning('无座票价折扣需在0~1之间（0=与座位同价不强制打折）')
+      return
+    }
+  }
   const payload = {
     route_id: batch.route_id,
     vehicle_id: batch.vehicle_id,
     driver_id: batch.driver_id || 0,
     base_price: batch.base_price,
+    allow_standing: batch.allow_standing,
+    standing_quota: batch.allow_standing ? batch.standing_quota : 0,
+    standing_discount: batch.allow_standing ? batch.standing_discount : 1,
     trip_dates: batchDateItems.value.map(d => {
       const offset = Math.round((new Date(d.arrival_date).getTime() - new Date(d.date).getTime()) / 86400000)
       return {
@@ -845,7 +923,7 @@ const handleBatchCreate = async () => {
   } catch (e) { /* error handled by interceptor */ }
 }
 const handleAssignDriver = async (row: any, driverId: number) => {
-  // 保存旧值用于 API 失败时回滚，避免 UI 与后端不一致
+  // 先存旧值，接口挂了能回滚，省得界面和后端对不上
   const oldDriverId = row._oldDriverId ?? 0
   if (!driverId) {
     try { await tripApi.assignDriver(row.id, { driver_id: 0 }); ElMessage.success('已取消司机分配'); loadData() } catch (e) { row.driver_id = oldDriverId; /* 错误由axios拦截器处理 */ }

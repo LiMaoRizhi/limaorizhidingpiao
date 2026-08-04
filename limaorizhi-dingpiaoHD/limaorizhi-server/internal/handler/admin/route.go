@@ -1,4 +1,3 @@
-﻿// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -376,11 +375,11 @@ func (h *RouteHandler) Delete(c *gin.Context) {
 		if err := tx.Model(&model.Order{}).Where("route_id = ?", id).Update("route_id", 0).Error; err != nil {
 			return err
 		}
-		// 删除站点序列
+		// 删站点序列
 		if err := tx.Where("route_id = ?", id).Delete(&model.RouteStation{}).Error; err != nil {
 			return err
 		}
-		// 删除线路
+		// 删线路
 		if err := tx.Delete(&model.Route{}, id).Error; err != nil {
 			return err
 		}

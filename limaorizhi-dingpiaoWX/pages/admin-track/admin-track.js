@@ -1,13 +1,10 @@
-// 管理后台 - 车辆轨迹（运行中班次实时监控 + 历史轨迹回放）
-// 接 /api/wx/admin/trips/active + /api/wx/admin/trips/:id/track
+// 管理后台 - 车辆轨迹（运行中班次实时监控 + 历史轨迹回放），接 /api/wx/admin/trips/active + /api/wx/admin/trips/:id/track
 const { request } = require('../../utils/request')
 
 Page({
   data: {
-    // 列表视图
     list: [],
     loading: true,
-    // 详情视图
     viewMode: 'list',      // list / detail
     selectedTripId: 0,
     detail: null,          // 班次信息
@@ -97,7 +94,7 @@ Page({
         passed_order: trip.passed_order || 0
       }
 
-      // 构建地图数据
+      // 拼地图数据
       const markers = []
       const polyPoints = []
       const includePoints = []

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -88,7 +87,7 @@ func init() {
 	}()
 }
 
-// --- 公开API ---
+// 公开API
 
 // GenerateCaptcha 生成滑动验证码
 func GenerateCaptcha() (*CaptchaResult, error) {
@@ -169,7 +168,7 @@ func VerifyCaptchaToken(token string) bool {
 	return consumeVerifyToken(token)
 }
 
-// --- 内部辅助函数 ---
+// 内部辅助函数
 
 // randInt 生成[min, max]范围内的随机整数（使用crypto/rand）
 func randInt(min, max int) int {
@@ -300,7 +299,7 @@ func resizeCover(src image.Image, newW, newH int) *image.RGBA {
 	srcW := bounds.Dx()
 	srcH := bounds.Dy()
 
-	// 计算覆盖缩放比（取较大的缩放比，确保填满目标尺寸）
+	// 算覆盖缩放比（取大的那个，保证铺满）
 	scaleX := float64(newW) / float64(srcW)
 	scaleY := float64(newH) / float64(srcH)
 	scale := scaleX
@@ -434,7 +433,7 @@ func encodePNGBase64(img image.Image) (string, error) {
 	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-// --- 状态存储（Redis优先，降级进程内存）---
+// 状态存储（Redis优先，降级进程内存）
 
 // storeCaptchaState 存储验证码状态
 func storeCaptchaState(token string, state *captchaState) {

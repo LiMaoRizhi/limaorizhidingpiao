@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -210,7 +209,7 @@ func (h *TrackHandler) TripTrack(c *gin.Context) {
 	if trip.Vehicle != nil {
 		tripInfo["vehicle_plate"] = trip.Vehicle.PlateNo
 	}
-	// 查询起终站名
+	// 起终站名
 	if trip.Route != nil {
 		var fromSt, toSt model.Station
 		h.DB.First(&fromSt, trip.Route.FromStationID)

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -6,12 +5,12 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 	"time"
 
 	wxpay "limaorizhi-server/internal/handler/wx"
 	"limaorizhi-server/internal/model"
+	"limaorizhi-server/internal/pkg/money"
 	"limaorizhi-server/internal/pkg/sanitize"
 	"limaorizhi-server/internal/pkg/response"
 	"limaorizhi-server/internal/service"
@@ -131,7 +130,7 @@ func (h *OrderHandler) Detail(c *gin.Context) {
 	id := c.Param("id")
 	var order model.Order
 	if err := h.DB.Preload("FromStation").Preload("ToStation").
-		Preload("Route").Preload("Trip").Preload("User").
+		Preload("Trip").Preload("User").
 		First(&order, id).Error; err != nil {
 		response.Fail(c, response.CodeOrderNotFound)
 		return
@@ -143,7 +142,11 @@ func (h *OrderHandler) Detail(c *gin.Context) {
 	if order.User != nil {
 		order.User.Mask()
 	}
-	response.OK(c, gin.H{"order": order, "passengers": passengers})
+	// 补查支付流水：支付回调可能没送达，订单状态是"假的"（待支付/已取消）但微信钱已扣。
+	// 支付流水是微信真实扣款的铁证，管理后台靠它看出"实际已付款"，退款也要用它。
+	var payments []model.Payment
+	h.DB.Where("order_id = ?", id).Order("created_at ASC").Find(&payments)
+	response.OK(c, gin.H{"order": order, "passengers": passengers, "payments": payments})
 }
 
 type updateOrderStatusRequest struct {
@@ -219,6 +222,12 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 		if err := tx.Model(&order).Update("status", req.Status).Error; err != nil {
 			return err
 		}
+		// 订单被取消（待支付→已取消）时用户没坐车，优惠券必须退回，否则用户白丢券
+		if order.Status == model.OrderStatusPending && req.Status == model.OrderStatusCancelled {
+			if err := service.ReturnOrderCoupon(tx, order.ID); err != nil {
+				return err
+			}
+		}
 		// 区间复用模型：座位容量按区间实时计算，状态转为已取消/已退款后区间容量自然恢复，无需回补 available_seats
 		return nil
 	})
@@ -260,6 +269,22 @@ func (h *OrderHandler) Refund(c *gin.Context) {
 	var refundRecord model.Refund
 	var refundFee, refundAmount float64
 	var preRefundStatus int8 // 退款前订单状态（1=待出行 / 2=已完成），退款失败回滚时使用
+
+	// 退款前先查单对账：支付回调没送达时订单可能显示"待支付/已取消"，
+	// 但微信钱已扣，直接退会被"订单状态不允许退款"挡掉（钱就卡死了）。
+	// 先救回真实状态：已支付就确认、已取消就登记自动退款。
+	if err := h.DB.First(&refundedOrder, id).Error; err != nil {
+		response.Fail(c, response.CodeOrderNotFound)
+		return
+	}
+	if handled, rerr := wxpay.ReconcileOrderPaidState(h.DB, refundedOrder); rerr != nil {
+		response.FailMsg(c, response.CodeRefundFail, "退款失败："+rerr.Error())
+		return
+	} else if handled {
+		response.OKMsg(c, "订单已取消，系统将自动退款", nil)
+		return
+	}
+
 	err := h.DB.Transaction(func(tx *gorm.DB) error {
 		// 1. 加行锁查询订单
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&refundedOrder, id).Error; err != nil {
@@ -270,11 +295,9 @@ func (h *OrderHandler) Refund(c *gin.Context) {
 		}
 		preRefundStatus = refundedOrder.Status
 
-		// 用整数分计算退款手续费，与用户端退票逻辑保持一致，避免浮点精度差异
-		totalFen := int64(math.Round(refundedOrder.TotalPrice * 100))
-		refundFeeFen := int64(math.Round(float64(totalFen) * feeRate / 100))
-		refundFee = float64(refundFeeFen) / 100
-		refundAmount = float64(totalFen-refundFeeFen) / 100
+		// 用整数分计算退款手续费，与用户端退票共用 money.CalcRefundAmount（统一四舍五入），保证对账一致
+		refundAmount = money.CalcRefundAmount(refundedOrder.TotalPrice, feeRate)
+		refundFee = money.Sub(refundedOrder.TotalPrice, refundAmount)
 
 		// 2. 更新订单状态（车票→3已退款，托运→4已取消）
 		var refundStatus int8 = model.OrderStatusRefunded // 车票退款后状态
@@ -285,13 +308,18 @@ func (h *OrderHandler) Refund(c *gin.Context) {
 			return err
 		}
 		// 3. 区间复用模型：座位容量按区间实时计算，退款后区间容量自然恢复，无需回补 available_seats
-		// 4. 创建退款记录
-		refundRecord = model.Refund{
-			OrderID: refundedOrder.ID, RefundNo: sanitize.GenerateRefundNo(refundedOrder.ID),
-			Amount: refundAmount, Reason: req.Reason, Status: model.RefundStatusProcessing, // 处理中
-			PreStatus: preRefundStatus, // 退款前订单状态（1=待出行 2=已完成）
+		// 4. 创建/复用退款记录（复用失败退款单号，防双重退款）
+		// 注意：err 由同语句 `err := h.DB.Transaction(...)` 声明，作用域不覆盖闭包内，故用局部变量接收
+		newRefund, _, prepareErr := service.PrepareRefundRecord(tx, refundedOrder.ID, refundAmount, req.Reason, preRefundStatus, 0)
+		if prepareErr != nil {
+			return prepareErr
 		}
-		return tx.Create(&refundRecord).Error
+		refundRecord = newRefund
+		// 5. 未出行（待出行）订单退款后归还优惠券；已完成订单用户已乘车，券不归还
+		if preRefundStatus == model.OrderStatusPaid {
+			return service.ReturnOrderCoupon(tx, refundedOrder.ID)
+		}
+		return nil
 	})
 	if err != nil {
 		response.FailMsg(c, response.CodeRefundFail, "退款失败")
@@ -299,7 +327,16 @@ func (h *OrderHandler) Refund(c *gin.Context) {
 	}
 	WriteLog(c, h.DB, "订单", "退款", refundedOrder.OrderNo, fmt.Sprintf("订单ID:%s 订单号:%s 退款金额:%.2f 手续费:%.2f", id, refundedOrder.OrderNo, refundAmount, refundFee))
 
-	if !wxpay.IsWxRefundConfigured() {
+	// 0元订单退款（优惠券全额抵扣那种）：本来就没收钱，微信也不让退0元，
+	// 直接标记退款成功就行，别真去调微信退款接口给自己找麻烦
+	if refundRecord.Amount <= 0 {
+		if err := service.MarkRefundSuccess(h.DB, refundRecord); err != nil {
+			log.Printf("[ERROR] 管理端退款：MarkRefundSuccess 失败 订单号:%s err:%v\n", refundedOrder.OrderNo, err)
+			service.RollbackRefundFailure(h.DB, refundedOrder, refundRecord, preRefundStatus)
+			response.FailMsg(c, response.CodeRefundFail, "退款失败：标记退款成功时出错")
+			return
+		}
+	} else if !wxpay.IsWxRefundConfigured() {
 		// 未配置证书：直接标记退款成功
 		if err := service.MarkRefundSuccess(h.DB, refundRecord); err != nil {
 			log.Printf("[ERROR] 管理端退款：MarkRefundSuccess 失败 订单号:%s err:%v\n", refundedOrder.OrderNo, err)
@@ -308,7 +345,7 @@ func (h *OrderHandler) Refund(c *gin.Context) {
 			return
 		}
 	} else {
-		// 查询支付记录获取微信交易号
+		// 查支付记录拿微信交易号
 		var payment model.Payment
 		if err := h.DB.Where("order_id = ? AND status = ?", refundedOrder.ID, model.PaymentStatusSuccess).First(&payment).Error; err != nil {
 			log.Printf("[ERROR] 管理端退款：查找支付记录失败 订单ID:%d err:%v\n", refundedOrder.ID, err)

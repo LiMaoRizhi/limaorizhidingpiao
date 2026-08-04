@@ -177,7 +177,7 @@ const handleDelete = async (row: any) => {
     ElMessage.success('删除成功')
     loadData()
   } catch (e: any) {
-    // 检查是否有引用详情，提供强制删除选项
+    // 看有没有引用，有的话只能强删
     const detail = e?.response?.data?.data
     const total = Number(detail?.total_count ?? 0)
     if (total === 0) return

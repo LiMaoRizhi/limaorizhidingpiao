@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package service
 
 import (
@@ -58,6 +57,10 @@ func cancelExpiredOrders(db *gorm.DB) {
 			// RowsAffected=0 表示状态已被其他操作改变，跳过座位回补
 			if result.RowsAffected == 0 {
 				return nil
+			}
+			// 归还该订单绑定的优惠券
+			if err := ReturnOrderCoupon(tx, order.ID); err != nil {
+				return err
 			}
 			// 区间复用模型：座位容量按区间实时计算，取消订单后区间容量自然恢复，无需回补 available_seats
 			return nil

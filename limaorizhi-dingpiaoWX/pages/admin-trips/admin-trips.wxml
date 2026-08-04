@@ -4,9 +4,9 @@
 <view class="page">
   <view class="filter-bar">
     <view class="search-row">
-      <view class="search-box">
+      <view class="search-box {{inputFocused === 'search' ? 'focused' : ''}}">
         <image class="search-icon" src="/images/icons/search.svg" mode="aspectFit"></image>
-        <input class="search-input" type="text" placeholder="班次号" value="{{keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm"></input>
+        <input class="search-input" type="text" placeholder="班次号" value="{{keyword}}" data-field="search" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearchConfirm" bindfocus="onFieldFocus" bindblur="onFieldBlur"></input>
         <view class="search-clear" wx:if="{{keyword}}" bindtap="onClearKeyword">×</view>
       </view>
       <view class="filter-toggle {{showRoutePicker ? 'active' : ''}}" bindtap="toggleRoutePicker">
@@ -56,6 +56,7 @@
             <text class="seat-text">¥{{item.base_price}}起</text>
           </view>
           <view class="assign-info">
+            <text class="standing-text" wx:if="{{item.allow_standing}}">无座余{{item.standing_left}}/{{item.standing_quota}}</text>
             <text class="assign-text">{{item.vehicle_plate}}</text>
             <text class="meta-divider" wx:if="{{item.driver_text !== '未分配'}}">·</text>
             <text class="assign-text" wx:if="{{item.driver_text !== '未分配'}}">{{item.driver_text}}</text>
@@ -103,7 +104,7 @@
       </view>
       <view class="form-item">
         <text class="form-label">班次号</text>
-        <input class="form-input" type="text" placeholder="选填，留空系统自动生成" value="{{form.trip_no}}" data-field="trip_no" bindinput="onFormInput" />
+        <input class="form-input {{inputFocused === 'trip_no' ? 'focused' : ''}}" type="text" placeholder="选填，留空系统自动生成" value="{{form.trip_no}}" data-field="trip_no" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
       </view>
       <view class="form-item">
         <text class="form-label">发车日期 <text class="req">*</text></text>
@@ -125,15 +126,30 @@
       </view>
       <view class="form-item">
         <text class="form-label">到达天数偏移（0=当天，1=次日）</text>
-        <input class="form-input" type="number" placeholder="0" value="{{form.arrival_day_offset}}" data-field="arrival_day_offset" bindinput="onFormInput" />
+        <input class="form-input {{inputFocused === 'arrival_day_offset' ? 'focused' : ''}}" type="number" placeholder="0" value="{{form.arrival_day_offset}}" data-field="arrival_day_offset" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
       </view>
       <view class="form-item">
         <text class="form-label">总座位数 <text class="req">*</text></text>
-        <input class="form-input" type="number" placeholder="必填，大于0" value="{{form.total_seats}}" data-field="total_seats" bindinput="onFormInput" />
+        <input class="form-input {{inputFocused === 'total_seats' ? 'focused' : ''}}" type="number" placeholder="必填，大于0" value="{{form.total_seats}}" data-field="total_seats" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
       </view>
       <view class="form-item">
         <text class="form-label">参考票价</text>
-        <input class="form-input" type="digit" placeholder="全程参考价（可选）" value="{{form.base_price}}" data-field="base_price" bindinput="onFormInput" />
+        <input class="form-input {{inputFocused === 'base_price' ? 'focused' : ''}}" type="digit" placeholder="全程参考价（可选）" value="{{form.base_price}}" data-field="base_price" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-item form-item-column">
+        <view class="switch-row">
+          <text class="form-label">开放无座票（站票）</text>
+          <switch checked="{{form.allow_standing}}" bindchange="onToggleStanding" color="#1296db" />
+        </view>
+        <text class="form-hint">开启后余座不足时乘客可购买无座站票，座位不占用</text>
+      </view>
+      <view class="form-item" wx:if="{{form.allow_standing}}">
+        <text class="form-label">无座票配额 <text class="req">*</text></text>
+        <input class="form-input {{inputFocused === 'standing_quota' ? 'focused' : ''}}" type="number" placeholder="无座票可售上限（≤总座位数）" value="{{form.standing_quota}}" data-field="standing_quota" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-item" wx:if="{{form.allow_standing}}">
+        <text class="form-label">无座票价折扣</text>
+        <input class="form-input {{inputFocused === 'standing_discount' ? 'focused' : ''}}" type="digit" placeholder="0~1，1=与座位同价（默认），0.9表示9折" value="{{form.standing_discount}}" data-field="standing_discount" bindinput="onFormInput" bindfocus="onFieldFocus" bindblur="onFieldBlur" />
       </view>
       <view class="form-item">
         <text class="form-label">状态</text>

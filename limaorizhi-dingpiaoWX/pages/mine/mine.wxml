@@ -31,8 +31,8 @@
       <view class="order-grid">
         <view class="order-item" wx:for="{{orderList}}" wx:key="name" data-status="{{item.status}}" bindtap="onOrderTap">
           <view class="order-icon-wrap">
-            <image class="order-icon icon-{{item.cls}}" src="{{item.icon}}" />
-            <view class="order-badge" wx:if="{{item.count > 0}}">{{item.count}}</view>
+            <image class="order-icon icon-{{item.cls}}" src="{{item.icon}}" style="transform: scale({{item.scale}})" />
+            <view class="order-badge" wx:if="{{item.count > 0 && (item.status === '0' || item.status === '1')}}">{{item.count}}</view>
           </view>
           <text class="order-text">{{item.name}}</text>
         </view>
@@ -43,12 +43,12 @@
     <view class="menu-section menu-{{menuLayoutType}}">
       <block wx:for="{{menuList}}" wx:key="name">
         <button wx:if="{{item.openType === 'contact'}}" class="menu-item" open-type="contact">
-          <image class="menu-icon-img" mode="aspectFit" src="{{item.icon}}"></image>
+          <image class="menu-icon-img" mode="aspectFit" src="{{item.icon}}" style="transform: scale({{item.scale}})"></image>
           <text class="menu-name">{{item.name}}</text>
           <text class="menu-arrow" wx:if="{{menuLayoutType === 'list'}}">›</text>
         </button>
         <view wx:else class="menu-item" data-item="{{item}}" bindtap="onMenuTap">
-          <image class="menu-icon-img" mode="aspectFit" src="{{item.icon}}"></image>
+          <image class="menu-icon-img" mode="aspectFit" src="{{item.icon}}" style="transform: scale({{item.scale}})"></image>
           <text class="menu-name">{{item.name}}</text>
           <text class="menu-arrow" wx:if="{{menuLayoutType === 'list'}}">›</text>
         </view>

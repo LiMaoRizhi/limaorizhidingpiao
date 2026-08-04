@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package middleware
 
 import (
@@ -76,9 +75,17 @@ func JWTAuth(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// 角色以数据库当前值为准（防降级后旧Token仍以超管身份调用接口）
+		// 仅当DB查询成功且取到有效角色时才覆盖claims角色；查询失败时保留claims角色，避免数据库抖动导致全量权限失效
+		role := claims.Role
+		var adminRole int8
+		if err := db.Table("admin_users").Select("role").Where("id = ? AND status = 1", claims.UserID).Scan(&adminRole).Error; err == nil && adminRole != 0 {
+			role = adminRole
+		}
+
 		c.Set("admin_id", claims.UserID)
 		c.Set("admin_name", claims.Username)
-		c.Set("admin_role", claims.Role)
+		c.Set("admin_role", role)
 		c.Next()
 	}
 }

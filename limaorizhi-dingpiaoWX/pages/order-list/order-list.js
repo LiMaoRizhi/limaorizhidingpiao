@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 const orderMixin = require('../../utils/order-page-mixin')
 
 Page({
@@ -29,6 +28,7 @@ Page({
   goToDetail: orderMixin.goToDetail,
   onOrderAction: orderMixin.onOrderAction,
   onSecondaryAction: orderMixin.onSecondaryAction,
+  goChangeTicket: orderMixin.goChangeTicket,
   payOrder: orderMixin.payOrder,
   cancelOrder: orderMixin.cancelOrder,
   refundOrder: orderMixin.refundOrder,

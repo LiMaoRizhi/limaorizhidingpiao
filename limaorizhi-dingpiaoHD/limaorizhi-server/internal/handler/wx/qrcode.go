@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -62,6 +61,12 @@ func (h *QrcodeHandler) Generate(c *gin.Context) {
 			statusText = "异常"
 		}
 		response.FailMsg(c, response.CodeOrderStatusErr, "订单"+statusText+"，无法生成核销码")
+		return
+	}
+
+	// 托运(HY)订单无乘客可核销，不生成核销凭证，防止司机扫到托运码得到误导性结果
+	if order.OrderType != 1 {
+		response.FailMsg(c, response.CodeOrderStatusErr, "托运订单不支持生成核销码")
 		return
 	}
 

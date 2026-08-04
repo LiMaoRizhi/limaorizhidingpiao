@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 // 微信支付公共逻辑（order-page-mixin / trip-detail / order-detail 三处共用）
 const { request } = require('./request')
 var log = require('./log')
@@ -42,6 +41,16 @@ function startPayment(orderId, opts) {
           wx.hideLoading()
           if (res.data && res.data.payment_params) {
             callWxPayment(res.data.payment_params, opts)
+          } else if (res.data && res.data.paid) {
+            // 查单兜底：后端主动问过微信，确认这单其实已经付过了
+            // （支付回调可能没送达，用户"钱扣了订单还待支付"就是这情况）
+            wx.showToast({ title: '订单已支付', icon: 'success' })
+            if (opts.onPaid) opts.onPaid()
+          } else if (res.data && res.data.refunding) {
+            // 更狠的场景：钱扣了但订单被自动取消了，退都退不了。
+            // 后端已登记退款，补偿任务会自动把钱退回去
+            wx.showToast({ title: '订单已取消，系统将自动退款', icon: 'none', duration: 2500 })
+            if (opts.onPaid) opts.onPaid()
           } else {
             wx.showToast({ title: '支付参数异常', icon: 'none' })
             if (opts.onError) opts.onError()

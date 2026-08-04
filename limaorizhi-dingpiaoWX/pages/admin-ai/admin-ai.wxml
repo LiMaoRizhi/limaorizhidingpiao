@@ -1,13 +1,13 @@
-<!--管理后台 - 数字员工（AI 流式对话）-->
+<!--管理后台的数字员工,AI聊天页-->
 <navigation-bar title="数字员工" back="{{true}}" background="#ffffff" color="#000000"></navigation-bar>
 
 <view class="page">
 
-  <!-- 顶栏：模型切换 + 清空 -->
+  <!-- 顶栏:换模型 + 清空对话 -->
   <view class="topbar">
     <view class="model-btn" bindtap="toggleModelPicker">
       <text class="model-name">{{currentModelName || '未选择模型'}}</text>
-      <!-- 诊断徽标：加载中/加载失败/服务商·模型数。定位"无模型可选"是接口失败还是数据为空 -->
+      <!-- 顶栏那个小标签:加载中/失败/几个模型,一眼看出是不是接口挂了 -->
       <text class="model-diag {{modelsLoadError ? 'diag-err' : ''}}">{{modelsLoading ? '加载中' : (modelsLoadError ? '加载失败' : (providers.length + '服务商·' + modelsTotal + '模型'))}}</text>
       <text class="arrow {{modelPickerVisible ? 'up' : ''}}"></text>
     </view>
@@ -16,7 +16,7 @@
     </view>
   </view>
 
-  <!-- 模型选择浮层 -->
+  <!-- 选模型的弹层 -->
   <view class="picker-mask" wx:if="{{modelPickerVisible}}" bindtap="closeModelPicker">
     <view class="picker-sheet" catchtap="onPickerContentTap">
       <view class="picker-header">
@@ -24,7 +24,7 @@
         <text class="picker-close" bindtap="closeModelPicker">×</text>
       </view>
       <scroll-view class="picker-body" scroll-y>
-        <!-- 加载失败或列表为空：给重试入口，避免用户面对空白列表 -->
+        <!-- 列表加载不出来或木有模型:给个重试按钮,别让人对着白屏干瞪眼 -->
         <view class="picker-empty" wx:if="{{modelsLoadError || providers.length === 0}}">
           <text class="picker-empty-text">{{modelsLoadError ? '模型列表加载失败' : '暂无可用模型'}}</text>
           <view class="picker-empty-retry" bindtap="reloadModels">点击重试</view>
@@ -55,9 +55,9 @@
     </view>
   </view>
 
-  <!-- 对话列表 -->
+  <!-- 聊天记录区 -->
   <scroll-view class="chat-list" scroll-y scroll-into-view="{{scrollIntoView}}" scroll-with-animation enhanced show-scrollbar="{{false}}">
-    <!-- 空状态：纯净聊天入口 -->
+    <!-- 还没聊过:整个欢迎页,让人知道咋用 -->
     <view class="empty-state" wx:if="{{messages.length === 0}}">
       <view class="ai-avatar-big">
         <image class="avatar-img spinning" src="/images/icons/admin-ai-avatar.svg" mode="aspectFit"></image>
@@ -68,17 +68,24 @@
 
     <!-- 消息列表 -->
     <view class="msg-wrap" wx:for="{{messages}}" wx:key="index" id="msg-{{index}}">
-      <!-- 用户消息 -->
+      <!-- 我发的消息 -->
       <view class="msg-row user" wx:if="{{item.role === 'user'}}">
-        <view class="bubble user-bubble">{{item.content}}</view>
+        <view class="bubble user-bubble">
+          <text wx:if="{{item.content}}">{{item.content}}</text>
+          <!-- 带图的话图贴这儿(识图用) -->
+          <view class="msg-images" wx:if="{{item.images && item.images.length > 0}}">
+            <image class="msg-image" wx:for="{{item.images}}" wx:key="*this" src="{{item}}" mode="aspectFill"
+                   data-src="{{item}}" bindtap="onPreviewImage"></image>
+          </view>
+        </view>
       </view>
-      <!-- 助手消息 -->
+      <!-- 数字员工回的 -->
       <view class="msg-row assistant" wx:else>
         <view class="assistant-avatar">
           <image class="avatar-img {{item.loading ? 'spinning' : ''}}" src="/images/icons/admin-ai-avatar.svg" mode="aspectFit"></image>
         </view>
         <view class="assistant-body">
-          <!-- 思考过程（可折叠） -->
+          <!-- 它想的啥,点开能看,默认收起 -->
           <view class="reasoning-block" wx:if="{{item.reasoning}}" bindtap="toggleReasoning" data-idx="{{index}}">
             <view class="reasoning-header">
               <text class="reasoning-icon">💭</text>
@@ -87,16 +94,29 @@
             </view>
             <view class="reasoning-content" wx:if="{{item.reasoningExpanded}}">{{item.reasoning}}</view>
           </view>
-          <!-- 正文 -->
+          <!-- 回复正文 -->
           <view class="bubble assistant-bubble {{item.error ? 'error-bubble' : ''}}">
-            <text wx:if="{{item.content}}">{{item.content}}</text>
-            <view class="typing" wx:if="{{item.loading && !item.content}}">
-              <view class="dot"></view>
-              <view class="dot"></view>
-              <view class="dot"></view>
-            </view>
+            <!-- 生图的消息 -->
+            <block wx:if="{{item.genImage}}">
+              <view class="gen-loading" wx:if="{{item.generating}}">
+                <view class="gen-spinner"></view>
+                <text>正在生成图片...</text>
+              </view>
+              <image wx:if="{{item.image}}" class="gen-image" src="{{item.image}}" mode="widthFix"
+                     data-src="{{item.image}}" bindtap="onPreviewImage" bindlongpress="onSaveImageTap"></image>
+              <text wx:if="{{item.content}}">{{item.content}}</text>
+            </block>
+            <!-- 普通文字回复 -->
+            <block wx:else>
+              <text wx:if="{{item.content}}">{{item.content}}</text>
+              <view class="typing" wx:if="{{item.loading && !item.content}}">
+                <view class="dot"></view>
+                <view class="dot"></view>
+                <view class="dot"></view>
+              </view>
+            </block>
           </view>
-          <!-- 失败重试 -->
+          <!-- 答挂了给个重试 -->
           <view class="retry-row" wx:if="{{item.error}}">
             <text class="retry-btn" bindtap="onRetryTap">重试</text>
           </view>
@@ -107,26 +127,46 @@
     <view class="bottom-pad"></view>
   </scroll-view>
 
-  <!-- 输入区 -->
-  <view class="input-bar">
-    <view class="stop-btn" wx:if="{{sending}}" bindtap="onStopTap">
-      <view class="stop-icon"></view>
-      <text>停止</text>
+  <!-- 输入区:键盘弹出来时手动垫高,别把页面顶上去 -->
+  <view class="input-bar" style="padding-bottom: {{keyboardHeight ? keyboardHeight + 'px' : ''}};">
+    <!-- 快捷功能:AI生图/识图,纯文字版 -->
+    <view class="feature-bar">
+      <view class="feature-item {{imageMode ? 'active' : ''}}" bindtap="onToggleImageMode">AI生图</view>
+      <view class="feature-item" bindtap="onPickImageTap">识图</view>
     </view>
-    <view class="input-box">
-      <textarea class="input-field"
-                placeholder="输入问题..."
-                value="{{input}}"
-                bindinput="onInput"
-                confirm-type="send"
-                bindconfirm="onSendTap"
-                auto-height
-                maxlength="2000"
-                show-confirm-bar="{{false}}"
-                adjust-position="{{true}}"></textarea>
+    <!-- 画图模式的小提示条 -->
+    <view class="gen-mode-tip" wx:if="{{imageMode}}">
+      <text>图片生成模式：输入描述，点击“生成”即可出图</text>
+      <text class="gen-mode-close" bindtap="onToggleImageMode">×</text>
     </view>
-    <view class="send-btn {{input ? 'active' : ''}}" wx:if="{{!sending}}" bindtap="onSendTap">
-      <text>发送</text>
+    <!-- 选好的图先晾这儿,发送时跟着一块儿走 -->
+    <view class="pending-images" wx:if="{{pendingImages.length > 0}}">
+      <view class="pending-img" wx:for="{{pendingImages}}" wx:key="*this">
+        <image src="{{item}}" mode="aspectFill"></image>
+        <view class="pending-remove" data-index="{{index}}" bindtap="onRemovePendingImage">×</view>
+      </view>
+    </view>
+    <view class="input-bar-row">
+      <view class="input-box {{sending ? 'sending' : ''}}">
+        <textarea class="input-field"
+                  placeholder="{{imageMode ? '描述你想生成的图片...' : '输入问题...'}}"
+                  value="{{input}}"
+                  bindinput="onInput"
+                  confirm-type="send"
+                  bindconfirm="onSendTap"
+                  auto-height
+                  maxlength="2000"
+                  show-confirm-bar="{{false}}"
+                  adjust-position="{{false}}"
+                  bindkeyboardheightchange="onKeyboardHeightChange"></textarea>
+        <!-- 回复中:输入框变蓝,右边转圈圈 -->
+        <view class="typing-spinner" wx:if="{{sending}}"></view>
+      </view>
+      <!-- 发送/暂停一个按钮:闲时发消息,回复中变蓝点一下暂停。有字或有图才亮,不然灰着 -->
+      <view class="send-btn {{(input || pendingImages.length > 0) ? 'active' : ''}} {{sending ? 'paused' : ''}}" bindtap="onSendTap">
+        <text wx:if="{{!sending}}">{{imageMode ? '生成' : '发送'}}</text>
+        <view class="send-stop-icon" wx:else></view>
+      </view>
     </view>
   </view>
 

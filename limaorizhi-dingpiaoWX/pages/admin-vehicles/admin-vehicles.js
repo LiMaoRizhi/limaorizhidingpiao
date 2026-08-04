@@ -1,5 +1,4 @@
-// 管理后台 - 车辆管理
-// 接 /api/wx/admin/vehicles
+// 管理后台 - 车辆管理（接 /api/wx/admin/vehicles）
 const { request } = require('../../utils/request')
 
 // 车辆状态：1=可用 0=维修
@@ -17,6 +16,7 @@ Page({
     statusTabs: STATUS_TABS,
     activeStatus: '',
     keyword: '',
+    inputFocused: '',
     list: [],
     page: 1,
     pageSize: 20,
@@ -45,6 +45,14 @@ Page({
     const userInfo = wx.getStorageSync('user_info') || {}
     this.setData({ isSuperAdmin: userInfo.admin_role === 1 })
     this.loadList()
+  },
+
+  // 输入框聚焦/失焦（黑线框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   loadList(append) {
@@ -96,7 +104,7 @@ Page({
   onPullDownRefresh() { this.loadList(false); wx.stopPullDownRefresh() },
   onLoadMore() { this.loadList(true) },
 
-  // ===== 新增 / 编辑 / 删除 =====
+  // 新增 / 编辑 / 删除
   preventBubble() {
     // 阻止冒泡（点击弹窗内容不关闭）
   },

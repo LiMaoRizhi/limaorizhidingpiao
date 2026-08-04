@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
@@ -68,11 +67,15 @@ func (h *DriverHandler) List(c *gin.Context) {
 	response.Page(c, list, total, page, pageSize)
 }
 
-// All 获取所有启用的司机（用于下拉选择）
+// All 获取所有启用的司机（用于下拉选择，普通管理员可访问）
 func (h *DriverHandler) All(c *gin.Context) {
 	var list []model.Driver
 	h.DB.Where("status = 1").Order("name ASC").Find(&list)
 	// 管理端不脱敏手机号：管理员需要完整手机号分配班次
+	// 驾驶证号属于敏感证件号：该接口普通管理员即可访问，返回脱敏证号（下拉选择无需完整证号）
+	for i := range list {
+		list[i].LicenseNo = idcard.MaskIDCard(list[i].LicenseNo)
+	}
 	response.OK(c, list)
 }
 
@@ -196,7 +199,7 @@ func (h *DriverHandler) Update(c *gin.Context) {
 // Delete 删除司机
 func (h *DriverHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	// 删除前检查是否有未发车的活跃班次
+	// 删之前看看有没有没发车的活跃班次
 	today := time.Now().Format("2006-01-02")
 	var activeTripCount int64
 	h.DB.Model(&model.Trip{}).Where("driver_id = ? AND status = 1 AND trip_date >= ?", id, today).Count(&activeTripCount)
@@ -223,13 +226,14 @@ func (h *DriverHandler) Delete(c *gin.Context) {
 }
 
 // TripPassengers 班次乘客名单（含核销状态）
+// 已支付(1) + 已核销(5) 都纳入：核销后订单变5，只查1会让已核销乘客从名单消失、check_status 恒为未核销
 func (h *DriverHandler) TripPassengers(c *gin.Context) {
 	tripID := c.Param("id")
 	var passengers []model.OrderPassenger
 	h.DB.Joins("JOIN orders ON orders.id = order_passengers.order_id").
 		Preload("Order.FromStation").
 		Preload("Order.ToStation").
-		Where("orders.trip_id = ? AND orders.status = 1", tripID).
+		Where("orders.trip_id = ? AND orders.status IN (?, ?)", tripID, model.OrderStatusPaid, model.OrderStatusPickedUp).
 		Order("order_passengers.seat_no ASC").
 		Find(&passengers)
 	// 脱敏：隐藏乘客身份证号和手机号中间部分
@@ -326,7 +330,7 @@ func (h *DriverHandler) AssignDriver(c *gin.Context) {
 			return fmt.Errorf("司机已被禁用，无法分配")
 		}
 
-		// 执行分配
+		// 分配
 		if err := tx.Model(&model.Trip{}).Where("id = ?", tripID).Update("driver_id", req.DriverID).Error; err != nil {
 			return err
 		}
@@ -350,7 +354,7 @@ func (h *DriverHandler) AssignDriver(c *gin.Context) {
 		return
 	}
 
-	// 查询司机信息用于日志
+	// 查司机信息写日志
 driverName := fmt.Sprintf("driver#%d", req.DriverID)
 	if req.DriverID > 0 {
 		h.DB.First(&driver, req.DriverID)
@@ -503,7 +507,7 @@ func (h *DriverHandler) DriverAvailability(c *gin.Context) {
 		})
 	}
 
-	// 查询司机基本信息
+	// 司机基本信息
 	var driver model.Driver
 	h.DB.First(&driver, driverID)
 
@@ -558,7 +562,7 @@ func (h *DriverHandler) VerifyStats(c *gin.Context) {
 
 	baseQuery := h.DB.Model(&model.OrderPassenger{}).
 		Joins("JOIN orders ON orders.id = order_passengers.order_id").
-		Where("orders.status = 1")
+		Where("orders.status IN (?, ?)", model.OrderStatusPaid, model.OrderStatusPickedUp)
 	if tripID != "" {
 		baseQuery = baseQuery.Where("orders.trip_id = ?", tripID)
 	}

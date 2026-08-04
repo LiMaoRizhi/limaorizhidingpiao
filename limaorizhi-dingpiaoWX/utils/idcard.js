@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 
 // 身份证号格式校验（本地校验，不调用外部API）
 // 校验规则：18位、前17位数字、最后一位数字或X、校验码正确
@@ -21,7 +20,7 @@ function validateIDCard(idCard) {
     return '身份证号最后一位必须为数字或X'
   }
 
-  // 校验出生日期
+  // 看生日填得中不中
   var year = parseInt(idCard.substr(6, 4))
   var month = parseInt(idCard.substr(10, 2))
   var day = parseInt(idCard.substr(12, 2))
@@ -31,7 +30,7 @@ function validateIDCard(idCard) {
   if (day < 1 || day > 31) {
     return '身份证号出生日期无效'
   }
-  // 校验日期合理性
+  // 日期也得合理
   var date = new Date(year, month - 1, day)
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     return '身份证号出生日期不合法'
@@ -40,7 +39,7 @@ function validateIDCard(idCard) {
     return '身份证号出生日期不能为未来日期'
   }
 
-  // 校验码验证（ISO 7064:1983.MOD 11-2）
+  // 校验码对一对（ISO 7064:1983.MOD 11-2）
   var weightFactors = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
   var checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
   var sum = 0

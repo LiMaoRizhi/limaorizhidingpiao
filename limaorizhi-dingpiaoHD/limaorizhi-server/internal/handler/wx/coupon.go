@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -42,7 +41,7 @@ func (h *UserHandler) AvailableCoupons(c *gin.Context) {
 		return
 	}
 
-	// 查询用户已领取的优惠券ID集合
+	// 用户领过的优惠券ID集合
 	userID := c.GetUint("user_id")
 	var claimedIDs []uint
 	h.DB.Model(&model.UserCoupon{}).Where("user_id = ?", userID).Pluck("coupon_id", &claimedIDs)

@@ -1171,6 +1171,7 @@ import pixelBackImg from '@/assets/icons/android.png'
 import huaweiBackImg from '@/assets/icons/huawei.jpg'
 import samsungBackImg from '@/assets/icons/samsung.png'
 
+// TODO: 这个文件5000多行了，后面装修面板拆分时得拆成独立组件，不然改一个地方要滚半天
 // 机型品牌Logo（弹窗缩略图叠加用，不影响3D翻转背面）
 const brandLogos: Record<PhoneModel, string> = {
   apple: `<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M791.488 544.095c-1.28-129.695 105.76-191.871 110.528-194.975-60.16-88.032-153.856-100.064-187.232-101.472-79.744-8.064-155.584 46.944-196.064 46.944-40.352 0-102.816-45.76-168.96-44.544-86.912 1.28-167.072 50.528-211.808 128.384-90.304 156.703-23.136 388.831 64.896 515.935 43.008 62.208 94.304 132.064 161.632 129.568 64.832-2.592 89.376-41.952 167.744-41.952s100.416 41.952 169.056 40.672c69.76-1.312 113.984-63.392 156.704-125.792 49.376-72.16 69.728-142.048 70.912-145.632-1.536-0.704-136.064-52.224-137.408-207.136zM662.56 163.52C698.304 120.16 722.432 60 715.84 0c-51.488 2.112-113.888 34.304-150.816 77.536-33.152 38.368-62.144 99.616-54.368 158.432 57.472 4.48 116.128-29.216 151.904-72.448z" fill="#2c2c2c"/></svg>`,
@@ -1330,7 +1331,6 @@ const filteredSearchTrips = computed(() => {
 const cycleSearchDate = () => {
   searchDateIndex.value = (searchDateIndex.value + 1) % 3
 }
-// 循环切换出发站
 const cycleFromStation = () => {
   const opts = stationOptions.value
   if (opts.length === 0) return
@@ -1345,7 +1345,6 @@ const cycleFromStation = () => {
     searchFromStation.value = opts[idx + 1]
   }
 }
-// 循环切换到达站
 const cycleToStation = () => {
   const opts = stationOptions.value
   if (opts.length === 0) return
@@ -1492,7 +1491,7 @@ const titleColorMap: Record<string, string> = {
   blue: '#2689ff', green: '#33cc33', cyan: '#00cccc', purple: '#9933ff',
 }
 
-// 获取标题特效 class
+// 标题特效类名（1=阴影 2=玻璃 3=液态）
 const getEffectClass = (effect: number) => {
   if (effect === 1) return 'banner-effect-shadow'
   if (effect === 2) return 'banner-effect-glass'
@@ -1500,13 +1499,12 @@ const getEffectClass = (effect: number) => {
   return ''
 }
 
-// 获取标题内联样式（颜色）
 const getTitleStyle = (banner: any) => {
   const color = titleColorMap[banner.title_color] || '#ffffff'
   return { color }
 }
 
-// 格式化优惠券数据（与小程序逻辑一致）
+// 优惠券数据转一下（跟小程序保持一致）
 const formatCoupon = (item: any) => {
   let label = '', valueText = ''
   if (item.type === 1) { label = '满减券'; valueText = '¥' + item.discount_value }
@@ -1518,7 +1516,7 @@ const formatCoupon = (item: any) => {
   return { id: item.id, name: item.name, label, valueText, desc, themeClass, labelClass }
 }
 
-// 格式化车次数据（与小程序逻辑一致）
+// 车次数据转一下（跟小程序保持一致）
 const formatTrip = (item: any) => {
   const fromName = item.route && item.route.from_station ? item.route.from_station.name : ''
   const toName = item.route && item.route.to_station ? item.route.to_station.name : ''
@@ -1529,7 +1527,6 @@ const formatTrip = (item: any) => {
   const seatsText = item.available_seats === 0 ? '无票' : item.available_seats <= 5 ? `余${item.available_seats}座` : '有票'
   const seatsLow = item.available_seats > 0 && item.available_seats <= 5
   const soldOut = item.available_seats === 0
-  // 计算到达时间
   let arrivalText = ''
   if (item.departure_time) {
     const [h, m] = item.departure_time.split(':').map(Number)
@@ -1577,7 +1574,6 @@ const scrollPhone = (dir: 'up' | 'down' | 'left' | 'right' | 'center') => {
       const hEl = el as HTMLElement
       const cs = window.getComputedStyle(hEl)
       if ((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && hEl.scrollWidth > hEl.clientWidth + 1) {
-        // 检查是否已到达滚动边界
         const atRightEnd = hEl.scrollLeft + hEl.clientWidth >= hEl.scrollWidth - 1
         const atLeftEnd = hEl.scrollLeft <= 0
         if ((dir === 'right' && !atRightEnd) || (dir === 'left' && !atLeftEnd)) {
@@ -1779,7 +1775,7 @@ const moveDownGeneric = (list: any[], index: number) => {
   showFloatBtn.value = true
 }
 
-// 切换页面（懒加载对应布局）
+// 切页面（用到了才加载对应布局）
 const pageLoaded = ref<Record<string, boolean>>({ home: true })
 const switchPage = async (page: 'home' | 'order' | 'mine') => {
   closeSubPage()
@@ -1793,7 +1789,7 @@ const switchPage = async (page: 'home' | 'order' | 'mine') => {
   }
 }
 
-// 加载订单页标签布局
+// 订单页标签布局
 const loadOrderLayout = async () => {
   loadingOrder.value = true
   try {
@@ -1806,7 +1802,7 @@ const loadOrderLayout = async () => {
   }
 }
 
-// 加载我的页布局（订单分类 + 功能菜单）
+// 我的页布局（订单分类 + 功能菜单）
 const loadMineLayout = async () => {
   loadingMine.value = true
   try {

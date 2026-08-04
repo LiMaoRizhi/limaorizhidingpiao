@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 const { request } = require('../../utils/request')
 const { safeDate } = require('../../utils/format')
 
@@ -29,20 +28,18 @@ Page({
       this._firstLoad = false
       return
     }
-    // 返回页面时刷新数据
+    // 回页面时刷新
     this.loadCoupons()
     this.loadPoints()
     this.loadPointRecords()
   },
 
-  // 切换主标签
   onMainTabTap(e) {
     const index = e.currentTarget.dataset.index
     if (index === this.data.activeTab) return
     this.setData({ activeTab: index })
   },
 
-  // 切换优惠券子标签
   onCouponTabTap(e) {
     const index = e.currentTarget.dataset.index
     if (index === this.data.couponTab) return
@@ -50,7 +47,7 @@ Page({
     this.loadCoupons()
   },
 
-  // 加载优惠券
+  // 拉优惠券
   loadCoupons() {
     const status = this.data.couponTab === 0 ? '0' : this.data.couponTab === 1 ? '1' : '2'
     request({
@@ -66,7 +63,7 @@ Page({
     })
   },
 
-  // 加载积分余额
+  // 拉积分余额
   loadPoints() {
     request({ url: '/api/wx/points', method: 'GET' }).then(res => {
       this.setData({ pointsBalance: (res.data && res.data.balance) || 0 })

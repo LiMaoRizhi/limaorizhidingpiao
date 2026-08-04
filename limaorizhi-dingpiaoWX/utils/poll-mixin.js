@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 // 轮询退避机制 Mixin（bus-progress / vehicle-track 共用）
 // 正常间隔8秒，请求失败时指数退避（8→16→32→60秒封顶），成功后恢复8秒
 
@@ -53,7 +52,7 @@ function createPollMixin(loadFnName) {
       this.scheduleNextPoll()
     },
 
-    // 重置轮询状态（onShow/retry 时调用）
+    // 重置轮询（onShow/重试的时候得调一下）
     resetPollState() {
       this.pollInterval = 8000
       this.consecutiveErrors = 0

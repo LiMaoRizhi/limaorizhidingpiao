@@ -1,5 +1,4 @@
 // 管理后台 - 营销管理（优惠券/发放记录/积分规则/用户积分）
-// 接 /api/wx/admin/coupons + /user-coupons + /point-rules + /user-points
 // 超管可新增/编辑/删除优惠券和积分规则
 const { request } = require('../../utils/request')
 
@@ -36,6 +35,7 @@ Page({
     tabs: TABS,
     activeTab: 'coupons',
     keyword: '',
+    inputFocused: '',
     isSuperAdmin: false,
 
     // 优惠券
@@ -78,6 +78,14 @@ Page({
     const userInfo = wx.getStorageSync('user_info') || {}
     this.setData({ isSuperAdmin: userInfo.admin_role === 1 })
     this.loadCoupons(false)
+  },
+
+  // 输入框聚焦/失焦（黑线框点击变蓝）
+  onFieldFocus(e) {
+    this.setData({ inputFocused: e.currentTarget.dataset.field || '' })
+  },
+  onFieldBlur() {
+    this.setData({ inputFocused: '' })
   },
 
   onTabTap(e) {
@@ -255,7 +263,7 @@ Page({
     else if (t === 'points') this.loadPoints(true)
   },
 
-  // ===== 新增/编辑/删除 =====
+  // 新增/编辑/删除
   onAdd() {
     if (!this.data.isSuperAdmin) return
     if (this.data.activeTab === 'coupons') this.openCouponForm(null)

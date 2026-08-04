@@ -1,9 +1,11 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package admin
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"limaorizhi-server/internal/model"
 	"limaorizhi-server/internal/pkg/response"
@@ -93,6 +95,41 @@ func validateInsuranceProvider(req *insuranceProviderCreateRequest, requireSecre
 	}
 	if req.Fee < 0 || req.Fee > 1000 {
 		return fmt.Errorf("保险费必须为0-1000之间的数字")
+	}
+	// SSRF防护：校验API URL格式与安全性
+	if err := validateAdminAPIURL(req.APIURL); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateAdminAPIURL 校验API地址 只放行HTTPS公网地址 防SSRF
+func validateAdminAPIURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("API地址格式无效")
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("API地址必须使用HTTPS")
+	}
+	if u.Host == "" {
+		return fmt.Errorf("API地址缺少主机名")
+	}
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		host = u.Host
+	}
+	if strings.EqualFold(host, "localhost") {
+		return fmt.Errorf("API地址不允许使用localhost")
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return fmt.Errorf("无法解析API地址域名: %s", host)
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() {
+			return fmt.Errorf("API地址不允许指向内网IP: %s", host)
+		}
 	}
 	return nil
 }

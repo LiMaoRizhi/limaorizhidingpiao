@@ -1,4 +1,3 @@
-// limaorizhi-dingpiaoWX  狸猫日志售票系统  联系微信：lihao68681818  搬运或商用前麻烦先微信说一声
 var log = require('../../utils/log')
 
 const { driverRequest: request } = require('../../utils/request')
@@ -40,7 +39,6 @@ Page({
   // 空方法：用于阻止事件冒泡和滚动穿透
   noop() {},
 
-  // 输入框聚焦/失焦
   onFieldFocus(e) {
     this.setData({ focusedField: e.currentTarget.dataset.field })
   },
@@ -91,7 +89,7 @@ Page({
     }
   },
 
-  // 退出登录
+  // 退出
   async handleLogout() {
     try {
       await request({ url: '/api/wx/driver/logout', method: 'POST' })
@@ -109,7 +107,7 @@ Page({
     })
   },
 
-  // 加载今日班次
+  // 拉今个的班次
   async loadTrips() {
     try {
       const res = await request({
@@ -122,7 +120,10 @@ Page({
         arrival_text: formatArrivalTime(t.arrival_time, t.arrival_day_offset)
       }))
       this.setData({ trips })
-    } catch (e) { log.error('加载今日班次失败', e) }
+    } catch (e) {
+      log.error('加载今日班次失败', e)
+      wx.showToast({ title: '加载班次失败，请下拉重试', icon: 'none' })
+    }
   },
 
   // 扫码核销
@@ -160,7 +161,7 @@ Page({
     })
   },
 
-  // 显示手动输入弹窗（绑定到特定班次）
+  // 手动输入弹窗（绑到某个班次上）
   showManualInput(e) {
     const tripId = e.currentTarget.dataset.id
     this.setData({
@@ -170,7 +171,7 @@ Page({
     })
   },
 
-  // 显示全局手动输入弹窗（不绑定班次，使用verify-by-no）
+  // 全局手动输入弹窗（不绑班次，走verify-by-no）
   showGlobalManualInput() {
     this.setData({
       showManual: true,
@@ -189,6 +190,7 @@ Page({
 
   // 手动输入核销
   // 增加安全提示，推荐使用扫码核销
+  // 无论是否绑定班次，手动输入都计入后端"未验签每小时5次"限流，统一弹提示
   async handleManualVerify() {
     const { manualOrderNo, manualTripId } = this.data
     if (!manualOrderNo) {
@@ -200,25 +202,20 @@ Page({
       wx.showToast({ title: '订单号格式不正确', icon: 'none' })
       return
     }
-    // 提示手动核销每小时限5次
-    if (!manualTripId) {
-      wx.showModal({
-        title: '安全提示',
-        content: '手动输入核销每小时限5次，推荐使用扫码核销更安全。确认继续手动核销？',
-        confirmText: '继续核销',
-        cancelText: '去扫码',
-        success: (res) => {
-          if (res.confirm) {
-            this.executeManualVerify(manualOrderNo, manualTripId)
-          }
+    wx.showModal({
+      title: '安全提示',
+      content: '手动输入核销每小时限5次，推荐使用扫码核销更安全。确认继续手动核销？',
+      confirmText: '继续核销',
+      cancelText: '去扫码',
+      success: (res) => {
+        if (res.confirm) {
+          this.executeManualVerify(manualOrderNo, manualTripId)
         }
-      })
-    } else {
-      this.executeManualVerify(manualOrderNo, manualTripId)
-    }
+      }
+    })
   },
 
-  // 执行手动核销
+  // 手动核销
   executeManualVerify(manualOrderNo, manualTripId) {
     this.setData({ verifyLoading: true })
     // 如果有tripId，使用绑定班次的核销接口；否则使用按订单号核销接口
@@ -262,7 +259,7 @@ Page({
     }
   },
 
-  // 执行核销
+  // 核销（扫码/手动都走这）
   // verifyToken 可选：扫码场景传入完整凭证，手动输入场景传空字符串
   async doVerify(orderNo, tripId, isManual, verifyToken) {
     if (!isManual) {
@@ -318,6 +315,7 @@ Page({
       })
     } catch (e) {
       wx.hideLoading()
+      wx.showToast({ title: '加载乘客名单失败，请重试', icon: 'none' })
     }
   },
 

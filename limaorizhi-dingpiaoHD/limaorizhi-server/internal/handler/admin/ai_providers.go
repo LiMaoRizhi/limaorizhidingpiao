@@ -46,8 +46,8 @@ var aiProviders = []ProviderInfo{
 		TagType:   "secondary",
 		Hint:      "一个API Key免费调用所有英伟达模型",
 		Models: []ModelInfo{
-			// 狸猫员工：智能默认，自动选择最优可用模型，谁能用用谁
-			// 支持对话/图片识别/图片生成/业务分析，模型下架自动降级
+			// 狸猫员工:智能默认,自动挑最优可用模型,谁能用用谁
+			// 对话/识图/生图/业务分析都能干,模型下架自动降级
 			{ID: "auto", Name: "狸猫员工", Description: "智能默认，自动选择最快可用模型，支持对话/图片识别/图片生成", Tag: "推荐", TagType: "primary", SupportsVision: true, Icon: "brain"},
 			// 视觉模型按响应速度排序：小模型优先（谁先能识别图片让谁先上）
 			{ID: "nvidia/llama-3.1-nemotron-nano-vl-8b-v1", Name: "Nemotron Nano VL 8B", Description: "8B超轻量视觉模型，图片识别极速响应", Tag: "极速", TagType: "info", SupportsVision: true, Icon: "vision"},

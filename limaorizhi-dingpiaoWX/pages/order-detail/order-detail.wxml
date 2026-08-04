@@ -33,6 +33,17 @@
 
     <!-- 二维码（仅车票订单+待出行状态显示） -->
     <view class="qrcode-section" wx:if="{{!isCargo && order.status === 1}}">
+      <!-- 乘车信息：日期 + 座位，大字清晰（对老年人友好） -->
+      <view class="ride-info" wx:if="{{seatText}}">
+        <view class="ride-col">
+          <text class="ride-label">乘车日期</text>
+          <text class="ride-value">{{order.trip_date}} {{order.departure_time}}发车</text>
+        </view>
+        <view class="ride-col ride-col-seat">
+          <text class="ride-label">座位</text>
+          <text class="ride-seat">{{seatText}}</text>
+        </view>
+      </view>
       <image wx:if="{{qrcodeUrl}}" class="qrcode-img" src="{{qrcodeUrl}}" mode="aspectFit" bindtap="previewQrcode" />
       <view wx:elif="{{qrcodeLoading}}" class="qrcode-placeholder">
         <text>二维码加载中...</text>
@@ -112,6 +123,10 @@
         <text class="info-label">支付时间</text>
         <text class="info-value">{{order.pay_time}}</text>
       </view>
+      <view class="info-row" wx:if="{{paymentInfo && paymentInfo.paid}}">
+        <text class="info-label">微信交易单号</text>
+        <text class="info-value">{{paymentInfo.transaction_id}}</text>
+      </view>
       <view class="info-row">
         <text class="info-label">下单时间</text>
         <text class="info-value">{{order.created_at}}</text>
@@ -137,7 +152,10 @@
       <view class="card-title">乘客信息</view>
       <view class="passenger-row" wx:for="{{passengers}}" wx:key="id">
         <view class="p-info">
-          <text class="p-name">{{item.name}}</text>
+          <view class="p-name-row">
+            <text class="p-name">{{item.name}}</text>
+            <text class="p-standing" wx:if="{{item.seat_type === 1}}">无座</text>
+          </view>
           <text class="p-card">{{item.id_card_no}}</text>
         </view>
         <view class="p-status" wx:if="{{item.check_status === 1}}">
@@ -150,6 +168,7 @@
     <view class="action-bar">
       <button class="action-btn pay-btn" wx:if="{{order.status === 0}}" bindtap="handlePay">立即支付</button>
       <button class="action-btn cancel-btn" wx:if="{{order.status === 0}}" bindtap="handleCancel">取消订单</button>
+      <button class="action-btn change-btn" wx:if="{{!isCargo && order.status === 1}}" bindtap="handleChange">改签</button>
       <button class="action-btn refund-btn" wx:if="{{order.status === 1}}" bindtap="handleRefund">{{isCargo ? '申请退款' : '申请退票'}}</button>
       <button class="action-btn track-btn" wx:if="{{showTrackBtn}}" bindtap="handleViewTrack">{{trackBtnText}}</button>
     </view>

@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package config
 
 import (
@@ -12,34 +11,34 @@ import (
 )
 
 type ServerConfig struct {
-	Port            int    `yaml:"port"`
-	Mode            string `yaml:"mode"`
-	TrustedProxies  string `yaml:"trusted_proxies"` // 逗号分隔的可信代理IP/CIDR，留空则不信任任何代理（防X-Forwarded-For伪造）
+	Port           int    `yaml:"port"`
+	Mode           string `yaml:"mode"`
+	TrustedProxies string `yaml:"trusted_proxies"` // 逗号分隔的可信代理IP/CIDR，留空则不信任任何代理（防X-Forwarded-For伪造）
 }
 
 type MySQLConfig struct {
-	Host            string `yaml:"host"`
-	Port            int    `yaml:"port"`
-	Username        string `yaml:"username"`
-	Password        string `yaml:"password"`
-	Database        string `yaml:"database"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
+	Database     string `yaml:"database"`
+	MaxOpenConns int    `yaml:"max_open_conns"`
+	MaxIdleConns int    `yaml:"max_idle_conns"`
 }
 
 type JWTConfig struct {
 	AdminSecret  string `yaml:"admin_secret"`
 	WXSecret     string `yaml:"wx_secret"`
 	DriverSecret string `yaml:"driver_secret"` // 司机端独立密钥
-	AdminExpire   int    `yaml:"admin_expire"`   // seconds
-	WXExpire      int    `yaml:"wx_expire"`      // seconds
-	DriverExpire  int    `yaml:"driver_expire"`  // seconds 司机端Token有效期
+	AdminExpire  int    `yaml:"admin_expire"`  // seconds
+	WXExpire     int    `yaml:"wx_expire"`     // seconds
+	DriverExpire int    `yaml:"driver_expire"` // seconds 司机端Token有效期
 }
 
 type UploadConfig struct {
-	Path       string `yaml:"path"`
-	URLPrefix  string `yaml:"url_prefix"`
-	MaxSize    int64  `yaml:"max_size"`
+	Path      string `yaml:"path"`
+	URLPrefix string `yaml:"url_prefix"`
+	MaxSize   int64  `yaml:"max_size"`
 }
 
 type RedisConfig struct {
@@ -50,24 +49,24 @@ type RedisConfig struct {
 }
 
 type WechatConfig struct {
-	Appid            string `yaml:"appid"`
-	Secret           string `yaml:"secret"`
-	MchID            string `yaml:"mch_id"`
+	Appid  string `yaml:"appid"`
+	Secret string `yaml:"secret"`
+	MchID  string `yaml:"mch_id"`
 
-	// === APIv3 字段 ===
-	APIv3Key         string `yaml:"apiv3_key"`               // APIv3 密钥（32字节），用于回调解密（AES-256-GCM）和平台证书下载解密
-	MchSerialNo      string `yaml:"mch_serial_no"`           // 商户证书序列号（16进制字符串，用于请求头 Wechatpay-Serial）
+	// APIv3 字段
+	APIv3Key          string `yaml:"apiv3_key"`            // APIv3 密钥（32字节），用于回调解密（AES-256-GCM）和平台证书下载解密
+	MchSerialNo       string `yaml:"mch_serial_no"`        // 商户证书序列号（16进制字符串，用于请求头 Wechatpay-Serial）
 	MchPrivateKeyPath string `yaml:"mch_private_key_path"` // 商户私钥 PEM 文件路径（apiclient_key.pem），用于请求签名
-	MchCertPEMPath   string `yaml:"mch_cert_pem_path"`     // 商户证书 PEM 文件路径（apiclient_cert.pem），用于 v3 敏感接口 mTLS
+	MchCertPEMPath    string `yaml:"mch_cert_pem_path"`    // 商户证书 PEM 文件路径（apiclient_cert.pem），用于 v3 敏感接口 mTLS
 
-	// === 微信支付公钥模式（2024 新方案，推荐）===
+	// 微信支付公钥模式（2024 新方案，推荐）
 	// 配置后跳过 /v3/certificates 平台证书自动下载，直接用此公钥验签响应和回调
 	// 适用于商户后台已申请「微信支付公钥」的场景（公钥长期有效，无需轮换）
 	WxPayPublicKeyPath string `yaml:"wxpay_public_key_path"` // 微信支付公钥 PEM 文件路径
 	WxPayPublicKeyID   string `yaml:"wxpay_public_key_id"`   // 微信支付公钥 ID（如 PUB_KEY_ID_xxx），用于请求头 Wechatpay-Serial
 
-	NotifyURL        string `yaml:"notify_url"`         // 支付回调通知地址
-	RefundNotifyURL  string `yaml:"refund_notify_url"`   // 退款回调通知地址
+	NotifyURL       string `yaml:"notify_url"`        // 支付回调通知地址
+	RefundNotifyURL string `yaml:"refund_notify_url"` // 退款回调通知地址
 
 	// 订阅消息模板ID（在小程序后台→功能→订阅消息中申请）
 	// 留空则禁用对应通知类型，不影响其他功能
@@ -85,28 +84,28 @@ type SubscribeTemplatesConfig struct {
 }
 
 type IDCardVerifyConfig struct {
-	Enabled     bool   `yaml:"enabled"`             // 是否启用实名认证
-	StrictMode  bool   `yaml:"strict_mode"`          // 严格模式：API失败时拒绝操作
-	AppCode     string `yaml:"app_code"`            // 阿里云云市场AppCode
-	Endpoint    string `yaml:"endpoint"`            // API地址
-	Path        string `yaml:"path"`                // API路径
-	CacheTTL    int    `yaml:"cache_ttl"`           // 认证结果缓存有效期(秒)，0表示使用默认30天。可通过环境变量 IDCARD_VERIFY_CACHE_TTL 覆盖
+	Enabled    bool   `yaml:"enabled"`     // 是否启用实名认证
+	StrictMode bool   `yaml:"strict_mode"` // 严格模式：API失败时拒绝操作
+	AppCode    string `yaml:"app_code"`    // 阿里云云市场AppCode
+	Endpoint   string `yaml:"endpoint"`    // API地址
+	Path       string `yaml:"path"`        // API路径
+	CacheTTL   int    `yaml:"cache_ttl"`   // 认证结果缓存有效期(秒)，0表示使用默认30天。可通过环境变量 IDCARD_VERIFY_CACHE_TTL 覆盖
 }
 
 // SecurityConfig 安全相关配置（敏感字段加解密 + 核销凭证签名）
 type SecurityConfig struct {
 	IDCardAESKey string `yaml:"id_card_aes_key"` // 身份证号AES-256加密密钥(base64编码的32字节)，必须通过环境变量 IDCARD_AES_KEY 注入
-	VerifySecret string `yaml:"verify_secret"` // 核销凭证HMAC签名密钥，必须通过环境变量 VERIFY_SECRET 注入随机32字节密钥
+	VerifySecret string `yaml:"verify_secret"`   // 核销凭证HMAC签名密钥，必须通过环境变量 VERIFY_SECRET 注入随机32字节密钥
 }
 
 type Config struct {
-	Server      ServerConfig      `yaml:"server"`
-	MySQL       MySQLConfig       `yaml:"mysql"`
-	Redis       RedisConfig       `yaml:"redis"`
-	JWT         JWTConfig         `yaml:"jwt"`
-	Wechat      WechatConfig      `yaml:"wechat"`
-	Upload      UploadConfig      `yaml:"upload"`
-	CORSOrigins string            `yaml:"cors_origins"` // 逗号分隔的CORS白名单
+	Server       ServerConfig       `yaml:"server"`
+	MySQL        MySQLConfig        `yaml:"mysql"`
+	Redis        RedisConfig        `yaml:"redis"`
+	JWT          JWTConfig          `yaml:"jwt"`
+	Wechat       WechatConfig       `yaml:"wechat"`
+	Upload       UploadConfig       `yaml:"upload"`
+	CORSOrigins  string             `yaml:"cors_origins"`  // 逗号分隔的CORS白名单
 	IDCardVerify IDCardVerifyConfig `yaml:"idcard_verify"` // 身份实名认证配置
 	Security     SecurityConfig     `yaml:"security"`      // 安全配置（敏感数据加解密）
 }
@@ -156,10 +155,13 @@ func envOverride() {
 		AppConfig.Wechat.MchID = v
 	}
 	if v := os.Getenv("WECHAT_NOTIFY_URL"); v != "" {
-		AppConfig.Wechat.NotifyURL = v
+		// 容错：.env 在宝塔/记事本里编辑时容易手滑带上前后空格或反引号（`` ` ``），
+		// 微信拿到的回调地址就变成非法URL，回调永远发不进来（钱扣了订单还是待支付）。
+		// 这里掐头去尾，别让一个反引号把支付回调干废了。
+		AppConfig.Wechat.NotifyURL = strings.Trim(strings.TrimSpace(v), "`")
 	}
 	if v := os.Getenv("WECHAT_REFUND_NOTIFY_URL"); v != "" {
-		AppConfig.Wechat.RefundNotifyURL = v
+		AppConfig.Wechat.RefundNotifyURL = strings.Trim(strings.TrimSpace(v), "`")
 	}
 	// 订阅消息模板ID
 	if v := os.Getenv("WECHAT_SUBSCRIBE_PAYMENT_SUCCESS"); v != "" {
@@ -176,7 +178,11 @@ func envOverride() {
 	}
 	// APIv3 配置
 	if v := os.Getenv("WECHAT_API_V3_KEY"); v != "" {
-		AppConfig.Wechat.APIv3Key = v
+		// 容错：跟 NOTIFY_URL 一个德行，.env 在宝塔/记事本里编辑时手滑带上空格或反引号（`` ` ``）。
+		// APIv3Key 错一个字符，微信回调的 AES-GCM 解密就失败（cipher: message authentication failed），
+		// 回调处理不了返回 410，微信重试 N 次全挂，订单卡"待支付"只能靠对账任务每5分钟兜底。
+		// 这里掐头去尾，别让手滑把支付回调干废了。
+		AppConfig.Wechat.APIv3Key = strings.Trim(strings.TrimSpace(v), "`")
 	}
 	if v := os.Getenv("WECHAT_MCH_SERIAL_NO"); v != "" {
 		AppConfig.Wechat.MchSerialNo = v
@@ -200,7 +206,8 @@ func envOverride() {
 	}
 	// CORS
 	if v := os.Getenv("CORS_ORIGINS"); v != "" {
-		AppConfig.CORSOrigins = v
+		// 容错：跟 NOTIFY_URL 一样，手滑带空格/反引号会让 Origin 白名单永远匹配不上，管理后台跨域被拒
+		AppConfig.CORSOrigins = strings.Trim(strings.TrimSpace(v), "`")
 	}
 	// 身份实名认证
 	if v := os.Getenv("IDCARD_VERIFY_APPCODE"); v != "" {

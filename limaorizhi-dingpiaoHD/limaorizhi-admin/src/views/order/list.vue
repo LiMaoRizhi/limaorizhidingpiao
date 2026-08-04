@@ -63,8 +63,8 @@
             <el-button size="small" link @click="handleDetail(row)">详情</el-button>
             <!-- 待支付：管理员手动确认收款（线下付款场景） -->
             <el-button size="small" link type="success" v-if="row.status === 0" @click="handleUpdateStatus(row, 1, '确认该订单已收到付款？\n（仅用于线下付款，微信支付会自动确认）')">确认收款</el-button>
-            <!-- 车票订单：退款 -->
-            <el-button size="small" link type="warning" v-if="row.order_type === 1 && (row.status === 1 || row.status === 2)" @click="handleRefund(row)">退款</el-button>
+            <!-- 车票订单：退款（status=0也可能是微信已扣款但回调没到，点退款后端会先查单对账，所以叫"查单退款"） -->
+            <el-button size="small" link type="warning" v-if="row.order_type === 1 && row.status <= 2" @click="handleRefund(row)">{{ row.status === 0 ? '查单退款' : '退款' }}</el-button>
             <!-- 托运订单：状态流转 -->
             <el-button size="small" link type="primary" v-if="row.order_type === 2 && row.status === 1" @click="handleUpdateStatus(row, 2, '确认开始运输该托运货物？')">开始运输</el-button>
             <el-button size="small" link type="success" v-if="row.order_type === 2 && row.status === 2" @click="handleUpdateStatus(row, 3, '确认货物已到达目的地？')">确认到达</el-button>
@@ -116,6 +116,16 @@
         <el-table-column prop="phone" label="电话" width="120" />
         <el-table-column prop="seat_no" label="座位号" width="80" />
       </el-table>
+      <!-- 支付流水：回调没送达时订单状态可能是假的（待支付），这里能看出微信真实扣款 -->
+      <el-table :data="detail?.payments || []" style="margin-top: 16px" stripe v-if="(detail?.payments || []).length">
+        <el-table-column prop="payment_no" label="支付流水号" width="170" />
+        <el-table-column prop="transaction_id" label="微信交易单号" min-width="190" />
+        <el-table-column prop="amount" label="金额" width="80" />
+        <el-table-column prop="method" label="方式" width="90" />
+        <el-table-column label="支付时间" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.pay_time) }}</template>
+        </el-table-column>
+      </el-table>
     </el-dialog>
 
     <!-- 退款弹窗 -->
@@ -140,12 +150,12 @@ const list = ref<any[]>([]), total = ref(0), loading = ref(false)
 const detailVisible = ref(false), detail = ref<any>(null)
 const refundVisible = ref(false), refundRow = ref<any>({}), refundReason = ref(''), refundSubmitting = ref(false)
 const query = reactive({ order_no: '', order_type: '' as any, status: '' as any, contact_phone: '', start_date: '', end_date: '', page: 1, page_size: 20 })
-// 格式化日期：取前10位，兼容 "2026-07-21" 和 "2026-07-21 15:04:05" 格式
+// 日期取前10位就中了，兼容带不带时间
 const formatDate = (dt: string) => {
   if (!dt) return '-'
   return dt.slice(0, 10)
 }
-// 格式化日期时间：显示为 "YYYY-MM-DD HH:mm" 格式
+// 时间显示成 "YYYY-MM-DD HH:mm"
 const formatDateTime = (dt: string) => {
   if (!dt) return '-'
   // 后端 JSONTime 输出 "2006-01-02 15:04:05"，取前16位即可
@@ -153,7 +163,7 @@ const formatDateTime = (dt: string) => {
 }
 const orderStatusText = (s: number, t?: number) => {
   if (t === 2) return ({ 0: '待支付', 1: '待运输', 2: '运输中', 3: '已到达', 4: '已取消', 5: '已取件' } as any)[s] || '未知'
-  return ({ 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消' } as any)[s] || '未知'
+  return ({ 0: '待支付', 1: '待出行', 2: '已完成', 3: '已退款', 4: '已取消', 5: '已核销' } as any)[s] || '未知'
 }
 const orderStatusType = (s: number) => ({ 0: 'warning', 1: 'success', 2: 'info', 3: 'danger', 4: 'info', 5: 'info' } as any)[s] || 'info'
 const handleSearch = () => { query.page = 1; loadData() }

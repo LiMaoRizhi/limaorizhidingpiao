@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"limaorizhi-server/internal/model"
-	"limaorizhi-server/internal/pkg/idcard"
 	"limaorizhi-server/internal/pkg/money"
 	"limaorizhi-server/internal/pkg/response"
 
@@ -304,9 +302,8 @@ func (h *CargoHandler) CreateCargoOrder(c *gin.Context) {
 	h.DB.Preload("Trip.Route.FromStation").Preload("Trip.Route.ToStation").
 		Preload("FromStation").Preload("ToStation").First(&order, order.ID)
 
-	// 脱敏：隐藏发货人电话/收货人电话
-	order.SenderPhone = idcard.MaskPhone(order.SenderPhone)
-	order.ReceiverPhone = idcard.MaskPhone(order.ReceiverPhone)
+	// 统一脱敏（与车票订单掩码一致，防止新增敏感字段遗漏）
+	order.Mask()
 
 	response.OKMsg(c, "下单成功", order)
 }

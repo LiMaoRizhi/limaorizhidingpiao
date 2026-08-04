@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -24,7 +23,8 @@ import (
 // 核销相关错误（sentinel error）
 var (
 	errVerifyOrderNotFound  = errors.New("订单不存在")
-	errVerifyOrderStatus    = errors.New("订单未支付或已使用")
+	errVerifyOrderStatus    = errors.New("不可核销")
+	errVerifyNotTicket      = errors.New("托运订单不支持核销")
 	errVerifyTripMismatch    = errors.New("该票不属于此班次")
 	errVerifyForbidden       = errors.New("无权核销此班次或班次日期不匹配")
 	errVerifyAlreadyChecked  = errors.New("该票已核销")
@@ -128,7 +128,7 @@ func (h *DriverHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 更新最后登录时间
+	// 登录时间更新一下
 	now := time.Now()
 	h.DB.Model(&driver).Update("last_login_at", &now)
 
@@ -195,11 +195,13 @@ func (h *DriverHandler) TripPassengers(c *gin.Context) {
 		return
 	}
 
+	// 已支付(1) + 已核销(5) 都纳入名单：核销后订单变为5，若只查1，已上车的乘客会从名单消失，
+	// 且 check_status=1 的记录必然挂在 status=5 的订单上，导致“已核销”统计永远为0
 	var passengers []model.OrderPassenger
 	h.DB.Joins("JOIN orders ON orders.id = order_passengers.order_id").
 		Preload("Order.FromStation").
 		Preload("Order.ToStation").
-		Where("orders.trip_id = ? AND orders.status = ?", tripID, model.OrderStatusPaid).
+		Where("orders.trip_id = ? AND orders.status IN (?, ?)", tripID, model.OrderStatusPaid, model.OrderStatusPickedUp).
 		Order("order_passengers.seat_no ASC").
 		Find(&passengers)
 
@@ -225,15 +227,15 @@ func (h *DriverHandler) TripPassengers(c *gin.Context) {
 		}
 	}
 
-	// 统计核销情况
+	// 统计核销情况（同样纳入已核销订单，checked 才能反映真实核销数）
 	var total, checked int64
 	h.DB.Model(&model.OrderPassenger{}).
 		Joins("JOIN orders ON orders.id = order_passengers.order_id").
-		Where("orders.trip_id = ? AND orders.status = ?", tripID, model.OrderStatusPaid).
+		Where("orders.trip_id = ? AND orders.status IN (?, ?)", tripID, model.OrderStatusPaid, model.OrderStatusPickedUp).
 		Count(&total)
 	h.DB.Model(&model.OrderPassenger{}).
 		Joins("JOIN orders ON orders.id = order_passengers.order_id").
-		Where("orders.trip_id = ? AND orders.status = ? AND order_passengers.check_status = 1", tripID, model.OrderStatusPaid).
+		Where("orders.trip_id = ? AND orders.status IN (?, ?) AND order_passengers.check_status = 1", tripID, model.OrderStatusPaid, model.OrderStatusPickedUp).
 		Count(&checked)
 
 	response.OK(c, gin.H{
@@ -294,7 +296,7 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 	driverName, _ := c.Get("driver_name")
 	driverNameStr, _ := driverName.(string)
 
-	// 校验订单号格式
+	// 订单号格式
 	if err := verifytoken.ValidateOrderNo(orderNo); err != nil {
 		response.FailMsg(c, response.CodeParamError, "订单号格式非法")
 		return
@@ -323,14 +325,17 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 		}
 		if fallback {
 			// Redis 不可用时，进程级降级计数（单实例有效，多实例需配 Redis）
+			// 用 CAS 循环原子自增：从 0 开始计数，第 6 次起拒绝，与 Redis 路径行为一致
 			bucketKey := fmt.Sprintf("%d:%s", driverID, time.Now().Format("20060102-15"))
-			actual, _ := manualVerifyCounts.LoadOrStore(bucketKey, int64(1))
-			if actual != nil {
-				currentCount := actual.(int64) + 1
-				manualVerifyCounts.Store(bucketKey, currentCount)
-				if currentCount > manualVerifyLimit {
-					response.FailMsg(c, response.CodeForbidden, "未验签核销次数已达本小时上限（5次），请改用扫码核销")
-					return
+			for {
+				actual, _ := manualVerifyCounts.LoadOrStore(bucketKey, int64(0))
+				current := actual.(int64) + 1
+				if manualVerifyCounts.CompareAndSwap(bucketKey, actual, current) {
+					if current > manualVerifyLimit {
+						response.FailMsg(c, response.CodeForbidden, "未验签核销次数已达本小时上限（5次），请改用扫码核销")
+						return
+					}
+					break
 				}
 			}
 			// 定期清理过期桶（每个整点自动过期，这里懒清理上一个小时的记录）
@@ -355,44 +360,53 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 
 		// 2. 校验订单状态（行锁内，防并发）
 		if order.Status != model.OrderStatusPaid {
+			// 已核销订单重复扫码：直接返回"该票已核销"，避免"已核销…不可核销"的矛盾文案
+			if order.Status == model.OrderStatusPickedUp {
+				return errVerifyAlreadyChecked
+			}
 			var statusText string
 			switch order.Status {
 			case model.OrderStatusPending:
-				statusText = "未支付"
+				statusText = "订单未支付"
 			case model.OrderStatusCompleted:
-				statusText = "已完成"
+				statusText = "订单已完成"
 			case model.OrderStatusRefunded:
-				statusText = "已退款"
+				statusText = "订单已退款"
 			case model.OrderStatusCancelled:
-				statusText = "已取消"
+				statusText = "订单已取消"
 			default:
-				statusText = "状态异常"
+				statusText = "订单状态异常"
 			}
-			return fmt.Errorf("订单%s，不可核销: %w", statusText, errVerifyOrderStatus)
+			return fmt.Errorf("%s，%w", statusText, errVerifyOrderStatus)
 		}
 
-		// 3. 扫码核销模式(tripID>0)：校验订单班次匹配
+		// 3. 托运订单无乘客可核销，直接拒绝（防止司机扫到托运码被误报"已核销"）
+		if order.OrderType != 1 {
+			return errVerifyNotTicket
+		}
+
+		// 4. 扫码核销模式(tripID>0)：校验订单班次匹配
 		if tripID > 0 && order.TripID != tripID {
 			return errVerifyTripMismatch
 		}
 
-		// 4. 校验班次属于该司机
+		// 5. 校验班次属于该司机
 		if order.Trip == nil || order.Trip.DriverID != driverID {
 			return errVerifyTripNotOwned
 		}
 
-		// 5. 校验班次日期：当天班次要求trip_date==today；跨天班次(status=2)允许在到达日核销
+		// 6. 校验班次日期：当天班次要求trip_date==today；跨天班次(status=2)允许在到达日核销
 		today := time.Now().Format("2006-01-02")
 		if string(order.Trip.TripDate) != today && order.Trip.Status != model.TripStatusDepart {
 			return errVerifyForbidden
 		}
 
-		// 6. 校验班次已发车
+		// 7. 校验班次已发车
 		if order.Trip.Status != model.TripStatusDepart {
 			return errVerifyTripNotDeparted
 		}
 
-		// 7. 查询未核销乘客
+		// 8. 查询未核销乘客
 		if err := tx.Where("order_id = ? AND check_status = 0", order.ID).Find(&passengers).Error; err != nil {
 			return err
 		}
@@ -400,7 +414,7 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 			return errVerifyAlreadyChecked
 		}
 
-		// 8. 核销：标记所有未核销乘客为已核销
+		// 9. 核销：标记所有未核销乘客为已核销
 		now := time.Now()
 		if err := tx.Model(&model.OrderPassenger{}).
 			Where("order_id = ? AND check_status = 0", order.ID).
@@ -412,13 +426,17 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 			return err
 		}
 
-		// 9. 全部核销后更新订单状态为已完成(2)
+		// 10. 全部核销后更新订单状态为已核销(5)
+		// 注意：不能置为已完成(2)！已完成订单不参与座位占用查询，
+		// 若核销即完成，乘客还在车上座位就被释放，后续乘客会买到同一座位（超卖）。
+		// 置为已核销(5)后，座位在乘客到站（班次驶过其下车站）前持续占用，
+		// 班次到达终点时由 CompleteTrip 统一置为已完成(2)。
 		var uncheckedCount int64
 		tx.Model(&model.OrderPassenger{}).
 			Where("order_id = ? AND check_status = 0", order.ID).
 			Count(&uncheckedCount)
 		if uncheckedCount == 0 {
-			if err := tx.Model(&order).Update("status", model.OrderStatusCompleted).Error; err != nil {
+			if err := tx.Model(&order).Update("status", model.OrderStatusPickedUp).Error; err != nil {
 				return err
 			}
 			orderCompleted = true
@@ -434,6 +452,8 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 			response.Fail(c, response.CodeOrderNotFound)
 		case errors.Is(err, errVerifyOrderStatus):
 			response.FailMsg(c, response.CodeOrderStatusErr, err.Error())
+		case errors.Is(err, errVerifyNotTicket):
+			response.FailMsg(c, response.CodeParamError, err.Error())
 		case errors.Is(err, errVerifyTripMismatch):
 			response.Fail(c, response.CodeNotThisTrip)
 		case errors.Is(err, errVerifyTripNotOwned):
@@ -459,7 +479,7 @@ func (h *DriverHandler) verifyCore(c *gin.Context, orderNo string, tripID uint, 
 		fmt.Sprintf("订单号:%s 班次ID:%d 核销乘客数:%d 订单已完成:%v",
 			order.OrderNo, order.TripID, len(passengers), orderCompleted))
 
-	// 返回核销结果
+	// 核销结果
 	var allPassengers []model.OrderPassenger
 	h.DB.Where("order_id = ?", order.ID).Find(&allPassengers)
 	// 司机端保留手机号（需联系乘客），仅脱敏身份证号

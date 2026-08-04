@@ -1,4 +1,3 @@
-// limaorizhi-server  狸猫日志售票系统  联系微信：lihao68681818
 package wx
 
 import (
@@ -16,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// 登录认证
+// 登录
 
 // Login 微信登录（开发环境无appid时使用mock模式）
 type wxLoginRequest struct {
@@ -95,7 +94,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 生成 JWT（从配置读取有效期秒数）
+	// 签 JWT（有效期秒数从配置读）
 	token, err := jwt.GenerateToken(
 		config.AppConfig.JWT.WXSecret,
 		user.ID,
