@@ -61,6 +61,9 @@ cert/
 密钥/
 uploads/
 
+# 本地截图原图（仓库内已有 screenshots/ 精选图）
+截图/
+
 # Database
 *.db
 *.sqlite
