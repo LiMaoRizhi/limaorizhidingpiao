@@ -21,6 +21,15 @@
 - **AI 数字员工**：管理后台内嵌 AI 助手（SSE 流式回复，上下文来自真实业务数据并脱敏）
 - **订阅消息**：支付成功/发车/到达/退款全链路微信订阅通知（配额制防滥用）
 
+## 界面预览
+
+| 乘客端 | 乘客端 |
+|--------|--------|
+| ![首页上](screenshots/home-top.png) | ![首页下](screenshots/home-bottom.png) |
+| ![班次详情](screenshots/trip-detail.png) | ![确认订单](screenshots/order-confirm.png) |
+| ![我的](screenshots/mine.png) | ![货运](screenshots/cargo.png) |
+| ![司机核销](screenshots/driver-verify.png) | ![管理后台](screenshots/admin-panel.png) |
+
 ## 技术栈
 
 - **后端**：Go 1.21+ / Gin / GORM / MySQL / Redis
