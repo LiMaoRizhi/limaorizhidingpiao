@@ -23,12 +23,22 @@
 
 ## 界面预览
 
+### 乘客端
+
 | 乘客端 | 乘客端 |
 |--------|--------|
 | ![首页上](screenshots/home-top.png) | ![首页下](screenshots/home-bottom.png) |
 | ![班次详情](screenshots/trip-detail.png) | ![确认订单](screenshots/order-confirm.png) |
 | ![我的](screenshots/mine.png) | ![货运](screenshots/cargo.png) |
-| ![司机核销](screenshots/driver-verify.png) | ![管理后台](screenshots/admin-panel.png) |
+
+### 司机/管理后台
+
+| 司机端 | 管理后台 |
+|--------|----------|
+| ![司机核销](screenshots/driver-verify.png) | ![后台总览](screenshots/admin-panel.png) |
+| ![登录页](screenshots/admin-login.png) | ![人机验证](screenshots/admin-verify.png) |
+| ![首页+数字员工](screenshots/admin-home.png) | ![班次管理](screenshots/admin-trips.png) |
+| ![装修设计](screenshots/admin-design.png) | ![设置与保险对接](screenshots/admin-settings.png) |
 
 ## 技术栈
 
